@@ -77,6 +77,27 @@ class EvaluateFixtureTests(unittest.TestCase):
             {"start", "liveness", "result", "cancel"},
             "A1 requires supported start/liveness/result/cancel operations")
 
+    def test_missing_hermes_binary_degrades_not_crashes(self):
+        """Regression: an absent/unparseable `hermes --version` must yield a
+        named missing-executable blocker, never a TypeError."""
+        hermes = readiness.collect_hermes("definitely-not-a-real-binary-xyz")
+        self.assertIn("error", hermes)
+        self.assertIsNone(hermes["version"])
+        readings = load_fixture("ready")
+        readings["hermes"] = hermes
+        report = readiness.evaluate(readings)
+        self.assertIn("missing-executable", report["blocker_codes"])
+        self.assertEqual(report["dispatch"], "denied")
+
+    def test_non_strict_base_blocks_merge_endpoint(self):
+        """Verification contract §3: required_status_checks.strict must be
+        true — a base that allows stale merges is a base-unprotected blocker."""
+        readings = load_fixture("ready")
+        readings["repo_rules"]["strict_up_to_date"] = False
+        report = readiness.evaluate(readings)
+        self.assertIn("base-unprotected", report["blocker_codes"])
+        self.assertEqual(report["dispatch"], "denied")
+
 
 class ProbeCliTests(unittest.TestCase):
     """CLI surface: self-test, fixture evaluation, verdict exit codes."""

@@ -199,11 +199,14 @@ def collect_host():
 def collect_hermes(hermes_bin):
     out = {"bin": hermes_bin}
     ver = _run([hermes_bin, "--version"])
-    out["version_raw"] = ver["out"].splitlines()[0] if ver["out"] else None
-    out["version"] = list(_semver(out["version_raw"])) if out["version_raw"] else None
     if not ver["ok"]:
+        out["version_raw"] = None
+        out["version"] = None
         out["error"] = ver["out"] or "hermes --version failed"
         return out
+    out["version_raw"] = ver["out"].splitlines()[0] if ver["out"] else None
+    sem = _semver(out["version_raw"])
+    out["version"] = list(sem) if sem else None
 
     # Top-level surface inventory.
     help_out = _run([hermes_bin, "--help"])["out"]
@@ -465,6 +468,12 @@ def evaluate(readings):
             blockers.append(_b(
                 "base-unprotected",
                 "branch protection exists but names no required status checks"))
+        elif rules.get("strict_up_to_date") is not True:
+            blockers.append(_b(
+                "base-unprotected",
+                f"{nwo or '<repo>'}:{rules.get('default_branch')} does not "
+                "require an up-to-date base (strict=false) — a stale head "
+                "could merge without fresh checks"))
         elif rules.get("enforce_admins") is False:
             blockers.append(_b(
                 "base-unprotected",
@@ -508,8 +517,8 @@ _SELFTEST = [
                   "auth_status": "logged in",
                   "endpoint": {"reachable": True, "configured_model_listed": True}},
         "repo_rules": {"protected": True, "required_checks": ["CI"],
-                       "enforce_admins": True, "allow_auto_merge": False,
-                       "automation_files": []},
+                       "strict_up_to_date": True, "enforce_admins": True,
+                       "allow_auto_merge": False, "automation_files": []},
         "transport": {"telegram_adapter": True},
     }, "ready"),
     ("model-unavailable", {
@@ -522,8 +531,8 @@ _SELFTEST = [
                   "auth_status": "logged in",
                   "endpoint": {"reachable": False, "error": "TimeoutError"}},
         "repo_rules": {"protected": True, "required_checks": ["CI"],
-                       "enforce_admins": True, "allow_auto_merge": False,
-                       "automation_files": []},
+                       "strict_up_to_date": True, "enforce_admins": True,
+                       "allow_auto_merge": False, "automation_files": []},
         "transport": {"telegram_adapter": True},
     }, "not-ready"),
     ("conflicting-owner", {
@@ -535,8 +544,8 @@ _SELFTEST = [
         "model": {"provider": "x", "model": "m", "auth_status": "logged in",
                   "endpoint": {"reachable": None}},
         "repo_rules": {"protected": True, "required_checks": ["CI"],
-                       "enforce_admins": True, "allow_auto_merge": True,
-                       "automation_files": []},
+                       "strict_up_to_date": True, "enforce_admins": True,
+                       "allow_auto_merge": True, "automation_files": []},
         "transport": {"telegram_adapter": True},
     }, "not-ready"),
 ]
