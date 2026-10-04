@@ -147,18 +147,27 @@ class DisposableRemote:
 # only process that reads these and can reach the remote.
 # ---------------------------------------------------------------------------
 
+def _check_op_id(op_id) -> None:
+    """An op_id names a drop-box file, so it must be a plain file name — a
+    value containing a separator (or ``.``/``..``) would let the worker
+    escape ``requests/``/``responses/`` and overwrite e.g. ``remote.json``
+    through the very channel that is supposed to be unmediated."""
+    if (not isinstance(op_id, str) or not op_id
+            or op_id in (".", "..") or Path(op_id).name != op_id):
+        raise ValueError("request needs a safe string op_id")
+
+
 def submit_request(root, request: dict) -> Path:
     """Drop one publication/control request for the broker to evaluate."""
-    op_id = request.get("op_id")
-    if not op_id or not isinstance(op_id, str):
-        raise ValueError("request needs a string op_id")
-    out = Path(root) / REQUESTS_DIR / f"{op_id}.json"
+    _check_op_id(request.get("op_id"))
+    out = Path(root) / REQUESTS_DIR / f"{request['op_id']}.json"
     _atomic_write(out, request)
     return out
 
 
 def await_response(root, op_id: str, timeout: float = 10.0):
     """Poll for the broker's response file; None on timeout."""
+    _check_op_id(op_id)
     target = Path(root) / RESPONSES_DIR / f"{op_id}.json"
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:

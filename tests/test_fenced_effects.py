@@ -74,6 +74,27 @@ class CredentialSurfaceTests(unittest.TestCase):
         with self.assertRaises(PermissionError):
             remote.state_path.write_text("{}", encoding="utf-8")
 
+    def test_dropbox_refuses_op_id_path_traversal(self):
+        """The worker-side channel is itself a direct-mutation surface: an
+        op_id carrying a separator would escape requests/ and let the worker
+        overwrite remote.json (or any *.json under the fixture root) without
+        the broker — an unmediated mutation route, which must not exist."""
+        fx = fresh_fixture()
+        before = fx["remote"].snapshot()
+        for bad in ("../remote", "..", ".", "/abs/path", "a/b", ""):
+            with self.assertRaises(ValueError, msg=f"op_id={bad!r}"):
+                fx_mod.submit_request(
+                    fx["root"], req(bad, "branch-publish",
+                                    payload={"branch": "x", "sha": "0" * 40}))
+        self.assertEqual(fx["remote"].snapshot(), before,
+                         "a refused op_id must leave the remote untouched")
+        self.assertEqual(
+            sorted(p.name for p in
+                   (Path(fx["root"]) / fx_mod.REQUESTS_DIR).glob("*.json")),
+            [], "refused op_ids must not drop request files")
+        with self.assertRaises(ValueError):
+            fx_mod.await_response(fx["root"], "../fixture-manifest")
+
 
 class ScopedPublicationTests(unittest.TestCase):
     """A1 — allowed publication crosses the boundary and records identity."""
