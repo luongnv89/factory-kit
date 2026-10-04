@@ -1,0 +1,9 @@
+# Local IDD run state — machine-local, never committed
+.gitissue/
+
+# Python
+__pycache__/
+*.pyc
+
+# OS noise
+.DS_Store

@@ -1,0 +1,321 @@
+{
+  "readings": {
+    "probe_version": "1.0.0",
+    "repository": {
+      "name": "luongnv89/money-mind",
+      "node_id": "R_kgDOQncOdA",
+      "private": false,
+      "default_branch": "main"
+    },
+    "host": {
+      "os": "Darwin",
+      "release": "27.0.0",
+      "machine": "arm64",
+      "python": "3.14.7"
+    },
+    "hermes": {
+      "bin": "hermes",
+      "version_raw": "Hermes Agent v0.21.5+6718.g158fd63 (2026.9.24) \u00b7 upstream 158fd638",
+      "version": [
+        0,
+        21,
+        5
+      ],
+      "top_level": {
+        "kanban": true,
+        "webhook": true,
+        "cron": true,
+        "gateway": true,
+        "plugins": true,
+        "auth": true,
+        "secrets": true,
+        "egress": true,
+        "send": true,
+        "models": true
+      },
+      "kanban_verbs": [
+        "archive",
+        "assign",
+        "assignees",
+        "attach",
+        "attach-rm",
+        "attachments",
+        "block",
+        "boards",
+        "claim",
+        "comment",
+        "complete",
+        "context",
+        "create",
+        "daemon",
+        "decompose",
+        "diagnostics",
+        "dispatch",
+        "edit",
+        "gc",
+        "heartbeat",
+        "init",
+        "link",
+        "list",
+        "log",
+        "notify-list",
+        "notify-subscribe",
+        "notify-unsubscribe",
+        "promote",
+        "reassign",
+        "reclaim",
+        "reopen-review",
+        "repair",
+        "request-changes",
+        "request-review",
+        "runs",
+        "schedule",
+        "set-model",
+        "show",
+        "specify",
+        "stats",
+        "swarm",
+        "tail",
+        "unblock",
+        "unlink",
+        "watch"
+      ],
+      "webhook_subscribe": true,
+      "gateway": {
+        "supervised": true,
+        "raw": [
+          "Launchd plist: /Users/montimage/Library/LaunchAgents/ai.hermes.gateway.plist",
+          "\u2713 Service definition matches the current Hermes install",
+          "\u2713 Gateway is supervised by launchd (PID 10119)"
+        ]
+      },
+      "auth_providers": [
+        "copilot",
+        "nous",
+        "openai-codex",
+        "xai-oauth"
+      ],
+      "kanban_tasks": []
+    },
+    "idd": {
+      "repo": "/Users/montimage/buildspace/luongnv89/idd",
+      "version": "v0.23.1-2-gd6a908f",
+      "skills_root": "/Users/montimage/.agents/skills",
+      "skills": {
+        "agent-config": "2.0.2",
+        "app-growth-planner": "1.1.0",
+        "appstore-review-checker": "1.3.0",
+        "aso-marketing": "1.3.1",
+        "auto-pilot": "2.7.0",
+        "auto-push": "1.0.5",
+        "bien-evaluator": "4.2.1",
+        "branch-inspector": "1.1.5",
+        "brand-name-checker": "1.4.2",
+        "clean-code": "1.2.2",
+        "cli-builder": "1.1.0",
+        "code-optimizer": "1.4.0",
+        "code-review": "2.1.3",
+        "codebase-modernizer": "1.3.3",
+        "competitor-analysis": "2.1.2",
+        "convert-documents-to-markdown": "1.1.0",
+        "dev-machine-setup": "0.9.3",
+        "devops-pipeline": "2.2.2",
+        "diagram-generator": "1.3.0",
+        "doc-manager": "2.0.4",
+        "dont-make-me-think": "1.4.3",
+        "drawio-generator": "1.2.2",
+        "emil-design-eng": "unversioned",
+        "excalidraw-generator": "1.3.2",
+        "find-me-skills": "1.2.1",
+        "fork-upstream-sync": "1.3.4",
+        "frontend-design": "1.2.7",
+        "game-forge": "2.1.0",
+        "herdr-agent": "3.1.4",
+        "idea-validator": "1.5.1",
+        "init-gitissue": "0.3.7",
+        "install-script-generator": "2.2.4",
+        "issue-analysis": "0.6.0",
+        "issue-creator": "0.9.0",
+        "issue-pr-review": "2.7.0",
+        "issue-resolver": "0.19.0",
+        "issue-triage": "0.6.0",
+        "issue-work-loop": "1.5.3",
+        "landing-page-generator": "1.3.0",
+        "literature-review": "unversioned",
+        "logo-designer": "1.2.5",
+        "mi-tool-descriptor": "3.4.0",
+        "microsoft-foundry": "unversioned",
+        "ollama-optimizer": "1.2.1",
+        "opencode-docker-dev": "1.2.0",
+        "opencode-handoff": "1.1.1",
+        "opencode-runner": "1.5.1",
+        "opencode-sandbox": "3.1.0",
+        "oss-ready": "1.3.1",
+        "oss-ready-flow": "1.5.4",
+        "paper-review": "4.0.0",
+        "paper-self-review": "0.1.0",
+        "plan-to-issues": "2.2.0",
+        "prd-generator": "1.4.3",
+        "pupil-writing-evaluator": "1.0.0",
+        "readme-to-landing-page": "2.1.1",
+        "release-manager": "2.6.4",
+        "research-ideation": "0.1.0",
+        "results-analysis": "0.2.0",
+        "scholar-evaluation": "unversioned",
+        "scientific-critical-thinking": "unversioned",
+        "scientific-writing": "unversioned",
+        "security-setup": "1.4.2",
+        "seo-ai-optimizer": "1.3.3",
+        "skill-auto-improver": "2.4.0",
+        "skill-creator": "1.18.0",
+        "skill-install-improved": "1.0.0",
+        "skill-shortener": "1.0.0",
+        "slop-cleanup": "1.1.2",
+        "stop-slop": "unversioned",
+        "subagent-creator": "1.1.4",
+        "tad-generator": "1.5.1",
+        "tasks-generator": "1.4.1",
+        "test-coverage": "1.3.2",
+        "tmux-agent-comms": "2.3.2",
+        "typesafe-ai": "unversioned",
+        "unslop": "unversioned",
+        "ux-ax-review": "1.0.3",
+        "viral-product-evaluator": "1.5.0",
+        "website-agent-readiness": "1.2.5",
+        "website-cloner": "1.3.0"
+      }
+    },
+    "runtimes": {
+      "claude": {
+        "present": true,
+        "version": "2.1.288 (Claude Code)"
+      },
+      "codex": {
+        "present": true,
+        "version": "codex-cli 0.160.0"
+      },
+      "opencode": {
+        "present": true,
+        "version": "opencode v2.0.22"
+      },
+      "node": {
+        "present": true,
+        "version": "v26.7.0"
+      },
+      "npm": {
+        "present": true,
+        "version": "11.19.0"
+      }
+    },
+    "model": {
+      "config": {
+        "model.provider": "dspark",
+        "model.default": "montimage-dgx-spark",
+        "model.base_url": "http://100.117.100.54:8001/v1",
+        "model.api_mode": "chat_completions",
+        "gateway.multiplex_profiles": "true"
+      },
+      "provider": "dspark",
+      "model": "montimage-dgx-spark",
+      "base_url": "http://100.117.100.54:8001/v1",
+      "auth_status": "dspark: logged out",
+      "endpoint": {
+        "reachable": false,
+        "error": "URLError"
+      }
+    },
+    "credentials": {
+      "github": {
+        "authenticated": true,
+        "token_scopes": [
+          "admin:public_key",
+          "gist",
+          "read:org",
+          "repo"
+        ],
+        "user": "luongnv89"
+      },
+      "vercel": {
+        "authenticated": true,
+        "user": "luongnv89"
+      }
+    },
+    "transport": {
+      "telegram_adapter": true,
+      "telegram_env_keys": [
+        "TELEGRAM_ALLOWED_USERS",
+        "TELEGRAM_BOT_TOKEN",
+        "TELEGRAM_HOME_CHANNEL"
+      ],
+      "env_file": "/Users/montimage/.hermes/.env"
+    },
+    "repo_rules": {
+      "default_branch": "main",
+      "allow_auto_merge": false,
+      "protected": false,
+      "required_checks": [],
+      "strict_up_to_date": null,
+      "enforce_admins": null,
+      "automation_files": []
+    }
+  },
+  "report": {
+    "verdict": "not-ready",
+    "dispatch": "denied",
+    "dispatched": false,
+    "blockers": [
+      {
+        "code": "model-unavailable",
+        "detail": "dspark/montimage-dgx-spark endpoint http://100.117.100.54:8001/v1 unreachable (URLError)",
+        "remediation": "authenticate `hermes auth <provider>` or restore the model endpoint"
+      },
+      {
+        "code": "base-unprotected",
+        "detail": "luongnv89/money-mind:main has no branch protection \u2014 required checks on an up-to-date base cannot be enforced",
+        "remediation": "enable required status checks on an up-to-date base with enforce_admins before the merge endpoint"
+      }
+    ],
+    "operations": {
+      "start": {
+        "required_verbs": [
+          "create",
+          "claim",
+          "dispatch"
+        ],
+        "missing": [],
+        "supported": true
+      },
+      "liveness": {
+        "required_verbs": [
+          "heartbeat",
+          "runs",
+          "tail"
+        ],
+        "missing": [],
+        "supported": true
+      },
+      "result": {
+        "required_verbs": [
+          "complete",
+          "request-review",
+          "block",
+          "attach"
+        ],
+        "missing": [],
+        "supported": true
+      },
+      "cancel": {
+        "required_verbs": [
+          "block",
+          "reclaim"
+        ],
+        "missing": [],
+        "supported": true
+      }
+    },
+    "blocker_codes": [
+      "model-unavailable",
+      "base-unprotected"
+    ]
+  }
+}

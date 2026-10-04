@@ -1,0 +1,152 @@
+{
+  "probe_version": "1.0.0",
+  "repository": {
+    "name": "acme/finapp",
+    "node_id": "R_kdDO_demo",
+    "private": true,
+    "default_branch": "main"
+  },
+  "host": {
+    "os": "Darwin",
+    "release": "25.0.0",
+    "machine": "arm64",
+    "python": "3.14.7"
+  },
+  "hermes": {
+    "bin": "hermes",
+    "version_raw": "v0.21.5+6718.g158fd63",
+    "version": [
+      0,
+      21,
+      5
+    ],
+    "top_level": {
+      "kanban": true,
+      "webhook": true,
+      "cron": true,
+      "gateway": true,
+      "plugins": true,
+      "auth": true,
+      "secrets": true,
+      "egress": true,
+      "send": true,
+      "models": true
+    },
+    "kanban_verbs": [
+      "archive",
+      "assign",
+      "assignees",
+      "attach",
+      "attach-rm",
+      "attachments",
+      "block",
+      "boards",
+      "claim",
+      "comment",
+      "complete",
+      "context",
+      "create",
+      "daemon",
+      "decompose",
+      "diagnostics",
+      "dispatch",
+      "edit",
+      "gc",
+      "heartbeat",
+      "init",
+      "link",
+      "list",
+      "log",
+      "notify-list",
+      "notify-subscribe",
+      "notify-unsubscribe",
+      "promote",
+      "reassign",
+      "reclaim",
+      "reopen-review",
+      "repair",
+      "request-changes",
+      "request-review",
+      "runs",
+      "schedule",
+      "set-model",
+      "show",
+      "specify",
+      "stats",
+      "tail",
+      "unblock",
+      "unlink",
+      "watch"
+    ],
+    "webhook_subscribe": true,
+    "gateway": {
+      "supervised": true,
+      "raw": [
+        "\u2713 supervised"
+      ]
+    },
+    "auth_providers": [
+      "openai-codex"
+    ],
+    "kanban_tasks": []
+  },
+  "idd": {
+    "repo": "/opt/idd",
+    "version": "v0.23.1",
+    "skills": {
+      "issue-resolver": "0.19.0"
+    }
+  },
+  "runtimes": {
+    "claude": {
+      "present": true,
+      "version": "2.1.288"
+    },
+    "codex": {
+      "present": true,
+      "version": "0.160.0"
+    }
+  },
+  "model": {
+    "provider": "dspark",
+    "model": "montimage-dgx-spark",
+    "base_url": "http://100.64.0.1:8001/v1",
+    "auth_status": "logged in",
+    "endpoint": {
+      "reachable": false,
+      "error": "TimeoutError"
+    }
+  },
+  "credentials": {
+    "github": {
+      "authenticated": true,
+      "token_scopes": [
+        "repo",
+        "workflow"
+      ],
+      "user": "acme"
+    },
+    "vercel": {
+      "authenticated": true,
+      "user": "acme"
+    }
+  },
+  "transport": {
+    "telegram_adapter": true,
+    "telegram_env_keys": [
+      "TELEGRAM_ALLOWED_USERS",
+      "TELEGRAM_BOT_TOKEN"
+    ]
+  },
+  "repo_rules": {
+    "default_branch": "main",
+    "allow_auto_merge": false,
+    "protected": true,
+    "required_checks": [
+      "CI"
+    ],
+    "strict_up_to_date": true,
+    "enforce_admins": true,
+    "automation_files": []
+  }
+}
