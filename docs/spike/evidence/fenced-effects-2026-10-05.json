@@ -1,0 +1,288 @@
+{
+  "probe_version": "1.0.0",
+  "generated_at": "2026-10-04T23:49:02.058+00:00",
+  "fixture": {
+    "root": "tempfile",
+    "remote": "tests/fixtures/disposable_repo.py"
+  },
+  "results": [
+    {
+      "scenario": "boundary-not-worktree",
+      "ac": "A4",
+      "passed": true,
+      "evidence": {
+        "response": {
+          "op_id": "s12-0",
+          "outcome": "denied",
+          "reason": "wrong-repository",
+          "detail": "request targets a repository other than the registered one"
+        }
+      }
+    },
+    {
+      "scenario": "canary-hygiene",
+      "ac": "A4",
+      "passed": true,
+      "evidence": {
+        "leaked": [],
+        "manifest_holds_values": [],
+        "secret_file_modes": "0600",
+        "redacted_audit_rows": true
+      }
+    },
+    {
+      "scenario": "cancel-fence-order",
+      "ac": "A3",
+      "passed": true,
+      "evidence": {
+        "fence_seq": 1,
+        "fence_committed_at": "2026-10-04T23:48:59.015+00:00",
+        "terminate_initiated_at": "2026-10-04T23:48:59.015+00:00",
+        "worker_exit": "confirmed",
+        "denied": {
+          "s8-descendant": "generation-fenced",
+          "s8-during-kill": "generation-fenced",
+          "s8-result": "generation-fenced"
+        }
+      }
+    },
+    {
+      "scenario": "credential-surface",
+      "ac": "A1",
+      "passed": true,
+      "evidence": {
+        "env_keys": [
+          "FK_ROOT",
+          "FK_WORKER_TOKEN",
+          "LC_ALL",
+          "PATH",
+          "PYTHONDONTWRITEBYTECODE",
+          "__CF_USER_TEXT_ENCODING"
+        ],
+        "direct_attempts": [
+          {
+            "attempt": "adapter-publish",
+            "result": "denied",
+            "by": "BoundaryViolation"
+          },
+          {
+            "attempt": "adapter-pr",
+            "result": "denied",
+            "by": "BoundaryViolation"
+          },
+          {
+            "attempt": "raw-state-write",
+            "result": "denied",
+            "by": "PermissionError"
+          }
+        ]
+      }
+    },
+    {
+      "scenario": "prompt-text-no-policy",
+      "ac": "A2",
+      "passed": true,
+      "evidence": {
+        "responses": [
+          {
+            "op_id": "s6-inj",
+            "outcome": "allowed",
+            "seq": 1
+          },
+          {
+            "op_id": "s6-inj2",
+            "outcome": "denied",
+            "reason": "wrong-repository",
+            "detail": "request targets a repository other than the registered one"
+          }
+        ]
+      }
+    },
+    {
+      "scenario": "quarantine-no-replacement",
+      "ac": "A3",
+      "passed": true,
+      "evidence": {
+        "termination_confirmed": false,
+        "replacement": {
+          "allowed": false,
+          "reason": "termination-uncertain",
+          "quarantined": true
+        }
+      }
+    },
+    {
+      "scenario": "revoked-actor",
+      "ac": "A2",
+      "passed": true,
+      "evidence": {
+        "responses": [
+          {
+            "op_id": "s4-ok",
+            "outcome": "allowed",
+            "seq": 1
+          },
+          {
+            "op_id": "s4-revoked",
+            "outcome": "denied",
+            "reason": "revoked-actor",
+            "detail": "actor authorization was revoked"
+          }
+        ]
+      }
+    },
+    {
+      "scenario": "scoped-publication",
+      "ac": "A1",
+      "passed": true,
+      "evidence": {
+        "results": [
+          {
+            "op_id": "s2-0",
+            "outcome": "allowed",
+            "seq": 1
+          },
+          {
+            "op_id": "s2-1",
+            "outcome": "allowed",
+            "seq": 2
+          },
+          {
+            "op_id": "s2-2",
+            "outcome": "allowed",
+            "seq": 3
+          }
+        ],
+        "events": [
+          {
+            "op": "branch-publish",
+            "op_id": "s2-0",
+            "repository": "spike/disposable",
+            "generation": 1,
+            "actor": "worker-profile",
+            "seq": 1
+          },
+          {
+            "op": "pr-publish",
+            "op_id": "s2-1",
+            "repository": "spike/disposable",
+            "generation": 1,
+            "actor": "worker-profile",
+            "seq": 2
+          },
+          {
+            "op": "preview-deploy",
+            "op_id": "s2-2",
+            "repository": "spike/disposable",
+            "generation": 1,
+            "actor": "worker-profile",
+            "seq": 3
+          }
+        ]
+      }
+    },
+    {
+      "scenario": "superseded-generation",
+      "ac": "A2",
+      "passed": true,
+      "evidence": {
+        "responses": {
+          "s5-new": {
+            "op_id": "s5-new",
+            "outcome": "allowed",
+            "seq": 2
+          },
+          "s5-old": {
+            "op_id": "s5-old",
+            "outcome": "denied",
+            "reason": "superseded-generation",
+            "detail": "request names a generation that is no longer current"
+          }
+        },
+        "replacement": {
+          "allowed": true,
+          "generation": 2
+        }
+      }
+    },
+    {
+      "scenario": "transports-selected",
+      "ac": "A4",
+      "passed": true,
+      "evidence": {
+        "transports": {
+          "github": "scoped-gh-profile",
+          "telegram": "gateway-authz+numeric-allowlist",
+          "provider": "vercel"
+        },
+        "context_flags": {
+          "worktree_isolation": true,
+          "branch_protection": true
+        }
+      }
+    },
+    {
+      "scenario": "write-type-matrix",
+      "ac": "A2",
+      "passed": true,
+      "evidence": {
+        "denied": [
+          "wrong-repository",
+          "wrong-repository",
+          "wrong-repository",
+          "wrong-repository",
+          "wrong-repository"
+        ],
+        "allowed_seq": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      }
+    },
+    {
+      "scenario": "wrong-repository",
+      "ac": "A2",
+      "passed": true,
+      "evidence": {
+        "response": {
+          "op_id": "s3-0",
+          "outcome": "denied",
+          "reason": "wrong-repository",
+          "detail": "request targets a repository other than the registered one"
+        },
+        "audit_rows": 1
+      }
+    }
+  ],
+  "report": {
+    "verdict": "boundary-proven",
+    "scenarios_run": 12,
+    "failed": [],
+    "acceptance": {
+      "A4": "pass",
+      "A3": "pass",
+      "A1": "pass",
+      "A2": "pass"
+    },
+    "day2_checkpoint": {
+      "task": "1.2",
+      "evidence_level": "disposable-fixture semantics",
+      "covered": [
+        "A1",
+        "A2",
+        "A3",
+        "A4"
+      ],
+      "open_gates": [
+        "task 1.3 endpoint demo",
+        "task 1.4 fault suite",
+        "live Hermes/GitHub/Telegram read-back"
+      ],
+      "decision": "broad feature work remains blocked until the remaining \u00a78.1 gates carry executable evidence",
+      "replan_owner": "Luong"
+    }
+  }
+}
