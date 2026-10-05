@@ -200,6 +200,24 @@ EVENT_SCHEMAS = {
     "participant_agreement_revoked": {
         "required": ("scope", "actor_ref", "revoked_at"),
     },
+    # Task 4.5 — external-pilot observation (§8.3 GATE-P05). One
+    # minimized observation field set per recorded study beat:
+    # ``phase`` names the beat (install / first-run / removal /
+    # weekly-report / blocked), ``participant_hash`` is the only
+    # participant identity that ever rides the trail — the raw
+    # reference stays in ``pilot_participants``. Observation events are
+    # only ever recorded while ``consent.open_collection`` is open, so
+    # their seq is always ordered after the participant's consent
+    # event — the collection-ordering audit reads that ordering back
+    # (A4). Durations/indices stay nullable: a missing or unrecorded
+    # field is an honest unknown, never a zero-filled one.
+    "pilot_observation_recorded": {
+        "required": ("participant_hash", "scope", "phase",
+                     "actor_ref", "recorded_at"),
+        "nullable": ("outcome", "blocker", "elapsed_minutes",
+                     "week_index", "assistance_class",
+                     "environment_ref"),
+    },
     # §7.1 kinds reserved for Sprint-3 producers (preview/approval/
     # merge/notifications) — declared now so the vocabulary is closed.
     "notification_delivered": {
