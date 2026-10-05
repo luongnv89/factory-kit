@@ -16,7 +16,16 @@ readiness (issue #7 / Task 2.2) now ship as the `factory_kit.setup`
 package — read-only inspection producing an operator-accepted plan,
 idempotent apply that preserves developer work byte-for-byte, and a
 readiness gate that names blockers rather than trusting executable
-presence. The factory runtime is not implemented yet.
+presence. Reviewed ownership-aware removal (issue #19 / Task 3.5, F08)
+ships alongside it in `factory_kit.setup.remove`: `python3 -m
+factory_kit.setup uninstall` emits an operator-reviewable removal plan
+from the recorded ownership ledger, and `python3 -m factory_kit.setup
+remove --plan <file> --history retain|export|delete --accepted-by
+<operator>` applies it — intake stops first, the active-generation
+fence commits before termination, user edits and shared infrastructure
+survive, provider outages leave a visible cleanup-pending backlog, and
+the registration ends as an identity tombstone. The factory runtime is
+not implemented yet.
 
 ## Documents
 
