@@ -4,13 +4,24 @@ A Hermes-native, Telegram-first engineering workflow kit for GitHub projects, re
 
 ## Project status
 
-Planning and validation are complete enough to define the first integration spike. The factory runtime is not implemented yet. The selected MVP covers one repository, one worker runtime and one active issue through implementation, independent review, CI, preview verification, revision-bound human approval and merge.
+The Sprint-1 spike (issues #2–#5) is complete: the tested recipe, Hermes
+boundary map, endpoint walkthrough and fault evidence live under
+`tools/probes/`, `tests/fixtures/` and `docs/spike/`, with decision records
+in `docs/decisions/`. Sprint 2 has started: the validated configuration and
+registration contract (issue #6 / Task 2.1) now ships as the
+`factory_kit.config` package — `.factory-kit.yml` schema validation,
+`.gitissue.yml` ownership precedence, and durable registration records
+with generation fencing. The factory runtime is not implemented yet.
 
 ## Documents
 
 - [Product idea and original design discussion](idea.md)
 - [Validation and competitive assessment](validate.md)
 - [Product requirements and acceptance criteria](prd.md)
+- [Development task plan](tasks.md)
+- [Spike evidence and boundary map](docs/spike/)
+- [Decision records](docs/decisions/)
+- [Canonical manifest example](.factory-kit.yml)
 - [Reference diagram](assets/warp-ai-factory-reference.jpg)
 
 The PRD records the latest scope decisions. The idea and validation retain earlier proposals and recommendations for context.
