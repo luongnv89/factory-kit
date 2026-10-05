@@ -145,7 +145,8 @@ def load(text: str):
 def load_file(path):
     """Parse a restricted-YAML file; missing files raise ``ParseError``."""
     try:
-        text = open(path, encoding="utf-8").read()
+        with open(path, encoding="utf-8") as handle:
+            text = handle.read()
     except OSError as exc:
         raise ParseError(f"cannot read {path}: {exc}") from exc
     try:

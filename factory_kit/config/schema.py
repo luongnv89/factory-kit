@@ -127,8 +127,10 @@ DEFAULT_EVIDENCE = {
 _EVIDENCE_BOUNDS = {
     "observation_freshness_minutes": (1, 1440),
     "event_retention_days": (1, 365),
-    "worker_log_retention_days": (1, 30),
-    "audit_retention_days": (7, 3650),
+    # Floors are the contract itself: worker logs keep ≥7 days, detailed
+    # audit ≥30 — retention may lengthen, never shrink below them (A5).
+    "worker_log_retention_days": (7, 30),
+    "audit_retention_days": (30, 3650),
 }
 #: §7.1: these fields never belong in aggregate export; the manifest can
 #: only widen the set, never drop a required redaction.
@@ -739,20 +741,24 @@ def policy_digest(effective) -> str:
 
 
 def is_execution_authorized(effective, *, github_actor=None,
-                            telegram_user=None, telegram_chat=None) -> bool:
+                            github_role=None, telegram_user=None,
+                            telegram_chat=None) -> bool:
     """Deny-by-default authorization check (CFG02).
 
     Returns True only when execution was explicitly opted into AND every
-    supplied principal is on its allowlist. Any principal not listed —
-    or any list left empty — denies.
+    supplied principal is on *its own* allowlist — actors against
+    ``github_actors``, roles against ``github_roles``. Categories never
+    cross: an actor name matching a role string authorizes nothing. Any
+    principal not listed — or no principal named at all — denies.
     """
     authz = effective.get("authorization", {})
     if authz.get("execution_opt_in") is not True:
         return False
     checks = []
     if github_actor is not None:
-        checks.append(github_actor in authz.get("github_actors", []) or
-                      github_actor in authz.get("github_roles", []))
+        checks.append(github_actor in authz.get("github_actors", []))
+    if github_role is not None:
+        checks.append(github_role in authz.get("github_roles", []))
     if telegram_user is not None:
         checks.append(telegram_user in authz.get("telegram_users", []))
     if telegram_chat is not None:

@@ -122,6 +122,17 @@ class IdentityAuthorizationTests(unittest.TestCase):
         self.assertFalse(schema.is_execution_authorized(effective),
                          "the opt-in flag alone authorizes no one")
 
+    def test_actor_and_role_categories_never_cross(self):
+        effective = schema.load_manifest_file(MANIFEST)
+        self.assertFalse(schema.is_execution_authorized(
+            effective, github_actor="maintainer"),
+            "an actor named like a role must not inherit role authority")
+        self.assertTrue(schema.is_execution_authorized(
+            effective, github_role="maintainer"))
+        self.assertFalse(schema.is_execution_authorized(
+            effective, github_role="luongnv89"),
+            "a role named like an actor must not inherit actor authority")
+
     def test_telegram_allowlists_are_numeric_only(self):
         def mutate(raw):
             raw["authorization"]["telegram_users"] = ["@alice"]
@@ -333,6 +344,16 @@ class RetentionSecretTests(unittest.TestCase):
         self.assertEqual(
             effective["evidence"]["worker_log_retention_days"], 7)
         self.assertEqual(effective["evidence"]["audit_retention_days"], 30)
+
+    def test_retention_floors_cannot_weaken(self):
+        """7-day worker logs / 30-day audit are floors, not suggestions."""
+        def mutate(raw):
+            raw["evidence"]["worker_log_retention_days"] = 3
+            raw["evidence"]["audit_retention_days"] = 14
+        problems = problems_of(mutate)
+        self.assertIn("evidence.worker_log_retention_days",
+                      paths(problems))
+        self.assertIn("evidence.audit_retention_days", paths(problems))
 
     def test_tombstones_must_survive_until_removal(self):
         def mutate(raw):

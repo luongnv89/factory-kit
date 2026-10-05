@@ -120,6 +120,16 @@ class RegistrationStore:
                     "owner": display["owner"], "name": display["name"],
                 }
                 self._save()
+            active = self._active_generation(existing)
+            if schema.policy_digest(effective) != active["policy_digest"]:
+                # Re-registration under a drifted policy is a policy
+                # change, not an idempotent no-op — it takes the same
+                # unauthorized path as apply_policy_change: affected work
+                # parks and a pending marker waits on authorization.
+                result = self.apply_policy_change(
+                    repo_id, effective, authorized_by=None)
+                result["registration"] = existing
+                return result
             return {"outcome": "existing", "registration": existing}
 
         record = {
@@ -175,14 +185,22 @@ class RegistrationStore:
             raise RegistrationError(
                 f"work {work_key!r} is {work['state']} — a parked item "
                 "cannot attach a config digest to a new attempt")
-        generation = self._active_generation(record)
+        bound = None
+        for gen in record["generations"]:
+            if gen["generation"] == work["generation"]:
+                bound = gen
+                break
+        if bound is None:
+            raise RegistrationError(
+                f"work {work_key!r} references unknown generation "
+                f"{work['generation']}")
         return {
             "repo_id": repo_id,
             "work_key": work_key,
             "role": role,
-            "generation": work["generation"],
-            "config_digest": generation["config_digest"],
-            "policy_digest": generation["policy_digest"],
+            "generation": bound["generation"],
+            "config_digest": bound["config_digest"],
+            "policy_digest": bound["policy_digest"],
         }
 
     # -- policy change (CFG-C02) --------------------------------------------
@@ -205,11 +223,13 @@ class RegistrationStore:
         generation = self._active_generation(record)
         new_policy = schema.policy_digest(new_effective)
         display = new_effective["identity"]
+        # Display fields are never policy: refresh them on every path so a
+        # rename riding alongside a policy change is not lost.
+        record["display"] = {
+            "owner": display["owner"], "name": display["name"],
+        }
 
         if new_policy == generation["policy_digest"]:
-            record["display"] = {
-                "owner": display["owner"], "name": display["name"],
-            }
             self._save()
             return {"outcome": "unchanged",
                     "generation": generation["generation"]}

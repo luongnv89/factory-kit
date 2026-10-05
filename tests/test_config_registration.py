@@ -100,6 +100,26 @@ class RegistrationPersistenceTests(unittest.TestCase):
                          "renaming the display name cannot change "
                          "repository authority")
 
+    def test_reregister_with_policy_drift_is_not_silent(self):
+        """A re-run setup carrying a changed policy is a policy change —
+        it parks affected work, never reports a quiet 'existing'."""
+        eff = effective()
+        self.store.register(eff, readiness=READINESS,
+                            supported_versions=VERSIONS)
+        repo_id = eff["identity"]["repo_id"]
+        self.store.record_work(repo_id, "issue-9")
+        drifted = copy.deepcopy(eff)
+        drifted["authorization"]["github_actors"] = ["luongnv89", "other"]
+        result = self.store.register(drifted, readiness=READINESS,
+                                     supported_versions=VERSIONS)
+        self.assertEqual(result["outcome"], "parked")
+        self.assertIn("issue-9", result["affected"])
+        record = self.store.get(repo_id)
+        self.assertEqual(record["generations"][0]["policy_digest"],
+                         schema.policy_digest(eff),
+                         "the drifted policy must not overwrite the "
+                         "recorded generation")
+
 
 class PolicyChangeTests(unittest.TestCase):
     """A7 / CFG-C02 — park or fresh-generation, never silent expansion."""
