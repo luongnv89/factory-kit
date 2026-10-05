@@ -105,8 +105,10 @@ class ExecutionLane:
 
     def eligible_work(self):
         """Ready work in FIFO order: intake-accepted, task association
-        bound, bound to the registration's *active* generation, and not
-        fenced. Parked/quarantined/completed rows are never eligible.
+        bound, bound to the registration's *active* generation, not
+        fenced, and not under a pause boundary (``requested`` or
+        ``paused`` — Task 2.7). Parked/quarantined/canceled/completed
+        rows are never eligible.
 
         A row is eligible while ``pending``, or while ``active`` with
         zero attempt records — that is exactly the crash window between
@@ -128,6 +130,9 @@ class ExecutionLane:
             fence = self.store.fence_state(work["work_key"])
             if fence and fence["fenced"]:
                 continue
+            if self.store.pause_info(work["work_key"])["pause_state"] \
+                    in ("requested", "paused"):
+                continue                # held at a stage boundary (2.7)
             out.append(work)
         return out
 
@@ -145,7 +150,7 @@ class ExecutionLane:
         lane is free; leave the rest durably queued with the visible
         ``lane-occupied`` reason (A1). Returns the pass report."""
         report = {"dispatched": [], "queued": [], "blocked": [],
-                  "completed": [], "parked": []}
+                  "completed": [], "parked": [], "paused": []}
         while True:
             eligible = self.eligible_work()
             lane = self.store.lane(self.lane_id)
@@ -316,10 +321,51 @@ class ExecutionLane:
         a request the lane commits or denies."""
         work_key = work["work_key"]
         self._first_dispatch.setdefault(work_key, self._now())
-        stage = "implementation"
+        # Resume lands on the durably recorded boundary stage — a
+        # restart can never resume *earlier* than the stage the pause
+        # committed at (Task 2.7 A2).
+        pause = self.store.pause_info(work_key)
+        stage = (pause["paused_stage"] or "implementation") \
+            if pause["pause_state"] == "resumed" else "implementation"
         final = None
         fix_permitted = True
         while stage is not None:
+            # The pause gate: a requested pause commits ``paused`` at
+            # this stage boundary — the *current* stage already
+            # finished, the *next* stage does not start until an
+            # authorized resume writes ``resumed`` (A2). The work
+            # returns to ``pending`` so resume re-dispatches it; the
+            # boundary stage is durable, so a crash mid-pause resumes
+            # at the same stage.
+            pause = self.store.pause_info(work_key)
+            # ``paused`` is gated too, not only ``requested``: a pause
+            # committed on the no-active-attempt path can land between
+            # the eligibility read and this gate — the stage must not
+            # start just because the boundary already says ``paused``.
+            if pause["pause_state"] in ("requested", "paused"):
+                with self.store.transact() as tx:
+                    # A fence may have committed between the gate read
+                    # and this write — recheck inside the transaction
+                    # so a canceled/fenced work is never written back
+                    # to ``pending``.
+                    fence = tx.fence_state(work_key)
+                    if fence is not None and fence["fenced"]:
+                        return {"outcome": "fenced",
+                                "reason": fence["fence_reason"],
+                                "final": "parked"}
+                    tx.set_pause(work_key, "paused", stage=stage,
+                                 detail="pause took effect at stage "
+                                        "boundary")
+                    tx.set_work_state(work_key, "pending",
+                                      reason="paused")
+                    tx.enqueue_work(work_key, tx.next_seq(),
+                                    state="paused",
+                                    reason="pause-boundary")
+                    tx.record_event("work_paused", work_key=work_key,
+                                    reason="pause-boundary",
+                                    detail=f"stage={stage}")
+                return {"outcome": "paused", "reason": "pause-boundary",
+                        "final": "paused", "stage": stage}
             status = self._budget(work_key, limits)
             # Emit every crossing warning — even when the same
             # checkpoint is already exhausted, the 80% crossing still
@@ -349,15 +395,21 @@ class ExecutionLane:
                                     result["reason"], final="blocked")
             if result["outcome"] == "fenced":
                 # Heartbeat sweep or cancel fenced mid-attempt — the
-                # fence resolver already owns the terminal state.
+                # fence resolver already owns the terminal state. A
+                # cancel-fence with confirmed termination lands the
+                # work on ``canceled`` (terminal for the generation,
+                # Task 2.7 A4); uncertainty quarantines.
                 fence = self.store.fence_state(work_key)
                 term = (fence or {}).get("termination")
-                state = "quarantined" if term in (None, "pending",
-                                                  "quarantined") \
-                    else "parked"
-                return self._finish(work_key, state,
-                                    fence.get("fence_reason")
-                                    if fence else "fenced",
+                reason = (fence or {}).get("fence_reason") or "fenced"
+                if str(reason).startswith("cancel"):
+                    state = ("canceled" if term == "confirmed"
+                             else "quarantined")
+                else:
+                    state = "quarantined" if term in (None, "pending",
+                                                      "quarantined") \
+                        else "parked"
+                return self._finish(work_key, state, reason,
                                     final="parked")
             verdict = result["verdict"]
 
@@ -560,6 +612,90 @@ class ExecutionLane:
         return {"fenced": fenced,
                 "lane_recovered": self._recover_lane(timeout_s)}
 
+    def terminate_work(self, work_key, *, reason="cancel",
+                       deadline_s=30.0):
+        """Terminate every live worker/descendant of ``work_key`` —
+        called *after* the generation fence already committed (the
+        control service writes its command record and the fence in one
+        transaction, so the fence is durable before this runs: A3).
+
+        The fence acknowledgement and the process-exit outcome are
+        separate persisted rows: the fence row's ``fenced`` flag is the
+        ack; ``termination`` becomes ``confirmed`` only when every live
+        handle reports dead inside the deadline — anything else is
+        ``quarantined`` with a high-severity local/operator alert
+        inside the same window (A3/A4). Work lands ``canceled``
+        (terminal for the generation) or ``quarantined``; replacement
+        stays denied while termination is uncertain.
+        """
+        deadline = self._now() + float(deadline_s)
+        work = self.store.get_work(work_key)
+        if work is None:
+            return {"outcome": "denied", "reason": "unknown-work"}
+        fence = self.store.fence_state(work_key)
+        if fence is None or not fence["fenced"]:
+            self.store.fence_work(work_key, reason,
+                                  work["generation"])
+        # Terminate every live handle owned by this work's attempts —
+        # the fence already ended their ledger rows ``fenced``, so
+        # liveness truth comes from the handle map + the durable
+        # ``ended`` marker, not attempt state. An attempt with no live
+        # handle AND no durable end was live when fenced (its process
+        # may still run on the runtime side) — that is uncertain, never
+        # silently confirmed.
+        records = {r["attempt_id"]: r for r in
+                   self.store.attempt_record_rows(work_key)}
+        outcomes = []
+        for attempt_id in sorted(records):
+            handle = self._handles.pop(attempt_id, None)
+            if handle is None:
+                ended = records[attempt_id].get("ended")
+                outcomes.append({
+                    "attempt_id": attempt_id,
+                    "termination": "confirmed" if ended else
+                    "uncertain"})
+                continue
+            if self._now() > deadline:
+                outcomes.append({"attempt_id": attempt_id,
+                                 "termination": "uncertain"})
+                continue
+            try:
+                outcome = self.worker.terminate(handle)
+            except WorkerError:
+                outcome = "uncertain"
+            outcomes.append({"attempt_id": attempt_id,
+                             "termination": outcome})
+        uncertain = [o for o in outcomes
+                     if o["termination"] != "confirmed"]
+        if uncertain:
+            self.store.resolve_fence(
+                work_key, "quarantined",
+                "termination unconfirmed inside deadline — "
+                "process/descendant state uncertain")
+            self.store.set_work_state(work_key, "quarantined",
+                                      reason="termination-uncertain")
+            self._mark_queued(work_key, "parked",
+                              reason="termination-uncertain")
+            self.store.emit_alert(
+                "termination-uncertain", work_key, "high",
+                detail=f"{len(uncertain)} attempt(s) did not confirm "
+                       f"exit inside {deadline_s:.0f}s")
+        else:
+            self.store.resolve_fence(work_key, "confirmed",
+                                     "worker+descendants exited")
+            self.store.set_work_state(work_key, "canceled",
+                                      reason=reason)
+            self._mark_queued(work_key, "done",
+                              reason=reason)
+        self.store.release_lane(self.lane_id, expected_work=work_key)
+        self.store.record_event(
+            "work_terminated", work_key=work_key, reason=reason,
+            detail=json.dumps(outcomes, sort_keys=True))
+        return {"outcome": "terminated",
+                "termination": "quarantined" if uncertain
+                else "confirmed",
+                "attempts": outcomes}
+
     def _recover_lane(self, timeout_s):
         """Free an occupant that can never resume: terminal work state,
         or a crashed dispatch (occupied past the heartbeat window with
@@ -751,10 +887,16 @@ class ExecutionLane:
                 "state": row["state"], "task_id": row["task_id"],
                 "generation": row["generation"],
                 "issue": row["issue"],
+                "repo_id": row["repo_id"],
+                "linked_pr": row["linked_pr"],
+                "parked_reason": row["parked_reason"],
                 "attempts": self.store.count_attempts(row["work_key"]),
                 "active_seconds": measured,
                 "unknown_usage": unknown,
                 "fence": self.store.fence_state(row["work_key"]),
+                "pause": self.store.pause_info(row["work_key"]),
+                "last_heartbeat_epoch":
+                    self.store.last_heartbeat(row["work_key"]),
                 "queue": self.store.queue_entry(row["work_key"]),
             }
         return {"lane": self.store.lane(self.lane_id),

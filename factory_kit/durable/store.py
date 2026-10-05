@@ -54,6 +54,20 @@ Tables:
 - ``alerts`` — operator-visible alert rows deduplicated per
   (kind, identity, severity) — heartbeat and budget alerts fire once per
   identity at each severity transition (§7.3).
+- ``publication_intents`` — the §6.4 Publication intent record (Task
+  2.5): stable operation identity, task/generation, repository, expected
+  revision, permitted operation, target branch/PR and the remote
+  outcome/ambiguity. One durable row is committed *before* the effect is
+  sent, so a crash between remote create and response persistence is
+  reconciled by identity on recovery instead of republished blindly.
+- ``control_records`` — the §6.4 Control record / §7.1
+  ``control_recorded`` event (Task 2.7): command identity, restricted
+  actor/chat reference, action, target, receipt/commit times and the
+  accepted/rejected outcome — persisted before any acknowledgement.
+- ``work_control`` — per-work control state (Task 2.7): pause
+  requested/paused/resumed plus the stage the next dispatch must resume
+  at, so a pause is durable across restarts and a resume never replays
+  a completed stage.
 
 Durability rules honoured here:
 
@@ -227,6 +241,56 @@ CREATE TABLE IF NOT EXISTS alerts(
     severity TEXT NOT NULL,
     detail TEXT,
     UNIQUE(kind, identity, severity));
+
+CREATE TABLE IF NOT EXISTS publication_intents(
+    intent_id TEXT PRIMARY KEY,
+    work_key TEXT,
+    seq INTEGER,
+    task_id TEXT,
+    generation INTEGER,
+    authority_key TEXT,
+    repo_id TEXT,
+    operation TEXT NOT NULL,
+    expected_revision TEXT,
+    target TEXT,
+    actor_ref TEXT,
+    claim_expires_epoch REAL,
+    state TEXT NOT NULL,
+    reason TEXT,
+    remote_ref TEXT,
+    detail TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL);
+-- One serialized operation per (work, operation, target): concurrent
+-- publication attempts converge on the single committed row, so a racing
+-- second request can never produce a second remote effect (§6.4, A3).
+CREATE UNIQUE INDEX IF NOT EXISTS one_intent_per_op_target
+    ON publication_intents(work_key, operation, target)
+    WHERE work_key IS NOT NULL AND target IS NOT NULL;
+
+CREATE TABLE IF NOT EXISTS control_records(
+    command_id TEXT PRIMARY KEY,
+    received_at TEXT NOT NULL,
+    committed_at TEXT NOT NULL,
+    actor_ref TEXT NOT NULL,
+    chat_ref TEXT NOT NULL,
+    action TEXT NOT NULL,
+    repo_id TEXT,
+    authority_key TEXT,
+    issue INTEGER,
+    generation INTEGER,
+    work_key TEXT,
+    outcome TEXT NOT NULL,
+    reason TEXT,
+    detail TEXT,
+    seq INTEGER NOT NULL);
+
+CREATE TABLE IF NOT EXISTS work_control(
+    work_key TEXT PRIMARY KEY,
+    pause_state TEXT NOT NULL DEFAULT 'none',
+    paused_stage TEXT,
+    detail TEXT,
+    updated_at TEXT NOT NULL);
 """
 
 
@@ -574,15 +638,17 @@ class IntakeStore:
 
     def set_work_state(self, work_key, state, reason=None):
         """Terminal/passive work states the lane drives: ``active``,
-        ``completed``, ``parked``, ``quarantined``, ``blocked``.
+        ``completed``, ``parked``, ``quarantined``, ``blocked``,
+        ``canceled`` (terminal for the generation — Task 2.7).
 
-        ``reason`` is recorded into ``parked_reason`` for parked and
-        quarantined rows so the block is always attributable.
+        ``reason`` is recorded into ``parked_reason`` for parked,
+        quarantined, blocked and canceled rows so the block is always
+        attributable.
         """
         if state not in ("pending", "active", "completed", "parked",
-                         "quarantined", "blocked"):
+                         "quarantined", "blocked", "canceled"):
             raise IntakeStoreError(f"unknown work state {state!r}")
-        if state in ("parked", "quarantined", "blocked"):
+        if state in ("parked", "quarantined", "blocked", "canceled"):
             self._q(
                 "UPDATE work SET state=?, parked_reason=?, updated_at=?"
                 " WHERE work_key=?", (state, reason, _utcnow(), work_key))
@@ -790,22 +856,29 @@ class IntakeStore:
         the commit *precedes* any termination attempt, so an effect or
         result racing the fence loses (A5/A6 ordering)."""
         with self.transact() as tx:
-            now = _utcnow()
-            tx._q(
-                "INSERT INTO execution_fence"
-                "(work_key,generation,fenced,fence_reason,termination,"
-                "updated_at) VALUES(?,?,?,?,'pending',?)"
-                " ON CONFLICT(work_key) DO UPDATE SET"
-                " fenced=1, fence_reason=excluded.fence_reason,"
-                " termination='pending', updated_at=excluded.updated_at",
-                (work_key, int(generation), 1, reason, now))
-            tx._q(
-                "UPDATE attempt_ledger SET state='fenced', ended=?"
-                " WHERE work_key=? AND state='active'", (now, work_key))
-            tx.record_event("work_fenced", work_key=work_key,
-                            reason=reason)
-            return {"outcome": "fenced", "work_key": work_key,
-                    "termination": "pending"}
+            return tx.fence_work_tx(work_key, reason, generation)
+
+    def fence_work_tx(self, work_key, reason, generation):
+        """The fence-write core, callable inside an enclosing
+        ``transact`` — the typed cancel path (Task 2.7) commits its
+        control record and the generation fence in ONE durable
+        transaction, so the fence can never be lost behind an ack."""
+        now = _utcnow()
+        self._q(
+            "INSERT INTO execution_fence"
+            "(work_key,generation,fenced,fence_reason,termination,"
+            "updated_at) VALUES(?,?,?,?,'pending',?)"
+            " ON CONFLICT(work_key) DO UPDATE SET"
+            " fenced=1, fence_reason=excluded.fence_reason,"
+            " termination='pending', updated_at=excluded.updated_at",
+            (work_key, int(generation), 1, reason, now))
+        self._q(
+            "UPDATE attempt_ledger SET state='fenced', ended=?"
+            " WHERE work_key=? AND state='active'", (now, work_key))
+        self.record_event("work_fenced", work_key=work_key,
+                          reason=reason)
+        return {"outcome": "fenced", "work_key": work_key,
+                "termination": "pending"}
 
     def resolve_fence(self, work_key, termination, detail=None):
         """Record the termination outcome: ``confirmed`` (worker +
@@ -874,6 +947,15 @@ class IntakeStore:
         return [{"attempt_id": r[0], "work_key": r[1],
                  "last_beat_epoch": r[2]} for r in rows]
 
+    def last_heartbeat(self, work_key):
+        """Latest heartbeat epoch across the work's attempts (or None)
+        — the status surface's "last heartbeat" field (Task 2.7 A2)."""
+        row = self._q(
+            "SELECT MAX(last_beat_epoch) FROM attempt_liveness l"
+            " JOIN attempt_ledger a ON a.attempt_id=l.attempt_id"
+            " WHERE l.work_key=?", (work_key,)).fetchone()
+        return row[0] if row and row[0] is not None else None
+
     def emit_alert(self, kind, identity, severity, detail=None):
         """Append one operator-visible alert, deduplicated per
         (kind, identity, severity). A repeated signal reports
@@ -920,6 +1002,170 @@ class IntakeStore:
                 return {"outcome": "already-linked", "linked_pr": str(pr)}
             return {"outcome": "denied", "reason": "pr-linked",
                     "linked_pr": row["linked_pr"]}
+
+    # -- publication intents (Task 2.5 / §6.4) ---------------------------------
+    #
+    # One durable intent row per serialized operation identity, committed
+    # *before* the remote effect is sent — the row is the stable identity
+    # the post-crash recovery reconciles by (never a blind republish).
+    # ``work_key``/``seq`` are NULL on denials that could not resolve a
+    # work row (retained as audit evidence, A6).
+
+    def insert_intent(self, intent_id, *, work_key=None, seq=None,
+                      task_id=None, generation=None, authority_key=None,
+                      repo_id=None, operation, expected_revision=None,
+                      target=None, actor_ref=None,
+                      claim_expires_epoch=None, state, reason=None,
+                      remote_ref=None, detail=None):
+        """Write one intent row (inside ``transact``)."""
+        now = _utcnow()
+        self._q(
+            "INSERT INTO publication_intents"
+            "(intent_id,work_key,seq,task_id,generation,authority_key,"
+            "repo_id,operation,expected_revision,target,actor_ref,"
+            "claim_expires_epoch,state,reason,remote_ref,detail,"
+            "created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,"
+            "?,?,?)",
+            (intent_id, work_key, seq, task_id, generation,
+             authority_key, repo_id, operation, expected_revision,
+             target, actor_ref, claim_expires_epoch, state, reason,
+             remote_ref, detail, now, now))
+
+    def get_intent(self, intent_id):
+        row = self._q(
+            "SELECT * FROM publication_intents WHERE intent_id=?",
+            (intent_id,)).fetchone()
+        return self._intent_row(row)
+
+    def find_intent(self, work_key, operation, target):
+        """The serialized-identity lookup: at most one live intent per
+        (work, operation, target) — the index makes racing writers
+        converge instead of doubling the remote effect."""
+        row = self._q(
+            "SELECT * FROM publication_intents WHERE work_key=?"
+            " AND operation=? AND target=?"
+            " ORDER BY created_at LIMIT 1",
+            (work_key, operation, target)).fetchone()
+        return self._intent_row(row)
+
+    def update_intent(self, intent_id, *, state=None, reason=None,
+                      remote_ref=None, detail=None):
+        """Advance an intent's recorded outcome (inside ``transact``)."""
+        sets, params = ["updated_at=?"], [_utcnow()]
+        for col, val in (("state", state), ("reason", reason),
+                         ("remote_ref", remote_ref), ("detail", detail)):
+            if val is not None:
+                sets.append(f"{col}=?")
+                params.append(val)
+        params.append(intent_id)
+        self._q(
+            f"UPDATE publication_intents SET {', '.join(sets)}"
+            " WHERE intent_id=?", params)
+
+    def intent_rows(self, work_key=None):
+        rows = self._rows("publication_intents")
+        if work_key is None:
+            return rows
+        return [r for r in rows if r["work_key"] == work_key]
+
+    def pending_intents(self):
+        """Intents whose remote effect was sent-or-uncertain: committed
+        ``recorded`` (crash before the effect returned) or ``applied``
+        (crash before read-back linked it) — the recovery set."""
+        rows = self._q(
+            "SELECT * FROM publication_intents"
+            " WHERE state IN ('recorded','applied')"
+            " ORDER BY created_at").fetchall()
+        return [self._intent_row(r) for r in rows]
+
+    @staticmethod
+    def _intent_row(row):
+        if row is None:
+            return None
+        cols = ("intent_id", "work_key", "seq", "task_id", "generation",
+                "authority_key", "repo_id", "operation",
+                "expected_revision", "target", "actor_ref",
+                "claim_expires_epoch", "state", "reason", "remote_ref",
+                "detail", "created_at", "updated_at")
+        return dict(zip(cols, row))
+
+    # -- control records (Task 2.7 / §6.4 Control, §7.1 control_recorded) ----
+
+    def record_control(self, command_id, *, received_at, committed_at,
+                       actor_ref, chat_ref, action, repo_id=None,
+                       authority_key=None, issue=None, generation=None,
+                       work_key=None, outcome, reason=None, detail=None,
+                       seq):
+        """Persist one control command + its outcome (inside
+        ``transact``). The row commits before the acknowledgement leaves
+        — an ack that outlived its record could never exist (A1)."""
+        self._q(
+            "INSERT INTO control_records"
+            "(command_id,received_at,committed_at,actor_ref,chat_ref,"
+            "action,repo_id,authority_key,issue,generation,work_key,"
+            "outcome,reason,detail,seq) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,"
+            "?,?)",
+            (command_id, received_at, committed_at, actor_ref, chat_ref,
+             action, repo_id, authority_key,
+             int(issue) if issue is not None else None,
+             int(generation) if generation is not None else None,
+             work_key, outcome, reason, detail, int(seq)))
+
+    def find_control(self, command_id):
+        """Dedup lookup — a repeated command ID returns the recorded
+        outcome instead of re-running the action (A5)."""
+        row = self._q(
+            "SELECT outcome, reason, work_key, committed_at, actor_ref,"
+            " chat_ref FROM control_records WHERE command_id=?",
+            (command_id,)).fetchone()
+        if row is None:
+            return None
+        return {"outcome": row[0], "reason": row[1], "work_key": row[2],
+                "committed_at": row[3], "actor_ref": row[4],
+                "chat_ref": row[5]}
+
+    def control_rows(self, work_key=None):
+        rows = self._rows("control_records")
+        if work_key is None:
+            return rows
+        return [r for r in rows if r["work_key"] == work_key]
+
+    # -- per-work control state (pause boundary) --------------------------------
+
+    def pause_info(self, work_key):
+        """``{"pause_state": "none"|"requested"|"paused"|"resumed",
+        "paused_stage": …}`` — absent row reads as ``none``."""
+        row = self._q(
+            "SELECT pause_state, paused_stage, detail, updated_at"
+            " FROM work_control WHERE work_key=?", (work_key,)).fetchone()
+        if row is None:
+            return {"pause_state": "none", "paused_stage": None,
+                    "detail": None, "updated_at": None}
+        return {"pause_state": row[0], "paused_stage": row[1],
+                "detail": row[2], "updated_at": row[3]}
+
+    def set_pause(self, work_key, state, *, stage=None, detail=None):
+        """Upsert the pause boundary (inside ``transact`` when grouped).
+        ``stage`` records the lane stage the next dispatch resumes at —
+        ``None`` keeps any previously recorded stage."""
+        if state not in ("none", "requested", "paused", "resumed"):
+            raise IntakeStoreError(f"unknown pause state {state!r}")
+        self._q(
+            "INSERT INTO work_control"
+            "(work_key,pause_state,paused_stage,detail,updated_at)"
+            " VALUES(?,?,?,?,?)"
+            " ON CONFLICT(work_key) DO UPDATE SET"
+            " pause_state=excluded.pause_state,"
+            " paused_stage=COALESCE(excluded.paused_stage,"
+            "  work_control.paused_stage),"
+            " detail=excluded.detail, updated_at=excluded.updated_at",
+            (work_key, state, stage, detail, _utcnow()))
+
+    def work_control_rows(self, state=None):
+        rows = self._rows("work_control")
+        if state is None:
+            return rows
+        return [r for r in rows if r["pause_state"] == state]
 
     # -- events (§7.1) ---------------------------------------------------------
 
