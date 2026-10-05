@@ -109,6 +109,13 @@ endpoint:
   preview:
     provider: vercel
     environment: preview
+    visibility: unlisted
+    ttl_hours: 24
+    cleanup_minutes: 60
+    smoke:
+      command: "curl -fsS -o /dev/null -w '%{http_code}' {url}"
+      expect: "200"
+      marker: "MoneyMind"
   merge:
     method: squash
     approval_expiry_minutes: 60

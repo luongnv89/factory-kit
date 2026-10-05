@@ -413,6 +413,53 @@ CREATE TABLE IF NOT EXISTS participant_agreements(
     detail TEXT,
     seq INTEGER NOT NULL,
     recorded_at TEXT NOT NULL);
+
+-- Preview evidence (Task 3.1 / F11, §6.4): one durable row per preview
+-- deployment bound to the exact head/base revision it covers — provider,
+-- deployment/artifact identity, URL, visibility, the configured smoke
+-- contract and its observed result, expiry and cleanup ownership. The
+-- row commits *before* the provider effect so a crash between deploy and
+-- response persistence is reconciled by identity, and the partial unique
+-- index enforces one *active* preview per work (deploying/deployed/
+-- verified) — a superseding revision retires the old row before the new
+-- one mints (A5). ``removed_at`` is set only on provider-confirmed
+-- removal; an owned deployment whose removal could not be confirmed sits
+-- visibly in ``cleanup-pending`` — never a false removal claim.
+CREATE TABLE IF NOT EXISTS preview_records(
+    preview_id TEXT PRIMARY KEY,
+    work_key TEXT NOT NULL,
+    seq INTEGER,
+    task_id TEXT,
+    generation INTEGER,
+    provider TEXT,
+    deployment_id TEXT,
+    artifact_identity TEXT,
+    head_sha TEXT,
+    base_name TEXT,
+    base_sha TEXT,
+    url TEXT,
+    visibility TEXT,
+    environment TEXT,
+    smoke_command TEXT,
+    smoke_expected TEXT,
+    smoke_observed TEXT,
+    state TEXT NOT NULL,
+    reason TEXT,
+    cleanup_owner TEXT,
+    expires_epoch REAL,
+    cleanup_deadline_epoch REAL,
+    observed_at TEXT,
+    removed_at TEXT,
+    detail TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL);
+CREATE UNIQUE INDEX IF NOT EXISTS one_active_preview_per_work
+    ON preview_records(work_key)
+    WHERE state IN ('deploying','deployed','verified');
+CREATE INDEX IF NOT EXISTS preview_by_work
+    ON preview_records(work_key, created_at);
+CREATE INDEX IF NOT EXISTS preview_by_deployment
+    ON preview_records(deployment_id);
 """
 
 
@@ -1783,6 +1830,177 @@ class IntakeStore:
             return None
         return {"scope": row[0], "actor_ref": row[1], "detail": row[2],
                 "seq": row[3], "recorded_at": row[4]}
+
+    # -- preview records (Task 3.1 / F11, §6.4 Preview evidence) -------------
+    #
+    # One durable row per preview deployment, committed *before* the
+    # provider effect — the crash window between "deployment created"
+    # and "response recorded" reconciles by identity on recovery, never
+    # by blind redeploy. ``state`` vocabulary:
+    #
+    # - ``deploying`` — committed intent; provider call in flight or
+    #   its outcome lost (recovery reconciles by identity).
+    # - ``deployed`` — provider returned a deployment; authoritative
+    #   read-back + smoke not yet observed.
+    # - ``verified`` — read-back corroborated the bound revision and
+    #   the configured smoke contract passed; the approval-request
+    #   evidence (a point-in-time record — never merge authority).
+    # - ``failed`` — a denial condition was observed (smoke failed,
+    #   provider outage, identity mismatch, lost deploy outcome).
+    # - ``invalidated`` — superseded by revision/base movement,
+    #   cancellation/fencing, supersession or expiry.
+    # - ``cleanup-pending`` — the owned deployment's removal is required
+    #   but unconfirmed (provider unreachable or removal unacknowledged):
+    #   the visible backlog, never claimed removed.
+    # - ``removed`` — the provider confirmed removal (``removed_at``
+    #   set); or ``denied`` — rejected before any provider effect
+    #   (audit row only, no deployment identity).
+
+    _PREVIEW_COLS = (
+        "preview_id", "work_key", "seq", "task_id", "generation",
+        "provider", "deployment_id", "artifact_identity", "head_sha",
+        "base_name", "base_sha", "url", "visibility", "environment",
+        "smoke_command", "smoke_expected", "smoke_observed", "state",
+        "reason", "cleanup_owner", "expires_epoch",
+        "cleanup_deadline_epoch", "observed_at", "removed_at", "detail",
+        "created_at", "updated_at")
+
+    #: Preview states that still hold the task's one active slot.
+    PREVIEW_ACTIVE_STATES = ("deploying", "deployed", "verified")
+
+    #: Preview states whose owned deployment may still exist remotely —
+    #: the cleanup sweep's retry set (``removed``/``denied`` are done).
+    PREVIEW_CLEANUP_STATES = ("cleanup-pending",)
+
+    def insert_preview(self, preview_id, *, work_key, seq=None,
+                       task_id=None, generation=None, provider=None,
+                       deployment_id=None, artifact_identity=None,
+                       head_sha=None, base_name=None, base_sha=None,
+                       url=None, visibility=None, environment=None,
+                       smoke_command=None, smoke_expected=None,
+                       smoke_observed=None, state, reason=None,
+                       cleanup_owner=None, expires_epoch=None,
+                       cleanup_deadline_epoch=None, observed_at=None,
+                       removed_at=None, detail=None):
+        """Write one preview record (inside ``transact``)."""
+        now = _utcnow()
+        self._q(
+            "INSERT INTO preview_records"
+            "(preview_id,work_key,seq,task_id,generation,provider,"
+            "deployment_id,artifact_identity,head_sha,base_name,"
+            "base_sha,url,visibility,environment,smoke_command,"
+            "smoke_expected,smoke_observed,state,reason,cleanup_owner,"
+            "expires_epoch,cleanup_deadline_epoch,observed_at,"
+            "removed_at,detail,created_at,updated_at)"
+            " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (preview_id, work_key, seq, task_id, generation, provider,
+             deployment_id, artifact_identity, head_sha, base_name,
+             base_sha, url, visibility, environment, smoke_command,
+             smoke_expected, smoke_observed, state, reason,
+             cleanup_owner, expires_epoch, cleanup_deadline_epoch,
+             observed_at, removed_at, detail, now, now))
+
+    def update_preview(self, preview_id, **fields):
+        """Advance a preview record's outcome (inside ``transact``).
+
+        Only named columns may be written — this is the controller's
+        evidence surface, not a caller-influenced field bag."""
+        allowed = {"seq", "task_id", "provider", "deployment_id",
+                   "artifact_identity", "head_sha", "base_name",
+                   "base_sha", "url", "visibility", "environment",
+                   "smoke_command", "smoke_expected", "smoke_observed",
+                   "state", "reason", "cleanup_owner", "expires_epoch",
+                   "cleanup_deadline_epoch", "observed_at", "removed_at",
+                   "detail"}
+        unknown = set(fields) - allowed
+        if unknown:
+            raise IntakeStoreError(
+                f"unknown preview fields {sorted(unknown)}")
+        sets, params = ["updated_at=?"], [_utcnow()]
+        for col in sorted(fields):
+            sets.append(f"{col}=?")
+            params.append(fields[col])
+        params.append(preview_id)
+        self._q(
+            f"UPDATE preview_records SET {', '.join(sets)}"
+            " WHERE preview_id=?", params)
+
+    def get_preview(self, preview_id):
+        row = self._q(
+            "SELECT * FROM preview_records WHERE preview_id=?",
+            (preview_id,)).fetchone()
+        return self._preview_row(row)
+
+    def find_preview_by_deployment(self, deployment_id):
+        """The durable record for a provider deployment id — the lookup
+        a deployment callback binds against (A4). ``None`` means the id
+        is not one this factory recorded: an unknown artifact identity
+        is ignored, never adopted."""
+        if not deployment_id:
+            return None
+        row = self._q(
+            "SELECT * FROM preview_records WHERE deployment_id=?"
+            " ORDER BY rowid DESC LIMIT 1", (deployment_id,)).fetchone()
+        return self._preview_row(row)
+
+    def latest_preview(self, work_key):
+        """The newest preview record for the work — ordered by
+        ``rowid`` (commit order), never wall-clock ties."""
+        row = self._q(
+            "SELECT * FROM preview_records WHERE work_key=?"
+            " ORDER BY rowid DESC LIMIT 1", (work_key,)).fetchone()
+        return self._preview_row(row)
+
+    def active_preview(self, work_key):
+        """The row currently holding the task's one active preview
+        slot, or ``None`` — enforced by the partial unique index so a
+        racing second deploy can never mint a second live preview."""
+        row = self._q(
+            "SELECT * FROM preview_records WHERE work_key=?"
+            " AND state IN ('deploying','deployed','verified')"
+            " ORDER BY rowid DESC LIMIT 1", (work_key,)).fetchone()
+        return self._preview_row(row)
+
+    def preview_rows(self, work_key=None, state=None):
+        rows = self._rows("preview_records")
+        if work_key is not None:
+            rows = [r for r in rows if r["work_key"] == work_key]
+        if state is not None:
+            rows = [r for r in rows if r["state"] == state]
+        return rows
+
+    def previews_expired(self, now_epoch):
+        """Active previews whose recorded TTL elapsed — the expiry
+        sweep's input (A5)."""
+        rows = self._q(
+            "SELECT * FROM preview_records"
+            " WHERE state IN ('deploying','deployed','verified')"
+            " AND expires_epoch IS NOT NULL AND expires_epoch < ?",
+            (now_epoch,)).fetchall()
+        return [self._preview_row(r) for r in rows]
+
+    def preview_cleanup_backlog(self):
+        """Owned deployments whose removal is required but unconfirmed
+        — the visible backlog a provider outage leaves (A5)."""
+        rows = self._q(
+            "SELECT * FROM preview_records WHERE state='cleanup-pending'"
+            " ORDER BY created_at").fetchall()
+        return [self._preview_row(r) for r in rows]
+
+    def previews_deploying(self):
+        """Records still between committed intent and confirmed
+        provider outcome — the crash-window set recovery reconciles
+        by identity (A5)."""
+        rows = self._q(
+            "SELECT * FROM preview_records WHERE state='deploying'"
+            " ORDER BY created_at").fetchall()
+        return [self._preview_row(r) for r in rows]
+
+    @classmethod
+    def _preview_row(cls, row):
+        if row is None:
+            return None
+        return dict(zip(cls._PREVIEW_COLS, row))
 
     # -- read accessors (inspectability + tests) --------------------------------
 

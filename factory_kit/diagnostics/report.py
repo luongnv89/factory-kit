@@ -175,6 +175,44 @@ def work_status(store, work_key, *, now=None):
 
     measured, unknown = store.work_active_seconds(work_key)
     heartbeat = store.last_heartbeat(work_key)
+
+    # F11 preview projection (A3): the durable record plus
+    # ``approval_ready``, computed *now* — a verified record counts only
+    # while unexpired, unfenced and backed by a ``verified`` observation
+    # of the same head; anything else is a visible blocker, never a
+    # substitute.
+    preview_row = store.latest_preview(work_key)
+    preview = None
+    if preview_row is not None:
+        expired = preview_row["expires_epoch"] is not None and \
+            float(preview_row["expires_epoch"]) < now
+        preview = {
+            "preview_id": preview_row["preview_id"],
+            "state": preview_row["state"],
+            "reason": preview_row["reason"],
+            "provider": preview_row["provider"],
+            "deployment_id": preview_row["deployment_id"],
+            "artifact_identity": preview_row["artifact_identity"],
+            "url": preview_row["url"],
+            "visibility": preview_row["visibility"],
+            "head_sha": preview_row["head_sha"],
+            "base_sha": preview_row["base_sha"],
+            "observed_at": preview_row["observed_at"],
+            "expires_epoch": preview_row["expires_epoch"],
+            "cleanup_deadline_epoch":
+                preview_row["cleanup_deadline_epoch"],
+            "cleanup_owner": preview_row["cleanup_owner"],
+            "removed_at": preview_row["removed_at"],
+            "expired": bool(expired),
+            "approval_ready": bool(
+                preview_row["state"] == "verified" and not expired
+                and not (fence and fence["fenced"])
+                and evidence is not None
+                and evidence["status"] == "verified"
+                and evidence.get("head_sha") ==
+                preview_row["head_sha"]),
+        }
+
     return {
         "status": work["state"],
         "work_key": work_key,
@@ -200,6 +238,7 @@ def work_status(store, work_key, *, now=None):
                      "reason": evidence["reason"],
                      "observed_at": evidence["observed_at"]}
         if evidence else None,
+        "preview": preview,
         "attempts": {"count": len(attempts),
                      "latest": (last["attempt_id"] if last else None)},
         "active_worker_seconds": {"measured": measured,

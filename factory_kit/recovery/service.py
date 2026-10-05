@@ -88,6 +88,10 @@ class RecoveryService:
     - ``verification`` — :class:`VerificationService`; optional, used to
       stale verified evidence when the remote becomes unobservable or
       an observed head/base moves.
+    - ``preview`` — :class:`factory_kit.preview.service.PreviewService`;
+      optional, used to invalidate preview evidence on linked-PR
+      head/base drift and to sweep preview TTL/cleanup backlogs inside
+      every reconciliation/recovery pass (F11 A4/A5).
     - ``issue_source`` — the issue-observation port
       (:class:`GhIssuePoller` in production).
     - ``remote`` — the read-only remote port for linked-PR drift
@@ -101,6 +105,7 @@ class RecoveryService:
 
     def __init__(self, store, registrations, configs, *, intake=None,
                  lane=None, broker=None, verification=None,
+                 preview=None,
                  issue_source=None, remote=None,
                  opt_in_label="factory-kit",
                  interval_s=NOMINAL_INTERVAL_S,
@@ -114,6 +119,7 @@ class RecoveryService:
         self.lane = lane
         self.broker = broker
         self.verification = verification
+        self.preview = preview
         self.issue_source = issue_source
         self.remote = remote if remote is not None else \
             getattr(broker, "remote", None)
@@ -314,6 +320,18 @@ class RecoveryService:
                 report[bucket].append(
                     {k: v for k, v in outcome.items()
                      if k != "outcome"})
+
+        # 4.5 — preview lifecycle sweep (F11 A5): a deployment left
+        # between committed intent and provider response reconciles by
+        # durable identity, TTL-expired previews invalidate + clean up,
+        # and the ``cleanup-pending`` backlog retries removal — durable
+        # work continues even when the provider just came back.
+        if self.preview is not None:
+            try:
+                report["preview"] = self.preview.sweep()
+            except Exception as exc:
+                report["errors"].append(
+                    {"stage": "preview", "error": type(exc).__name__})
 
         # 5 — remote bookkeeping: a restart pass only moves the
         # watermark when it actually *attempted* a GitHub read; a
@@ -574,6 +592,16 @@ class RecoveryService:
                 elif drift["outcome"] == "parked":
                     report["parked"].append(drift)
 
+        # d.5 — preview lifecycle sweep (F11 A5): expiry, interrupted
+        #     deploy reconciliation and the cleanup backlog ride the
+        #     same external cadence — a provider outage's backlog never
+        #     needs a separate scheduler to drain.
+        if self.preview is not None:
+            try:
+                report["preview"] = self.preview.sweep()
+            except Exception as exc:
+                note_failure("preview-sweep", exc)
+
         # e — the watermark, the stale-remote rule and next-due
         #     scheduling commit durably (A5/A7).
         now = self._now()
@@ -689,6 +717,7 @@ class RecoveryService:
             # irreconcilable — park visibly, alert high; nothing is
             # created to replace it (A6).
             self._stale_evidence(work_key, "linked-pr-vanished")
+            self._invalidate_preview(work_key, "linked-pr-vanished")
             out = self._park(work_key, "remote-irreconcilable",
                              source=source, severity="high",
                              alert_kind="remote-irreconcilable",
@@ -699,6 +728,7 @@ class RecoveryService:
         if state in ("MERGED", "CLOSED"):
             reason = f"remote-terminal:{state.lower()}"
             self._stale_evidence(work_key, reason)
+            self._invalidate_preview(work_key, reason)
             return {**self._park(work_key, reason, source=source,
                                  severity="high",
                                  alert_kind="remote-terminal",
@@ -712,6 +742,7 @@ class RecoveryService:
             # head — verified evidence goes stale, the work parks, and
             # no force-push ever restores the recorded SHA (A6).
             self._stale_evidence(work_key, "remote-head-moved")
+            self._invalidate_preview(work_key, "remote-head-moved")
             return {**self._park(
                 work_key,
                 f"remote-head-moved:{expected['sha']}->{pr['head']}",
@@ -726,6 +757,7 @@ class RecoveryService:
             # branch — a same-SHA repoint or rename is still human
             # movement the SHA check alone cannot see (A6).
             self._stale_evidence(work_key, "remote-head-moved")
+            self._invalidate_preview(work_key, "remote-head-moved")
             return {**self._park(
                 work_key,
                 f"remote-head-moved:{expected['head_branch']}"
@@ -766,6 +798,7 @@ class RecoveryService:
                                   f"{expected['base_sha']}->{seen}")
             if base_moved is not None:
                 self._stale_evidence(work_key, "remote-base-moved")
+                self._invalidate_preview(work_key, "remote-base-moved")
                 return {**self._park(
                     work_key, f"remote-base-moved:{base_moved}",
                     source=source, severity="high",
@@ -809,6 +842,21 @@ class RecoveryService:
         if self.verification is None:
             return None
         return self.verification.mark_stale(work_key, reason)
+
+    def _invalidate_preview(self, work_key, reason):
+        """Invalidate the work's active preview for the same revision
+        drift — a deployed preview bound to a moved head/base can never
+        stand in for the new revision's evidence (F11 A3/A4)."""
+        if self.preview is None:
+            return None
+        try:
+            return self.preview.invalidate(work_key, reason)
+        except Exception as exc:
+            self._alert(
+                "durable-retry-exhausted", work_key, "high",
+                f"preview invalidate failed on {work_key}: "
+                f"{type(exc).__name__}")
+            return None
 
     # ------------------------------------------------------------------ #
     # watermark + the 5-minute stale-remote rule (A7)
