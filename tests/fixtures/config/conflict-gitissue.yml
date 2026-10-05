@@ -1,0 +1,9 @@
+# A .gitissue.yml that reached into factory-owned space — A6 conflict.
+platform: github
+resolve:
+  auto_test: true
+identity:
+  repo_id: "R_kgDOsmuggled"
+endpoint:
+  preview:
+    provider: vercel
