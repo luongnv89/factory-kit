@@ -1,9 +1,9 @@
 {
   "schema": "factory-kit/spike-faults@1",
   "version": "1.0.0",
-  "run_id": "6514ad26",
-  "started": "2026-10-05T00:45:04Z",
-  "elapsed_s": 0.02,
+  "run_id": "c49d94a4",
+  "started": "2026-10-05T00:46:14Z",
+  "elapsed_s": 0.06,
   "verdict": "fault-suite-passed",
   "scenario": null,
   "legs": [
@@ -46,13 +46,13 @@
         "attempts": {
           "first": {
             "outcome": "active",
-            "attempt_id": "att-implementation-16417766",
+            "attempt_id": "att-implementation-c2066641",
             "seq": 4
           },
           "second": {
             "outcome": "denied",
             "reason": "attempt-active",
-            "active": "att-implementation-16417766",
+            "active": "att-implementation-c2066641",
             "seq": 5
           },
           "active_attempts": 1
@@ -155,7 +155,7 @@
             "name": "typed-cancel-committed",
             "accepted": true,
             "seq": 1,
-            "committed_at": "2026-10-05T00:45:04.942+00:00"
+            "committed_at": "2026-10-05T00:46:14.280+00:00"
           },
           {
             "name": "late-result-fenced",
@@ -208,14 +208,14 @@
             "outcome": "denied",
             "reason": "attempt-expired",
             "expired": [
-              "att-implementation-d8ccc02c"
+              "att-implementation-c9a29e2b"
             ]
           },
           {
             "name": "dead-worker-cancel",
             "accepted": true,
             "seq": 2,
-            "committed_at": "2026-10-05T00:45:04.946+00:00"
+            "committed_at": "2026-10-05T00:46:14.292+00:00"
           },
           {
             "name": "quarantined-no-replacement",
@@ -239,7 +239,7 @@
             "result_id": "res-dead-2",
             "outcome": "accepted",
             "reason": null,
-            "attempt_id": "att-implementation-4b5237e1"
+            "attempt_id": "att-implementation-f9bc835e"
           }
         ]
       }
@@ -249,18 +249,18 @@
       "status": "pass",
       "evidence": {
         "request": {
-          "request_id": "apr-31d5554881dc",
+          "request_id": "apr-26e8fd0cd3e7",
           "state": "awaiting",
-          "expiry": 1791164704.948192
+          "expiry": 1791164774.2961779
         },
         "restart_row": [
           "77001",
           "spike/disposable#7",
           "approve-merge",
-          "fcd3b92e33b47c8b4892466f27e003b8b4d3befbe9f9b468ec6bb3a07297036f",
+          "5390d04cf8d09630b3a12ccb5384dbaf3188f14bc00b92b9a4d79b0f745a40d2",
           "9bc030fccb71d3315c740147b74fe4a99683fb2516738b632412ae117a00da44",
           "72993b6cb83904d39a8c73bd0651aa6251288ede5dbc2c7bcbdc54cc5bbf5d77",
-          1791164704.948192,
+          1791164774.2961779,
           "awaiting"
         ],
         "attributable": true,
@@ -318,8 +318,8 @@
         ],
         "merge_intents": {
           "per_request": {
-            "apr-31d5554881dc": 1,
-            "apr-4241bf419337": 1
+            "apr-26e8fd0cd3e7": 1,
+            "apr-ae3c8bf7521a": 1
           },
           "pending": 0
         }
@@ -395,7 +395,7 @@
             "name": "lost-response-reconcile",
             "response_received": false,
             "remote_state": "merged",
-            "reconciled_sha": "f1a166e89544920f2879d6b526a399161041cc8e",
+            "reconciled_sha": "f1a12d678cbf751fd691f0751f41128ff3600526",
             "matches_expected_head": true,
             "retried": false,
             "verdict": "reconciled-before-retry"
@@ -881,7 +881,7 @@
   "linked_identities": {
     "repository": "spike/disposable",
     "issue": 0,
-    "pr_head": "f1a166e89544920f2879d6b526a399161041cc8e",
+    "pr_head": "f1a12d678cbf751fd691f0751f41128ff3600526",
     "pr": 7
   },
   "met03_note": "spike subset only \u2014 the remaining \u00a78.2 fault rows and three repetitions per release row are explicit MVP work (tasks 3.6/3.7); MET03 is not claimed complete from this subset",
@@ -902,7 +902,7 @@
     "events": [
       {
         "seq": 1,
-        "ts": "2026-10-05T00:45:04Z",
+        "ts": "2026-10-05T00:46:14Z",
         "delivery_id": "dlv-f1",
         "repo": "spike/disposable",
         "issue": 0,
@@ -912,7 +912,7 @@
       },
       {
         "seq": 2,
-        "ts": "2026-10-05T00:45:04Z",
+        "ts": "2026-10-05T00:46:14Z",
         "delivery_id": "dlv-f1-recon",
         "repo": "spike/disposable",
         "issue": 0,
@@ -922,7 +922,7 @@
       },
       {
         "seq": 3,
-        "ts": "2026-10-05T00:45:04Z",
+        "ts": "2026-10-05T00:46:14Z",
         "delivery_id": "dlv-f2",
         "repo": "spike/disposable",
         "issue": 0,
@@ -932,7 +932,7 @@
       },
       {
         "seq": 4,
-        "ts": "2026-10-05T00:45:04Z",
+        "ts": "2026-10-05T00:46:14Z",
         "delivery_id": "dlv-f3",
         "repo": "spike/disposable",
         "issue": 0,
@@ -949,63 +949,63 @@
         "task_id": "task-0001",
         "generation": 1,
         "state": "accepted",
-        "created": "2026-10-05T00:45:04Z"
+        "created": "2026-10-05T00:46:14Z"
       }
     ],
     "attempts": [],
     "approvals": [
       {
-        "request_id": "apr-31d5554881dc",
+        "request_id": "apr-26e8fd0cd3e7",
         "actor": "77001",
         "target": "spike/disposable#7",
         "action": "approve-merge",
-        "revision_digest": "fcd3b92e33b47c8b4892466f27e003b8b4d3befbe9f9b468ec6bb3a07297036f",
+        "revision_digest": "5390d04cf8d09630b3a12ccb5384dbaf3188f14bc00b92b9a4d79b0f745a40d2",
         "evidence_digest": "9bc030fccb71d3315c740147b74fe4a99683fb2516738b632412ae117a00da44",
         "policy_digest": "72993b6cb83904d39a8c73bd0651aa6251288ede5dbc2c7bcbdc54cc5bbf5d77",
-        "created": 1791161104.948192,
-        "expiry": 1791164704.948192,
+        "created": 1791161174.2961779,
+        "expiry": 1791164774.2961779,
         "state": "consumed",
         "consumed_seq": 11,
         "merge_intent": "mi-0011"
       },
       {
-        "request_id": "apr-4241bf419337",
+        "request_id": "apr-ae3c8bf7521a",
         "actor": "77001",
-        "target": "apr-31d5554881dc-t",
+        "target": "apr-26e8fd0cd3e7-t",
         "action": "approve-merge",
-        "revision_digest": "fcd3b92e33b47c8b4892466f27e003b8b4d3befbe9f9b468ec6bb3a07297036f",
+        "revision_digest": "5390d04cf8d09630b3a12ccb5384dbaf3188f14bc00b92b9a4d79b0f745a40d2",
         "evidence_digest": "9bc030fccb71d3315c740147b74fe4a99683fb2516738b632412ae117a00da44",
         "policy_digest": "72993b6cb83904d39a8c73bd0651aa6251288ede5dbc2c7bcbdc54cc5bbf5d77",
-        "created": 1791161104.949706,
-        "expiry": 1791164704.949706,
+        "created": 1791161174.3002272,
+        "expiry": 1791164774.3002272,
         "state": "consumed",
         "consumed_seq": 13,
         "merge_intent": "mi-0013"
       },
       {
-        "request_id": "apr-bf4aee714079",
+        "request_id": "apr-13dac69bc435",
         "actor": "77001",
         "target": "spike/disposable#9",
         "action": "approve-merge",
         "revision_digest": "r",
         "evidence_digest": "e",
         "policy_digest": "p",
-        "created": 1791157444.952527,
-        "expiry": 1791161044.952527,
+        "created": 1791157514.306744,
+        "expiry": 1791161114.306744,
         "state": "awaiting",
         "consumed_seq": null,
         "merge_intent": null
       },
       {
-        "request_id": "apr-aaf9677b9ba4",
+        "request_id": "apr-9de1dacab767",
         "actor": "77001",
         "target": "spike/disposable#10",
         "action": "approve-merge",
-        "revision_digest": "fcd3b92e33b47c8b4892466f27e003b8b4d3befbe9f9b468ec6bb3a07297036f",
+        "revision_digest": "5390d04cf8d09630b3a12ccb5384dbaf3188f14bc00b92b9a4d79b0f745a40d2",
         "evidence_digest": "9bc030fccb71d3315c740147b74fe4a99683fb2516738b632412ae117a00da44",
         "policy_digest": "05d35c3cff576032c2ec020b80090de59407c157e924b1e1140f9d29a4833113",
-        "created": 1791161104.9544,
-        "expiry": 1791164704.9544,
+        "created": 1791161174.3112068,
+        "expiry": 1791164774.3112068,
         "state": "invalidated",
         "consumed_seq": null,
         "merge_intent": null
@@ -1014,16 +1014,16 @@
     "merge_intents": [
       {
         "intent_id": "mi-0011",
-        "request_id": "apr-31d5554881dc",
-        "expected_head": "f1a166e89544920f2879d6b526a399161041cc8e",
+        "request_id": "apr-26e8fd0cd3e7",
+        "expected_head": "f1a12d678cbf751fd691f0751f41128ff3600526",
         "method": "squash",
         "state": "invalidated",
         "reason": "task-fenced"
       },
       {
         "intent_id": "mi-0013",
-        "request_id": "apr-4241bf419337",
-        "expected_head": "f1a166e89544920f2879d6b526a399161041cc8e",
+        "request_id": "apr-ae3c8bf7521a",
+        "expected_head": "f1a12d678cbf751fd691f0751f41128ff3600526",
         "method": "squash",
         "state": "invalidated",
         "reason": "task-fenced"
@@ -1032,7 +1032,7 @@
     "audit": [
       {
         "seq": 1,
-        "ts": "2026-10-05T00:45:04.932+00:00",
+        "ts": "2026-10-05T00:46:14.260+00:00",
         "actor": "intake",
         "action": "deliver",
         "target": "spike/disposable#0",
@@ -1041,7 +1041,7 @@
       },
       {
         "seq": 2,
-        "ts": "2026-10-05T00:45:04.933+00:00",
+        "ts": "2026-10-05T00:46:14.260+00:00",
         "actor": "intake",
         "action": "deliver",
         "target": "spike/disposable#0",
@@ -1050,7 +1050,7 @@
       },
       {
         "seq": 3,
-        "ts": "2026-10-05T00:45:04.933+00:00",
+        "ts": "2026-10-05T00:46:14.262+00:00",
         "actor": "intake",
         "action": "deliver",
         "target": "spike/disposable#0",
@@ -1059,34 +1059,34 @@
       },
       {
         "seq": 4,
-        "ts": "2026-10-05T00:45:04.934+00:00",
+        "ts": "2026-10-05T00:46:14.262+00:00",
         "actor": "worker",
         "action": "begin-attempt",
         "target": "wk-0001",
         "outcome": "active",
-        "detail": "att-implementation-16417766"
+        "detail": "att-implementation-c2066641"
       },
       {
         "seq": 5,
-        "ts": "2026-10-05T00:45:04.934+00:00",
+        "ts": "2026-10-05T00:46:14.263+00:00",
         "actor": "worker",
         "action": "begin-attempt",
         "target": "wk-0001",
         "outcome": "denied",
-        "detail": "attempt-active:att-implementation-16417766"
+        "detail": "attempt-active:att-implementation-c2066641"
       },
       {
         "seq": 6,
-        "ts": "2026-10-05T00:45:04.935+00:00",
+        "ts": "2026-10-05T00:46:14.264+00:00",
         "actor": "worker",
         "action": "end-attempt",
-        "target": "att-implementation-16417766",
+        "target": "att-implementation-c2066641",
         "outcome": "completed",
         "detail": ""
       },
       {
         "seq": 7,
-        "ts": "2026-10-05T00:45:04.936+00:00",
+        "ts": "2026-10-05T00:46:14.265+00:00",
         "actor": "intake",
         "action": "deliver",
         "target": "spike/disposable#0",
@@ -1095,7 +1095,7 @@
       },
       {
         "seq": 8,
-        "ts": "2026-10-05T00:45:04.937+00:00",
+        "ts": "2026-10-05T00:46:14.267+00:00",
         "actor": "intake",
         "action": "deliver",
         "target": "spike/disposable#0",
@@ -1104,7 +1104,7 @@
       },
       {
         "seq": 9,
-        "ts": "2026-10-05T00:45:04.937+00:00",
+        "ts": "2026-10-05T00:46:14.269+00:00",
         "actor": "intake",
         "action": "deliver",
         "target": "spike/disposable#0",
@@ -1113,16 +1113,16 @@
       },
       {
         "seq": 10,
-        "ts": "2026-10-05T00:45:04.938+00:00",
+        "ts": "2026-10-05T00:46:14.271+00:00",
         "actor": "broker",
         "action": "remote-op",
         "target": "op-pr-f1",
         "outcome": "dispatched",
-        "detail": "pr-publish head=f1a166e89544"
+        "detail": "pr-publish head=f1a12d678cbf"
       },
       {
         "seq": 11,
-        "ts": "2026-10-05T00:45:04.939+00:00",
+        "ts": "2026-10-05T00:46:14.273+00:00",
         "actor": "broker",
         "action": "remote-op",
         "target": "op-pr-f1",
@@ -1131,16 +1131,16 @@
       },
       {
         "seq": 12,
-        "ts": "2026-10-05T00:45:04.940+00:00",
+        "ts": "2026-10-05T00:46:14.274+00:00",
         "actor": "broker",
         "action": "remote-op",
         "target": "op-pr-f2",
         "outcome": "dispatched",
-        "detail": "pr-publish head=b0b09a43aa9e"
+        "detail": "pr-publish head=b0b0375bfd3e"
       },
       {
         "seq": 13,
-        "ts": "2026-10-05T00:45:04.941+00:00",
+        "ts": "2026-10-05T00:46:14.277+00:00",
         "actor": "broker",
         "action": "remote-op",
         "target": "op-pr-f2",
@@ -1149,7 +1149,7 @@
       },
       {
         "seq": 14,
-        "ts": "2026-10-05T00:45:04.941+00:00",
+        "ts": "2026-10-05T00:46:14.278+00:00",
         "actor": "broker",
         "action": "remote-op",
         "target": "op-pr-f2",
@@ -1158,124 +1158,124 @@
       },
       {
         "seq": 15,
-        "ts": "2026-10-05T00:45:04.944+00:00",
+        "ts": "2026-10-05T00:46:14.287+00:00",
         "actor": "worker",
         "action": "begin-attempt",
         "target": "wk-0001",
         "outcome": "active",
-        "detail": "att-implementation-d8ccc02c"
+        "detail": "att-implementation-c9a29e2b"
       },
       {
         "seq": 16,
-        "ts": "2026-10-05T00:45:04.945+00:00",
+        "ts": "2026-10-05T00:46:14.288+00:00",
         "actor": "reaper",
         "action": "expire-claims",
         "target": "-",
         "outcome": "expired",
-        "detail": "att-implementation-d8ccc02c"
+        "detail": "att-implementation-c9a29e2b"
       },
       {
         "seq": 17,
-        "ts": "2026-10-05T00:45:04.945+00:00",
+        "ts": "2026-10-05T00:46:14.289+00:00",
         "actor": "worker",
         "action": "submit-result",
-        "target": "att-implementation-d8ccc02c",
+        "target": "att-implementation-c9a29e2b",
         "outcome": "denied:attempt-expired",
         "detail": "res-dead-1"
       },
       {
         "seq": 18,
-        "ts": "2026-10-05T00:45:04.947+00:00",
+        "ts": "2026-10-05T00:46:14.294+00:00",
         "actor": "worker",
         "action": "begin-attempt",
         "target": "wk-0001",
         "outcome": "active",
-        "detail": "att-implementation-4b5237e1"
+        "detail": "att-implementation-f9bc835e"
       },
       {
         "seq": 19,
-        "ts": "2026-10-05T00:45:04.947+00:00",
+        "ts": "2026-10-05T00:46:14.295+00:00",
         "actor": "worker",
         "action": "submit-result",
-        "target": "att-implementation-4b5237e1",
+        "target": "att-implementation-f9bc835e",
         "outcome": "accepted",
         "detail": "res-dead-2"
       },
       {
         "seq": 20,
-        "ts": "2026-10-05T00:45:04.948+00:00",
+        "ts": "2026-10-05T00:46:14.296+00:00",
         "actor": "77001",
         "action": "request-approval",
         "target": "spike/disposable#7",
         "outcome": "awaiting",
-        "detail": "request_id=apr-31d5554881dc expiry=+3600s"
+        "detail": "request_id=apr-26e8fd0cd3e7 expiry=+3600s"
       },
       {
         "seq": 21,
-        "ts": "2026-10-05T00:45:04.949+00:00",
+        "ts": "2026-10-05T00:46:14.298+00:00",
         "actor": "77001",
         "action": "approve",
-        "target": "apr-31d5554881dc",
+        "target": "apr-26e8fd0cd3e7",
         "outcome": "consumed",
         "detail": "merge_intent=mi-0011"
       },
       {
         "seq": 22,
-        "ts": "2026-10-05T00:45:04.949+00:00",
+        "ts": "2026-10-05T00:46:14.299+00:00",
         "actor": "77001",
         "action": "approve",
-        "target": "apr-31d5554881dc",
+        "target": "apr-26e8fd0cd3e7",
         "outcome": "denied",
         "detail": "replayed"
       },
       {
         "seq": 23,
-        "ts": "2026-10-05T00:45:04.949+00:00",
+        "ts": "2026-10-05T00:46:14.300+00:00",
         "actor": "77001",
         "action": "request-approval",
-        "target": "apr-31d5554881dc-t",
+        "target": "apr-26e8fd0cd3e7-t",
         "outcome": "awaiting",
-        "detail": "request_id=apr-4241bf419337 expiry=+3600s"
+        "detail": "request_id=apr-ae3c8bf7521a expiry=+3600s"
       },
       {
         "seq": 24,
-        "ts": "2026-10-05T00:45:04.950+00:00",
+        "ts": "2026-10-05T00:46:14.304+00:00",
         "actor": "77001",
         "action": "approve",
-        "target": "apr-4241bf419337",
+        "target": "apr-ae3c8bf7521a",
         "outcome": "consumed",
         "detail": "merge_intent=mi-0013"
       },
       {
         "seq": 25,
-        "ts": "2026-10-05T00:45:04.951+00:00",
+        "ts": "2026-10-05T00:46:14.305+00:00",
         "actor": "77001",
         "action": "approve",
-        "target": "apr-4241bf419337",
+        "target": "apr-ae3c8bf7521a",
         "outcome": "denied",
         "detail": "replayed"
       },
       {
         "seq": 26,
-        "ts": "2026-10-05T00:45:04.952+00:00",
+        "ts": "2026-10-05T00:46:14.307+00:00",
         "actor": "77001",
         "action": "request-approval",
         "target": "spike/disposable#9",
         "outcome": "awaiting",
-        "detail": "request_id=apr-bf4aee714079 expiry=+3600s"
+        "detail": "request_id=apr-13dac69bc435 expiry=+3600s"
       },
       {
         "seq": 27,
-        "ts": "2026-10-05T00:45:04.953+00:00",
+        "ts": "2026-10-05T00:46:14.308+00:00",
         "actor": "77001",
         "action": "approve",
-        "target": "apr-bf4aee714079",
+        "target": "apr-13dac69bc435",
         "outcome": "denied",
         "detail": "expired"
       },
       {
         "seq": 28,
-        "ts": "2026-10-05T00:45:04.953+00:00",
+        "ts": "2026-10-05T00:46:14.309+00:00",
         "actor": "merge-owner",
         "action": "invalidate-intent",
         "target": "mi-0011",
@@ -1284,7 +1284,7 @@
       },
       {
         "seq": 29,
-        "ts": "2026-10-05T00:45:04.954+00:00",
+        "ts": "2026-10-05T00:46:14.310+00:00",
         "actor": "merge-owner",
         "action": "invalidate-intent",
         "target": "mi-0013",
@@ -1293,28 +1293,28 @@
       },
       {
         "seq": 30,
-        "ts": "2026-10-05T00:45:04.954+00:00",
+        "ts": "2026-10-05T00:46:14.311+00:00",
         "actor": "77001",
         "action": "request-approval",
         "target": "spike/disposable#10",
         "outcome": "awaiting",
-        "detail": "request_id=apr-aaf9677b9ba4 expiry=+3600s"
+        "detail": "request_id=apr-9de1dacab767 expiry=+3600s"
       },
       {
         "seq": 31,
-        "ts": "2026-10-05T00:45:04.954+00:00",
+        "ts": "2026-10-05T00:46:14.312+00:00",
         "actor": "merge-owner",
         "action": "invalidate-approval",
-        "target": "apr-aaf9677b9ba4",
+        "target": "apr-9de1dacab767",
         "outcome": "invalidated",
         "detail": "policy-changed"
       },
       {
         "seq": 32,
-        "ts": "2026-10-05T00:45:04.955+00:00",
+        "ts": "2026-10-05T00:46:14.312+00:00",
         "actor": "77001",
         "action": "approve",
-        "target": "apr-aaf9677b9ba4",
+        "target": "apr-9de1dacab767",
         "outcome": "denied",
         "detail": "state-invalidated"
       }
@@ -1362,7 +1362,7 @@
     "control": [
       {
         "seq": 1,
-        "ts": "2026-10-05T00:45:04.942+00:00",
+        "ts": "2026-10-05T00:46:14.280+00:00",
         "actor": "77001",
         "chat": "ops",
         "action": "cancel",
@@ -1371,7 +1371,7 @@
       },
       {
         "seq": 2,
-        "ts": "2026-10-05T00:45:04.946+00:00",
+        "ts": "2026-10-05T00:46:14.291+00:00",
         "actor": "77001",
         "chat": "ops",
         "action": "cancel",
@@ -1383,7 +1383,7 @@
       {
         "op_id": "res-f1",
         "seq": null,
-        "ts": "2026-10-05T00:45:04.942+00:00",
+        "ts": "2026-10-05T00:46:14.280+00:00",
         "op": "submit-result",
         "repo": "spike/disposable",
         "generation": 1,
@@ -1394,7 +1394,7 @@
       {
         "op_id": "eff-f1",
         "seq": null,
-        "ts": "2026-10-05T00:45:04.943+00:00",
+        "ts": "2026-10-05T00:46:14.282+00:00",
         "op": "branch-publish",
         "repo": "spike/disposable",
         "generation": 1,
@@ -1405,7 +1405,7 @@
       {
         "op_id": "eff-f2",
         "seq": null,
-        "ts": "2026-10-05T00:45:04.944+00:00",
+        "ts": "2026-10-05T00:46:14.284+00:00",
         "op": "branch-publish",
         "repo": "spike/disposable",
         "generation": 1,
@@ -1418,7 +1418,7 @@
     "audit": [
       {
         "seq": 1,
-        "ts": "2026-10-05T00:45:04.942+00:00",
+        "ts": "2026-10-05T00:46:14.281+00:00",
         "actor": "worker-profile",
         "repo": "spike/disposable",
         "generation": 1,
@@ -1428,7 +1428,7 @@
       },
       {
         "seq": 2,
-        "ts": "2026-10-05T00:45:04.943+00:00",
+        "ts": "2026-10-05T00:46:14.282+00:00",
         "actor": "worker-profile",
         "repo": "spike/disposable",
         "generation": 1,
@@ -1438,7 +1438,7 @@
       },
       {
         "seq": 3,
-        "ts": "2026-10-05T00:45:04.944+00:00",
+        "ts": "2026-10-05T00:46:14.285+00:00",
         "actor": "worker-profile",
         "repo": "spike/disposable",
         "generation": 1,

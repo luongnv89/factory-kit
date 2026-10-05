@@ -73,7 +73,6 @@ import importlib.util
 import json as _json
 import os
 import secrets as _secrets
-import sqlite3
 import sys
 import tempfile
 import threading
@@ -1021,9 +1020,11 @@ class FaultRun:
         never a false success."""
         ev: dict = {"legs": []}
         head = ctx["head"]
+        gen = self.fence.current_generation(REGISTERED_REPO,
+                                            ISSUE_NUMBER)[0]
         self.remote.invoke_merge(7, head, ctx={
             "op_id": "op-merge-f1", "repository": REGISTERED_REPO,
-            "generation": 2, "actor": "merge-owner"})
+            "generation": gen, "actor": "merge-owner"})
         snap = self.remote.snapshot()
         merged = snap["pulls"].get("7", {})
         merges = snap.get("merges") or []
@@ -1199,6 +1200,8 @@ class FaultRun:
             ctx.update(out)
         self._compute_zeros()
         failed = [l["name"] for l in self.legs if l["status"] != "pass"]
+        # a failed leg IS the blocker — record it by name, never silently
+        self.named_blockers.extend(failed)
         return {
             "schema": "factory-kit/spike-faults@1",
             "version": VERSION,
@@ -1311,8 +1314,6 @@ def main(argv=None) -> int:
         if tmp_ctx:
             tmp_ctx.cleanup()
         return 4
-    finally:
-        pass
     text = _json.dumps(report, indent=2)
     if args.write:
         Path(args.write).write_text(text + "\n")
