@@ -1,0 +1,884 @@
+{
+  "schema": "factory-kit/endpoint-walkthrough@1",
+  "version": "1.0.0",
+  "run_id": "0bf8667d",
+  "started": "2026-10-05T00:13:33.666+00:00",
+  "elapsed_s": 0.03,
+  "verdict": "endpoint-demonstrated",
+  "gates": {
+    "intake": "pass",
+    "verify": "pass",
+    "preview": "pass",
+    "approval": "pass",
+    "merge-guard": "pass",
+    "readback": "pass"
+  },
+  "named_blockers": [
+    "base-unprotected"
+  ],
+  "no_go_owners": {
+    "base-unprotected": "Luong \u2014 enable required checks on an up-to-date base with enforce_admins on money-mind:main"
+  },
+  "linked_identities": {
+    "repository": "spike/disposable",
+    "issue": 0,
+    "work_id": "wk-0004",
+    "task_id": "task-0004",
+    "generation": 1,
+    "impl_attempt": "att-implementation-383a2c30",
+    "review_attempt": "att-review-735ce9f3",
+    "pr_head_reviewed": "e5e5e5c9d5ccfb6079147e5c14e2bde82b40ea32",
+    "live_pr": 88,
+    "deployment_id": "dpl-0001-2089a678",
+    "preview_url": "https://preview-dpl-0001-2089a678.example.test",
+    "approval_request": "apr-afcfae74b3ff",
+    "merge_intent": "mi-0005"
+  },
+  "legs": [
+    {
+      "leg": "intake",
+      "status": "pass",
+      "evidence": {
+        "denied": [
+          {
+            "leg": "invalid-signature",
+            "outcome": "denied",
+            "reason": "invalid-signature",
+            "seq": 1
+          },
+          {
+            "leg": "wrong-repository",
+            "outcome": "denied",
+            "reason": "wrong-repository",
+            "seq": 2
+          },
+          {
+            "leg": "unauthorized-optin",
+            "outcome": "denied",
+            "reason": "unauthorized-optin",
+            "seq": 3
+          }
+        ],
+        "accepted": {
+          "outcome": "accepted",
+          "reason": null,
+          "seq": 4,
+          "work_id": "wk-0004",
+          "task_id": "task-0004",
+          "generation": 1
+        },
+        "sessions": {
+          "implementation": {
+            "attempt_id": "att-implementation-383a2c30",
+            "session_id": "sess-cab6726c",
+            "verdict": "completed",
+            "pr_head": "e5e5e5c9d5ccfb6079147e5c14e2bde82b40ea32"
+          },
+          "reviewer": {
+            "attempt_id": "att-review-735ce9f3",
+            "session_id": "sess-95466c6c",
+            "verdict": "approved",
+            "pr_head": "e5e5e5c9d5ccfb6079147e5c14e2bde82b40ea32"
+          },
+          "sequential": true
+        },
+        "denied_count_no_authority": 3,
+        "work_rows": 1
+      },
+      "blockers": []
+    },
+    {
+      "leg": "verify",
+      "status": "pass",
+      "evidence": {
+        "observed": {
+          "state": "open",
+          "draft": false,
+          "head": "e5e5e5c9d5ccfb6079147e5c14e2bde82b40ea32",
+          "base": "main"
+        },
+        "checks": [
+          {
+            "name": "Code Quality & Build",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Security Scan",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        ],
+        "legs": [
+          {
+            "name": "happy-path",
+            "gate": "verified",
+            "pass": true,
+            "reasons": []
+          },
+          {
+            "name": "self-report-no-substitute",
+            "gate": "verified",
+            "pass": false,
+            "reasons": [
+              "impl-self-report-substituted"
+            ]
+          },
+          {
+            "name": "head-moved",
+            "gate": "verified",
+            "pass": false,
+            "reasons": [
+              "head-moved-since-review"
+            ]
+          },
+          {
+            "name": "check-missing",
+            "gate": "verified",
+            "pass": false,
+            "reasons": [
+              "required-checks-missing"
+            ]
+          },
+          {
+            "name": "check-failed",
+            "gate": "verified",
+            "pass": false,
+            "reasons": [
+              "check-failed:Security Scan"
+            ]
+          }
+        ],
+        "live": {
+          "pr": 88,
+          "gate": "verified",
+          "pass": false,
+          "reasons": [
+            "pr-not-open-non-draft",
+            "check-failed:Security Scan"
+          ]
+        }
+      },
+      "blockers": []
+    },
+    {
+      "leg": "preview",
+      "status": "pass",
+      "evidence": {
+        "deployment": {
+          "deployment_id": "dpl-0001-2089a678",
+          "url": "https://preview-dpl-0001-2089a678.example.test",
+          "head_sha": "e5e5e5c9d5ccfb6079147e5c14e2bde82b40ea32"
+        },
+        "smoke": {
+          "deployment_id": "dpl-0001-2089a678",
+          "url": "https://preview-dpl-0001-2089a678.example.test",
+          "http": 200,
+          "marker": true,
+          "state": "READY",
+          "ok": true,
+          "observed_at": 1791159213.656321
+        },
+        "legs": [
+          {
+            "name": "happy-path",
+            "gate": "preview-ready",
+            "pass": true,
+            "reasons": []
+          },
+          {
+            "name": "wrong-revision-reuse",
+            "gate": "preview-ready",
+            "pass": false,
+            "reasons": [
+              "wrong-revision"
+            ]
+          },
+          {
+            "name": "unknown-deployment",
+            "gate": "preview-ready",
+            "pass": false,
+            "reasons": [
+              "unknown-deployment",
+              "failed-smoke"
+            ]
+          },
+          {
+            "name": "stale-smoke",
+            "gate": "preview-ready",
+            "pass": false,
+            "reasons": [
+              "stale-smoke"
+            ]
+          },
+          {
+            "name": "provider-outage",
+            "blocked": true,
+            "cleanup": {
+              "deployment_id": "dpl-0001-2089a678",
+              "removed": false,
+              "backlogged": true
+            }
+          }
+        ],
+        "owned_cleanup": {
+          "deployment_id": "dpl-0001-2089a678",
+          "removed": true
+        },
+        "live": {
+          "provider": "vercel",
+          "repo": "luongnv89/money-mind",
+          "project": "fk-spike-money-mind-1a2fe07f",
+          "head": "4198fafc346dec05fef2be01859bb2ecde876c67",
+          "prime_deploy_ok": true,
+          "url": "https://fk-spike-money-mind-1a2fe07f-3h51fge1t-luongnv89s-projects.vercel.app",
+          "environment": "preview",
+          "inspect_ok": true,
+          "inspect_head": "Vercel CLI 55.0.0 (Node.js 26.7.0)\nFetching deployment \"fk-spike-money-mind-1a2fe07f-3h51fge1t-luongnv89s-projects.vercel.app\" in luongnv89s-projects\n> Fetched deployment \"fk-spike-money-mind-1a2fe07f-3h51fge1t-luongnv89s-projects.vercel.app\" in luongnv89s-projects [500ms]\n\n  General\n\n    id\t\tdpl_AtecLFtpFXfQdGioXyC56UuSJhbG\n    name\tfk-spike-money-mind-1a2fe07f\n    target\tpreview\n    status\t\u25cf Ready\n    url\t\thttps://fk-spike-money-mind-1a2fe07f-3h51fge1t-luongnv89s-projects.vercel.app\n    created\tMon Oct 05 2026 02:13:09 GMT+0200 (Central European Summer Time) [19s ago]\n\n\n  Builds",
+          "smoke": {
+            "http": 200,
+            "marker": false,
+            "ok": false,
+            "note": "200 without shell marker \u2014 possible deployment-protection interstitial",
+            "observed_at": "2026-10-05T00:13:29.171+00:00"
+          },
+          "cleanup": {
+            "deployment_removed": true,
+            "raw": "Vercel CLI 55.0.0 (Node.js 26.7.0)\nFetching deployment(s) \"https://fk-spike-money-mind-1a2fe07f-3h51fge1t-luongnv89s-pro"
+          },
+          "project_cleanup": {
+            "attempted": true,
+            "ok": true,
+            "raw": "Vercel CLI 55.0.0 (Node.js 26.7.0)\nThe project fk-spike-money-mind-1a2fe07f will be removed permanently.\nIt will also delete everything under the proj"
+          }
+        }
+      },
+      "blockers": []
+    },
+    {
+      "leg": "approval",
+      "status": "pass",
+      "evidence": {
+        "request": {
+          "request_id": "apr-afcfae74b3ff",
+          "state": "awaiting",
+          "expiry": 1791162813.657593
+        },
+        "presentation": {
+          "repository": "spike/disposable",
+          "pr": 7,
+          "head": "e5e5e5c9d5ccfb6079147e5c14e2bde82b40ea32",
+          "base": "main",
+          "preview_url": "https://preview-dpl-0001-2089a678.example.test",
+          "smoke": "ok",
+          "method": "squash",
+          "expiry_s": 3600,
+          "digests": {
+            "revision": "afb1ad653d635fd3",
+            "evidence": "854e87287833e8e1",
+            "policy": "4a177236a1adc966"
+          }
+        },
+        "legs": [
+          {
+            "name": "concurrent-approve",
+            "outcomes": [
+              "consumed",
+              "denied"
+            ],
+            "consumed": 1
+          },
+          {
+            "name": "replay",
+            "outcome": "denied",
+            "reason": "replayed",
+            "seq": 7,
+            "merge_intents_for_request": 1
+          },
+          {
+            "name": "wrong-actor",
+            "outcome": "denied",
+            "reason": "wrong-actor",
+            "seq": 8,
+            "merge_intents_for_request": 0
+          },
+          {
+            "name": "unknown-request",
+            "outcome": "denied",
+            "reason": "unknown-request",
+            "seq": 9,
+            "merge_intents_for_request": 0
+          }
+        ],
+        "telegram_live": {
+          "adapter_present": true,
+          "env_keys": [
+            "TELEGRAM_ALLOWED_USERS",
+            "TELEGRAM_BOT_TOKEN",
+            "TELEGRAM_HOME_CHANNEL"
+          ]
+        },
+        "restart_survival": {
+          "attributable": true,
+          "row": [
+            "77001",
+            "awaiting",
+            "spike/disposable#7"
+          ]
+        },
+        "merge_intents_total": 1
+      },
+      "blockers": []
+    },
+    {
+      "leg": "merge-guard",
+      "status": "pass",
+      "evidence": {
+        "legs": [
+          {
+            "name": "happy-path",
+            "gate": "merge-guard",
+            "pass": true,
+            "reasons": []
+          },
+          {
+            "name": "head-changed",
+            "gate": "merge-guard",
+            "pass": false,
+            "reasons": [
+              "head-changed"
+            ]
+          },
+          {
+            "name": "base-moved",
+            "gate": "merge-guard",
+            "pass": false,
+            "reasons": [
+              "base-changed"
+            ]
+          },
+          {
+            "name": "stale-preview",
+            "gate": "merge-guard",
+            "pass": false,
+            "reasons": [
+              "stale-preview"
+            ]
+          },
+          {
+            "name": "revoked-actor",
+            "gate": "merge-guard",
+            "pass": false,
+            "reasons": [
+              "revoked-actor"
+            ]
+          },
+          {
+            "name": "fenced-task",
+            "gate": "merge-guard",
+            "pass": false,
+            "reasons": [
+              "task-fenced"
+            ]
+          },
+          {
+            "name": "paused-task",
+            "gate": "merge-guard",
+            "pass": false,
+            "reasons": [
+              "task-paused"
+            ]
+          },
+          {
+            "name": "expired-approval",
+            "gate": "merge-guard",
+            "pass": false,
+            "reasons": [
+              "approval-expired"
+            ]
+          },
+          {
+            "name": "rejected-approval",
+            "gate": "merge-guard",
+            "pass": false,
+            "reasons": [
+              "approval-rejected"
+            ]
+          },
+          {
+            "name": "replayed-approval",
+            "gate": "merge-guard",
+            "pass": false,
+            "reasons": [
+              "approval-awaiting"
+            ]
+          },
+          {
+            "name": "missing-check",
+            "gate": "merge-guard",
+            "pass": false,
+            "reasons": [
+              "required-checks-not-green"
+            ]
+          },
+          {
+            "name": "unprotected-base",
+            "gate": "merge-guard",
+            "pass": false,
+            "reasons": [
+              "base-unprotected"
+            ]
+          },
+          {
+            "name": "non-strict-base",
+            "gate": "merge-guard",
+            "pass": false,
+            "reasons": [
+              "base-unprotected"
+            ]
+          },
+          {
+            "name": "auto-merge-on",
+            "gate": "merge-guard",
+            "pass": false,
+            "reasons": [
+              "auto-merge-enabled"
+            ]
+          }
+        ],
+        "live": {
+          "repository": "luongnv89/money-mind",
+          "default_branch": "main",
+          "private": false,
+          "allow_auto_merge": false,
+          "allow_squash_merge": true,
+          "protection": {
+            "protected": false
+          }
+        },
+        "live_repo_guard": {
+          "gate": "merge-guard",
+          "pass": false,
+          "reasons": [
+            "required-checks-not-green",
+            "base-unprotected"
+          ]
+        },
+        "live_merge_owner": {
+          "decision": "refused",
+          "reason": "live base cannot enforce the contract",
+          "blockers": [
+            "required-checks-not-green",
+            "base-unprotected"
+          ]
+        }
+      },
+      "blockers": [
+        "base-unprotected"
+      ]
+    },
+    {
+      "leg": "readback",
+      "status": "pass",
+      "evidence": {
+        "legs": [
+          {
+            "name": "happy-readback",
+            "authoritative": true,
+            "merge_sha": "e5e5e5c9d5ccfb6079147e5c14e2bde82b40ea32",
+            "source": "remote-snapshot"
+          },
+          {
+            "name": "lost-response-reconcile",
+            "response_received": false,
+            "reconciled_sha": "e5e5e5c9d5ccfb6079147e5c14e2bde82b40ea32",
+            "retried": false,
+            "verdict": "reconciled-before-retry"
+          },
+          {
+            "name": "unknown-state-parks",
+            "remote_readable": true,
+            "verdict": "park-path-modeled",
+            "blind_resend": false
+          }
+        ],
+        "defaults": {
+          "approval_expiry_s": 3600,
+          "smoke_max_age_s": 600
+        }
+      },
+      "blockers": []
+    }
+  ],
+  "live": {
+    "repo_facts": {
+      "repository": "luongnv89/money-mind",
+      "default_branch": "main",
+      "private": false,
+      "allow_auto_merge": false,
+      "allow_squash_merge": true,
+      "protection": {
+        "protected": false
+      }
+    },
+    "telegram": {
+      "adapter_present": true,
+      "env_keys": [
+        "TELEGRAM_ALLOWED_USERS",
+        "TELEGRAM_BOT_TOKEN",
+        "TELEGRAM_HOME_CHANNEL"
+      ]
+    },
+    "named_blockers": [
+      "base-unprotected"
+    ],
+    "preview": {
+      "provider": "vercel",
+      "repo": "luongnv89/money-mind",
+      "project": "fk-spike-money-mind-1a2fe07f",
+      "head": "4198fafc346dec05fef2be01859bb2ecde876c67",
+      "prime_deploy_ok": true,
+      "url": "https://fk-spike-money-mind-1a2fe07f-3h51fge1t-luongnv89s-projects.vercel.app",
+      "environment": "preview",
+      "inspect_ok": true,
+      "inspect_head": "Vercel CLI 55.0.0 (Node.js 26.7.0)\nFetching deployment \"fk-spike-money-mind-1a2fe07f-3h51fge1t-luongnv89s-projects.vercel.app\" in luongnv89s-projects\n> Fetched deployment \"fk-spike-money-mind-1a2fe07f-3h51fge1t-luongnv89s-projects.vercel.app\" in luongnv89s-projects [500ms]\n\n  General\n\n    id\t\tdpl_AtecLFtpFXfQdGioXyC56UuSJhbG\n    name\tfk-spike-money-mind-1a2fe07f\n    target\tpreview\n    status\t\u25cf Ready\n    url\t\thttps://fk-spike-money-mind-1a2fe07f-3h51fge1t-luongnv89s-projects.vercel.app\n    created\tMon Oct 05 2026 02:13:09 GMT+0200 (Central European Summer Time) [19s ago]\n\n\n  Builds",
+      "smoke": {
+        "http": 200,
+        "marker": false,
+        "ok": false,
+        "note": "200 without shell marker \u2014 possible deployment-protection interstitial",
+        "observed_at": "2026-10-05T00:13:29.171+00:00"
+      },
+      "cleanup": {
+        "deployment_removed": true,
+        "raw": "Vercel CLI 55.0.0 (Node.js 26.7.0)\nFetching deployment(s) \"https://fk-spike-money-mind-1a2fe07f-3h51fge1t-luongnv89s-pro"
+      },
+      "project_cleanup": {
+        "attempted": true,
+        "ok": true,
+        "raw": "Vercel CLI 55.0.0 (Node.js 26.7.0)\nThe project fk-spike-money-mind-1a2fe07f will be removed permanently.\nIt will also delete everything under the proj"
+      }
+    }
+  },
+  "met01_note": "one assembled run; does not declare production F02/F04/F11/F12 complete \u2014 per AC-A8",
+  "store_dump": {
+    "events": [
+      {
+        "seq": 1,
+        "ts": "2026-10-05T00:13:33.638+00:00",
+        "delivery_id": "dlv-badsig",
+        "repo": "spike/disposable",
+        "issue": 0,
+        "sig_ok": 0,
+        "outcome": "denied",
+        "reason": "invalid-signature"
+      },
+      {
+        "seq": 2,
+        "ts": "2026-10-05T00:13:33.638+00:00",
+        "delivery_id": "dlv-wrongrepo",
+        "repo": "other/repo",
+        "issue": 0,
+        "sig_ok": 1,
+        "outcome": "denied",
+        "reason": "wrong-repository"
+      },
+      {
+        "seq": 3,
+        "ts": "2026-10-05T00:13:33.639+00:00",
+        "delivery_id": "dlv-nooptin",
+        "repo": "spike/disposable",
+        "issue": 0,
+        "sig_ok": 1,
+        "outcome": "denied",
+        "reason": "unauthorized-optin"
+      },
+      {
+        "seq": 4,
+        "ts": "2026-10-05T00:13:33.639+00:00",
+        "delivery_id": "dlv-good",
+        "repo": "spike/disposable",
+        "issue": 0,
+        "sig_ok": 1,
+        "outcome": "accepted",
+        "reason": null
+      }
+    ],
+    "work": [
+      {
+        "work_id": "wk-0004",
+        "repo": "spike/disposable",
+        "issue": 0,
+        "task_id": "task-0004",
+        "generation": 1,
+        "state": "accepted",
+        "created": "2026-10-05T00:13:33.639+00:00"
+      }
+    ],
+    "attempts": [
+      {
+        "attempt_id": "att-implementation-383a2c30",
+        "work_id": "wk-0004",
+        "role": "implementation",
+        "session_id": "sess-cab6726c",
+        "verdict": "completed",
+        "pr_head": "e5e5e5c9d5ccfb6079147e5c14e2bde82b40ea32",
+        "started": "2026-10-05T00:13:33.640+00:00",
+        "ended": "2026-10-05T00:13:33.640+00:00"
+      },
+      {
+        "attempt_id": "att-review-735ce9f3",
+        "work_id": "wk-0004",
+        "role": "review",
+        "session_id": "sess-95466c6c",
+        "verdict": "approved",
+        "pr_head": "e5e5e5c9d5ccfb6079147e5c14e2bde82b40ea32",
+        "started": "2026-10-05T00:13:33.654+00:00",
+        "ended": "2026-10-05T00:13:33.654+00:00"
+      }
+    ],
+    "approvals": [
+      {
+        "request_id": "apr-afcfae74b3ff",
+        "actor": "77001",
+        "target": "spike/disposable#7",
+        "action": "approve-merge",
+        "revision_digest": "afb1ad653d635fd3",
+        "evidence_digest": "854e87287833e8e1",
+        "policy_digest": "4a177236a1adc966",
+        "created": 1791159213.657593,
+        "expiry": 1791162813.657593,
+        "state": "consumed",
+        "consumed_seq": 5,
+        "merge_intent": "mi-0005"
+      },
+      {
+        "request_id": "apr-cb57bdc6764d",
+        "actor": "77001",
+        "target": "spike/disposable#7",
+        "action": "approve-merge",
+        "revision_digest": "afb1ad653d635fd3",
+        "evidence_digest": "854e87287833e8e1",
+        "policy_digest": "4a177236a1adc966",
+        "created": 1791159213.6617532,
+        "expiry": 1791162813.6617532,
+        "state": "awaiting",
+        "consumed_seq": null,
+        "merge_intent": null
+      }
+    ],
+    "merge_intents": [
+      {
+        "intent_id": "mi-0005",
+        "request_id": "apr-afcfae74b3ff",
+        "expected_head": "e5e5e5c9d5ccfb6079147e5c14e2bde82b40ea32",
+        "method": "squash",
+        "state": "invalidated",
+        "reason": "rejected-approval"
+      }
+    ],
+    "audit": [
+      {
+        "seq": 1,
+        "ts": "2026-10-05T00:13:33.638+00:00",
+        "actor": "intake",
+        "action": "accept-event",
+        "target": "spike/disposable#0",
+        "outcome": "denied",
+        "detail": "invalid-signature"
+      },
+      {
+        "seq": 2,
+        "ts": "2026-10-05T00:13:33.638+00:00",
+        "actor": "intake",
+        "action": "accept-event",
+        "target": "other/repo#0",
+        "outcome": "denied",
+        "detail": "wrong-repository"
+      },
+      {
+        "seq": 3,
+        "ts": "2026-10-05T00:13:33.639+00:00",
+        "actor": "intake",
+        "action": "accept-event",
+        "target": "spike/disposable#0",
+        "outcome": "denied",
+        "detail": "unauthorized-optin"
+      },
+      {
+        "seq": 4,
+        "ts": "2026-10-05T00:13:33.639+00:00",
+        "actor": "intake",
+        "action": "accept-event",
+        "target": "spike/disposable#0",
+        "outcome": "accepted",
+        "detail": "work_id=wk-0004"
+      },
+      {
+        "seq": 5,
+        "ts": "2026-10-05T00:13:33.640+00:00",
+        "actor": "sess-cab6726c",
+        "action": "attempt-implementation",
+        "target": "wk-0004",
+        "outcome": "recorded",
+        "detail": "verdict=completed head=e5e5e5c9d5cc"
+      },
+      {
+        "seq": 6,
+        "ts": "2026-10-05T00:13:33.654+00:00",
+        "actor": "sess-95466c6c",
+        "action": "attempt-review",
+        "target": "wk-0004",
+        "outcome": "recorded",
+        "detail": "verdict=approved head=e5e5e5c9d5cc"
+      },
+      {
+        "seq": 7,
+        "ts": "2026-10-05T00:13:33.657+00:00",
+        "actor": "77001",
+        "action": "request-approval",
+        "target": "spike/disposable#7",
+        "outcome": "awaiting",
+        "detail": "request_id=apr-afcfae74b3ff expiry=+3600s"
+      },
+      {
+        "seq": 8,
+        "ts": "2026-10-05T00:13:33.659+00:00",
+        "actor": "77001",
+        "action": "approve",
+        "target": "apr-afcfae74b3ff",
+        "outcome": "consumed",
+        "detail": "merge_intent=mi-0005"
+      },
+      {
+        "seq": 9,
+        "ts": "2026-10-05T00:13:33.660+00:00",
+        "actor": "77001",
+        "action": "approve",
+        "target": "apr-afcfae74b3ff",
+        "outcome": "denied",
+        "detail": "replayed"
+      },
+      {
+        "seq": 10,
+        "ts": "2026-10-05T00:13:33.661+00:00",
+        "actor": "77001",
+        "action": "approve",
+        "target": "apr-afcfae74b3ff",
+        "outcome": "denied",
+        "detail": "replayed"
+      },
+      {
+        "seq": 11,
+        "ts": "2026-10-05T00:13:33.661+00:00",
+        "actor": "77001",
+        "action": "request-approval",
+        "target": "spike/disposable#7",
+        "outcome": "awaiting",
+        "detail": "request_id=apr-cb57bdc6764d expiry=+3600s"
+      },
+      {
+        "seq": 12,
+        "ts": "2026-10-05T00:13:33.662+00:00",
+        "actor": "99999",
+        "action": "approve",
+        "target": "apr-cb57bdc6764d",
+        "outcome": "denied",
+        "detail": "wrong-actor"
+      },
+      {
+        "seq": 13,
+        "ts": "2026-10-05T00:13:33.662+00:00",
+        "actor": "77001",
+        "action": "approve",
+        "target": "apr-missing",
+        "outcome": "denied",
+        "detail": "unknown-request"
+      },
+      {
+        "seq": 14,
+        "ts": "2026-10-05T00:13:33.663+00:00",
+        "actor": "merge-owner",
+        "action": "invalidate-intent",
+        "target": "mi-0005",
+        "outcome": "invalidated",
+        "detail": "head-changed"
+      },
+      {
+        "seq": 15,
+        "ts": "2026-10-05T00:13:33.664+00:00",
+        "actor": "merge-owner",
+        "action": "invalidate-intent",
+        "target": "mi-0005",
+        "outcome": "invalidated",
+        "detail": "revoked-actor"
+      },
+      {
+        "seq": 16,
+        "ts": "2026-10-05T00:13:33.664+00:00",
+        "actor": "merge-owner",
+        "action": "invalidate-intent",
+        "target": "mi-0005",
+        "outcome": "invalidated",
+        "detail": "fenced-task"
+      },
+      {
+        "seq": 17,
+        "ts": "2026-10-05T00:13:33.665+00:00",
+        "actor": "merge-owner",
+        "action": "invalidate-intent",
+        "target": "mi-0005",
+        "outcome": "invalidated",
+        "detail": "expired-approval"
+      },
+      {
+        "seq": 18,
+        "ts": "2026-10-05T00:13:33.665+00:00",
+        "actor": "merge-owner",
+        "action": "invalidate-intent",
+        "target": "mi-0005",
+        "outcome": "invalidated",
+        "detail": "rejected-approval"
+      }
+    ]
+  },
+  "live_pr": {
+    "repo": "luongnv89/money-mind",
+    "created": true,
+    "cleaned": [],
+    "branch": "spike/endpoint-8763d715",
+    "pr_number": 88,
+    "pr_url": "https://github.com/luongnv89/money-mind/pull/88",
+    "head": "665a79ef77f2dee85a0f98416eea6e229fc9eb6a",
+    "base": "main",
+    "state": "OPEN",
+    "draft": false,
+    "checks": [
+      {
+        "name": "Socket Security: Pull Request Alerts",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Socket Security: Project Report",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Code Quality & Build",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Security Scan",
+        "status": "completed",
+        "conclusion": "failure"
+      }
+    ],
+    "checks_observed_at": "2026-10-05T00:12:42.550+00:00"
+  },
+  "live_pr_cleanup": {
+    "closed": true,
+    "branch_deleted": true
+  }
+}
