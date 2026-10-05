@@ -121,16 +121,18 @@ def removal_digest(plan) -> str:
 
     ``files``/``remote_effects``/``previews`` are the reviewed removal
     set; ``registration``/``authority`` carry the fence + tombstone the
-    operator accepted; ``history`` carries the *required* choice
-    vocabulary (never the choice itself — that binds at accept);
-    ``preserved`` is the checksum set apply re-verifies. Mutating any of
-    them re-keys the plan, so the acceptance bound to this digest cannot
-    silently cover a wider scope or a weaker preservation proof.
+    operator accepted; ``project_id`` is the identity ``apply_removal``
+    falls back to for the intake-stop/tombstone target; ``history``
+    carries the *required* choice vocabulary (never the choice itself —
+    that binds at accept); ``preserved`` is the checksum set apply
+    re-verifies. Mutating any of them re-keys the plan, so the
+    acceptance bound to this digest cannot silently cover a wider
+    scope or a weaker preservation proof.
     """
     surface = {k: plan[k] for k in
                ("files", "remote_effects", "previews", "registration",
                 "authority", "history", "shared_infrastructure",
-                "conflicts", "findings", "preserved")
+                "conflicts", "findings", "preserved", "project_id")
                if k in plan}
     return hashlib.sha256(_canonical(surface).encode()).hexdigest()
 

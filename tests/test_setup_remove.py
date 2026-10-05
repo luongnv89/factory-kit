@@ -247,6 +247,25 @@ class TestPlanReview(RemoveFixture):
                 accepted, self.repo, self._store(),
                 registration_store=self._reg())
 
+    def test_tampered_project_id_refused(self):
+        """``project_id`` feeds the intake-stop/tombstone fallback at
+        apply — it is digest-covered, so mutating it after acceptance
+        re-keys the plan and apply refuses instead of acting on an
+        unreviewed identity."""
+        self._install()
+        plan = self._removal_plan()
+        plan["project_id"] = "R_VICTIM99"
+        accepted = remove_mod.accept_removal(plan, "op",
+                                             history="retain")
+        with self.assertRaises(remove_mod.RemovalError):
+            remove_mod.apply_removal(
+                accepted, self.repo, self._store(),
+                registration_store=self._reg(),
+                intake_store=self._intake())
+        # The other identity was never touched.
+        reg = self._reg().get(REPO_ID)
+        self.assertFalse(reg.get("tombstone", False))
+
     def test_path_traversal_entry_never_deleted(self):
         """A forged plan entry naming an unowned path is preserved —
         state is re-derived at apply, and only *recorded owned* files
