@@ -18,8 +18,11 @@ record ``docs/decisions/package-config-contract.md``):
   ``factory_kit.recovery`` carries restart recovery and periodic GitHub
   reconciliation through Hermes ownership (F06);
   ``factory_kit.events`` carries the typed §7.1 event/usage contracts,
-  and ``factory_kit.diagnostics`` the local status/summary and redacted
-  export views over them (F07).
+  ``factory_kit.diagnostics`` the local status/summary and redacted
+  export views over them, ``factory_kit.notifications`` the durable
+  notification outbox with bounded retries, and ``factory_kit.privacy``
+  the clock-controlled retention cleanup and guarded history export
+  (F07).
 """
 
 VERSION = "0.1.0"

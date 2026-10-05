@@ -49,6 +49,7 @@ import uuid
 from factory_kit.config import schema
 from factory_kit.durable.store import _utcnow, work_key_for
 from factory_kit.control import commands
+from factory_kit.diagnostics import views as _views
 from factory_kit.execution.lane import _iso_to_epoch
 
 __all__ = ["ControlService"]
@@ -543,6 +544,23 @@ class ControlService:
         revisions = [i["expected_revision"] for i in intents
                      if i.get("expected_revision")]
         revision = revisions[-1] if revisions else "none recorded"
+        # Task-3.4 A2 additions — the same extras the local view layer
+        # computes, so the Telegram surface and the local report can
+        # never disagree (queue age, remote-observation freshness,
+        # notification failures).
+        extras = _views.status_extras(self.store, work_key,
+                                      now=self._now())
+        remote = extras.get("remote") or {}
+        remote_txt = ("unknown - no reconciliation has completed"
+                      if not remote else
+                      (remote.get("remote_state") or "unknown")
+                      + (" STALE" if remote.get("stale") else ""))
+        notes = extras.get("notifications") or {}
+        notes_txt = (f"{notes.get('pending', 0)} pending, "
+                     f"{notes.get('failed', 0)} failed, "
+                     f"{notes.get('delivered', 0)} delivered")
+        if notes.get("last_failure_reason"):
+            notes_txt += f"; last failure {notes['last_failure_reason']}"
         lines = [
             f"STATE {state} - {pause_word}.",
             f"Work {work_key}; task {work.get('task_id')}; "
@@ -558,9 +576,14 @@ class ControlService:
             f"Blocker: {blocker}.",
             f"Committed effects: {links}.",
             f"Last heartbeat: {beat}. Fence: {fence_txt}.",
+            (f"Queue: {extras['queue_state']} for "
+             f"{_views._fmt_age(extras['queue_age_seconds'])}."
+             if extras.get("queue_state") else None),
+            f"Remote observation: {remote_txt}.",
+            f"Notifications: {notes_txt}.",
             _COMMAND_FOOTER,
         ]
-        return "\n".join(lines)
+        return "\n".join(l for l in lines if l is not None)
 
     def _limits_text(self, work, attempts):
         """A2 — the limits element of the status surface: the bound

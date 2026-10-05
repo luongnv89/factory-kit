@@ -222,7 +222,8 @@ CREATE TABLE IF NOT EXISTS work_queue(
     enqueued_seq INTEGER NOT NULL,
     state TEXT NOT NULL,
     reason TEXT,
-    detail TEXT);
+    detail TEXT,
+    enqueued_at TEXT);
 
 CREATE TABLE IF NOT EXISTS attempt_records(
     attempt_id TEXT PRIMARY KEY,
@@ -605,6 +606,41 @@ CREATE UNIQUE INDEX IF NOT EXISTS one_live_merge_intent_per_work
     WHERE state IN ('recorded','parked');
 CREATE INDEX IF NOT EXISTS merge_intents_by_work
     ON merge_intents(work_key, created_at);
+
+-- Durable notification outbox (Task 3.4 / §7.1 notification_*,
+-- §7.3 delivery-failure row, A1): one row per (kind, identity,
+-- severity) dedup triple — the same alert dedup discipline — carrying
+-- the authorized destination reference, the redacted body, the
+-- bounded-retry bookkeeping (attempts, first/last/next attempt epochs,
+-- last error) and the terminal outcome (delivered/failed). A
+-- severity *transition* mints a new row; a repeated same-severity
+-- signal dedups onto the pending/delivered/failed record, so a
+-- transport outage can never multiply sends and a restart can never
+-- lose the pending record.
+CREATE TABLE IF NOT EXISTS notification_outbox(
+    notification_id TEXT PRIMARY KEY,
+    kind TEXT NOT NULL,
+    identity TEXT NOT NULL,
+    severity TEXT NOT NULL,
+    destination_ref TEXT NOT NULL,
+    body TEXT,
+    work_key TEXT,
+    state TEXT NOT NULL DEFAULT 'pending',
+    attempts INTEGER NOT NULL DEFAULT 0,
+    first_attempt_epoch REAL,
+    last_attempt_epoch REAL,
+    next_attempt_epoch REAL,
+    last_error TEXT,
+    terminal_outcome TEXT,
+    seq INTEGER NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL);
+CREATE UNIQUE INDEX IF NOT EXISTS one_notification_per_signal
+    ON notification_outbox(kind, identity, severity);
+CREATE INDEX IF NOT EXISTS notifications_by_work
+    ON notification_outbox(work_key, state);
+CREATE INDEX IF NOT EXISTS notifications_due
+    ON notification_outbox(state, next_attempt_epoch);
 """
 
 
@@ -671,12 +707,19 @@ class IntakeStore:
     def _migrate(self):
         """In-place additive upgrades for databases created before a
         column existed (``CREATE TABLE IF NOT EXISTS`` alone cannot add
-        one). Currently: ``events.supersedes`` (Task 2.9)."""
+        one). Currently: ``events.supersedes`` (Task 2.9) and
+        ``work_queue.enqueued_at`` (Task 3.4 — the durable queue-age
+        source the A2 views read)."""
         cols = {r[1] for r in
                 self.db.execute("PRAGMA table_info(events)")}
         if "supersedes" not in cols:
             self.db.execute(
                 "ALTER TABLE events ADD COLUMN supersedes INTEGER")
+        cols = {r[1] for r in
+                self.db.execute("PRAGMA table_info(work_queue)")}
+        if "enqueued_at" not in cols:
+            self.db.execute(
+                "ALTER TABLE work_queue ADD COLUMN enqueued_at TEXT")
 
     def close(self):
         db = getattr(self, "db", None)
@@ -971,33 +1014,41 @@ class IntakeStore:
     # -- durable queue -------------------------------------------------------
 
     def enqueue_work(self, work_key, seq, state="queued", reason=None,
-                     detail=None):
+                     detail=None, enqueued_at=None):
         """Upsert a durable queue row — the *visible* reason a ready task
-        waits (``lane-occupied:<occupant>``) survives restarts (A1)."""
+        waits (``lane-occupied:<occupant>``) survives restarts (A1).
+        ``enqueued_at`` stamps the *entry* time (Task 3.4 A2 queue age):
+        a re-upsert keeps the original stamp so an operator-visible wait
+        cannot be reset by a reconcile rewrite."""
+        stamp = enqueued_at or _utcnow()
         self._q(
             "INSERT INTO work_queue"
-            "(work_key,enqueued_seq,state,reason,detail)"
-            " VALUES(?,?,?,?,?)"
+            "(work_key,enqueued_seq,state,reason,detail,enqueued_at)"
+            " VALUES(?,?,?,?,?,?)"
             " ON CONFLICT(work_key) DO UPDATE SET"
             " state=excluded.state, reason=excluded.reason,"
-            " detail=excluded.detail",
-            (work_key, int(seq), state, reason, detail))
+            " detail=excluded.detail,"
+            " enqueued_at=COALESCE(work_queue.enqueued_at,"
+            " excluded.enqueued_at)",
+            (work_key, int(seq), state, reason, detail, stamp))
 
     def queue_entry(self, work_key):
         row = self._q(
-            "SELECT work_key,enqueued_seq,state,reason,detail"
-            " FROM work_queue WHERE work_key=?", (work_key,)).fetchone()
+            "SELECT work_key,enqueued_seq,state,reason,detail,"
+            "enqueued_at FROM work_queue WHERE work_key=?",
+            (work_key,)).fetchone()
         if row is None:
             return None
         return {"work_key": row[0], "enqueued_seq": row[1],
-                "state": row[2], "reason": row[3], "detail": row[4]}
+                "state": row[2], "reason": row[3], "detail": row[4],
+                "enqueued_at": row[5]}
 
     def queue_rows(self, state=None):
         rows = [dict(zip(("work_key", "enqueued_seq", "state", "reason",
-                          "detail"), r))
+                          "detail", "enqueued_at"), r))
                 for r in self._q(
-                    "SELECT work_key,enqueued_seq,state,reason,detail"
-                    " FROM work_queue ORDER BY enqueued_seq")]
+                    "SELECT work_key,enqueued_seq,state,reason,detail,"
+                    "enqueued_at FROM work_queue ORDER BY enqueued_seq")]
         if state is None:
             return rows
         return [r for r in rows if r["state"] == state]
@@ -1360,6 +1411,123 @@ class IntakeStore:
         if kind is None:
             return rows
         return [r for r in rows if r["kind"] == kind]
+
+    # -- notification outbox (Task 3.4 / §7.1, §7.3, A1) ---------------------
+    #
+    # One durable row per (kind, identity, severity) signal. The service
+    # layer decides *when* to send; the store owns the dedup identity, the
+    # retry bookkeeping and the terminal outcome so a process restart can
+    # never lose a pending notification and a transport outage can never
+    # roll back the committed task/control state it reports on.
+
+    def enqueue_notification(self, notification_id, *, kind, identity,
+                             severity, destination_ref, body=None,
+                             work_key=None, seq):
+        """Persist a pending notification (inside ``transact``).
+        Dedup is the ``(kind, identity, severity)`` triple: a repeat of
+        the same signal returns ``deduplicated`` with the existing row;
+        a severity transition is a distinct row by construction (§7.3).
+        """
+        cur = self._q(
+            "INSERT OR IGNORE INTO notification_outbox"
+            "(notification_id,kind,identity,severity,destination_ref,"
+            "body,work_key,state,attempts,seq,created_at,updated_at)"
+            " VALUES(?,?,?,?,?,?,?,'pending',0,?,?,?)",
+            (notification_id, kind, identity, severity,
+             destination_ref, body, work_key, int(seq),
+             _utcnow(), _utcnow()))
+        if cur.rowcount:
+            return {"outcome": "queued",
+                    "notification_id": notification_id,
+                    "deduplicated": False}
+        return {"outcome": "deduplicated",
+                "notification_id": notification_id,
+                "deduplicated": True,
+                "row": self.get_notification(notification_id)
+                or self.find_notification(kind, identity, severity)}
+
+    def get_notification(self, notification_id):
+        row = self._q(
+            "SELECT * FROM notification_outbox"
+            " WHERE notification_id=?", (notification_id,)).fetchone()
+        return self._notification_row(row)
+
+    def find_notification(self, kind, identity, severity):
+        row = self._q(
+            "SELECT * FROM notification_outbox WHERE kind=? AND"
+            " identity=? AND severity=?", (kind, identity, severity)
+        ).fetchone()
+        return self._notification_row(row)
+
+    def due_notifications(self, now_epoch):
+        """Pending rows whose next attempt is due — the restart-safe
+        drain set (A1)."""
+        return [self._notification_row(r) for r in self._q(
+            "SELECT * FROM notification_outbox WHERE state='pending'"
+            " AND (next_attempt_epoch IS NULL OR"
+            " next_attempt_epoch <= ?) ORDER BY seq",
+            (float(now_epoch),)).fetchall()]
+
+    def notification_attempt(self, notification_id, *, now_epoch,
+                             ok, error=None, next_attempt_epoch=None,
+                             terminal=None):
+        """Record one delivery attempt's outcome (inside ``transact``).
+        ``ok`` settles the row ``delivered``; ``terminal`` settles it
+        ``failed``; otherwise it stays ``pending`` with the next retry
+        scheduled. The pending row is *retained* either way — the
+        terminal outcome is a column update, never a delete (A1)."""
+        row = self.get_notification(notification_id)
+        if row is None:
+            raise IntakeStoreError(
+                f"no notification row {notification_id!r}")
+        now_iso = _utcnow()
+        first = row["first_attempt_epoch"] \
+            if row["first_attempt_epoch"] is not None else now_epoch
+        if ok:
+            state, term, nxt = "delivered", "delivered", None
+        elif terminal:
+            state, term, nxt = "failed", terminal, None
+        else:
+            state, term, nxt = "pending", None, next_attempt_epoch
+        self._q(
+            "UPDATE notification_outbox SET state=?, attempts=?,"
+            " first_attempt_epoch=?, last_attempt_epoch=?,"
+            " next_attempt_epoch=?, last_error=?, terminal_outcome=?,"
+            " updated_at=? WHERE notification_id=?",
+            (state, row["attempts"] + 1, first, now_epoch, nxt,
+             error, term, now_iso, notification_id))
+        return {"outcome": "attempt-recorded",
+                "notification_id": notification_id,
+                "state": state, "attempts": row["attempts"] + 1}
+
+    def notification_rows(self, work_key=None, state=None):
+        rows = [self._notification_row(r) for r in self._q(
+            "SELECT * FROM notification_outbox ORDER BY seq").fetchall()]
+        if work_key is not None:
+            rows = [r for r in rows if r["work_key"] == work_key]
+        if state is not None:
+            rows = [r for r in rows if r["state"] == state]
+        return rows
+
+    def notification_counts(self, work_key=None):
+        """{pending, delivered, failed} tallies — the A2 view field."""
+        counts = {"pending": 0, "delivered": 0, "failed": 0}
+        for row in self.notification_rows(work_key):
+            counts[row["state"]] = counts.get(row["state"], 0) + 1
+        return counts
+
+    @staticmethod
+    def _notification_row(row):
+        if row is None:
+            return None
+        keys = ("notification_id", "kind", "identity", "severity",
+                "destination_ref", "body", "work_key", "state",
+                "attempts", "first_attempt_epoch", "last_attempt_epoch",
+                "next_attempt_epoch", "last_error", "terminal_outcome",
+                "seq", "created_at", "updated_at")
+        if isinstance(row, sqlite3.Row):
+            row = tuple(row)
+        return {k: row[i] for i, k in enumerate(keys)}
 
     def result_rows(self, attempt_id=None):
         rows = self._rows("results")
@@ -2668,6 +2836,7 @@ class IntakeStore:
         ("publication_intents", "work_key"),
         ("control_records", "work_key"),
         ("alerts", "identity"),
+        ("notification_outbox", "work_key"),
     )
 
     def export_history(self, authority_key):

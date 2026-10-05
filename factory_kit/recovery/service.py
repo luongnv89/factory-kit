@@ -105,6 +105,12 @@ class RecoveryService:
     - ``alert_sink`` — optional operator-channel sink (list or
       callable); a failed delivery never loses the durable alert row —
       that row *is* the local visibility (§7.3).
+    - ``notifier`` — optional
+      :class:`factory_kit.notifications.outbox.NotificationService`.
+      When present, the operator channel is the durable outbox (bounded
+      retries, restart-safe pending rows, §7.1 notification events)
+      instead of the fire-and-forget sink; the durable alert row is
+      still committed first either way (Task 3.4 / A1).
     - ``now`` — injectable epoch clock shared with the lane/store so
       every boundary tests deterministically.
     """
@@ -117,7 +123,8 @@ class RecoveryService:
                  interval_s=NOMINAL_INTERVAL_S,
                  deadline_s=RECOVERY_DEADLINE_S,
                  liveness_window_s=HEARTBEAT_TIMEOUT_S,
-                 backoff=None, now=None, alert_sink=None):
+                 backoff=None, now=None, alert_sink=None,
+                 notifier=None):
         self.store = store
         self.registrations = registrations
         self.configs = dict(configs)
@@ -139,6 +146,7 @@ class RecoveryService:
         self.backoff = backoff or BackoffPolicy()
         self._now = now or time.time
         self._alert_sink = alert_sink
+        self._notifier = notifier
         self._process_started_epoch = self._now()
         self._notify_failures = 0
 
@@ -152,9 +160,28 @@ class RecoveryService:
         the operator channel. The durable row is the *local* visibility —
         a Telegram outage can lose the push but never the record, and a
         repeated (kind, identity, severity) can never re-page (§7.3) —
-        so only the freshly-emitted row reaches the channel."""
+        so only the freshly-emitted row reaches the channel. With a
+        ``notifier`` wired, the channel is the durable outbox itself:
+        the pending row + bounded retries survive process restarts
+        (Task 3.4 / A1)."""
         result = self.store.emit_alert(kind, identity, severity, detail)
         if result["outcome"] != "emitted":
+            return result
+        notifier = self._notifier
+        if notifier is not None:
+            try:
+                work = self.store.get_work(work_key) \
+                    if work_key else None
+                destination = self._notification_destination(work)
+                if destination is not None:
+                    notifier.notify(
+                        kind, identity, severity,
+                        destination_ref=destination,
+                        body=detail, work_key=work_key)
+            except Exception:
+                # The alert row already committed — an outbox fault
+                # stays a local failure count, never a rollback.
+                self._notify_failures += 1
             return result
         sink = self._alert_sink
         try:
@@ -174,6 +201,16 @@ class RecoveryService:
             # visible rather than rolling back committed state.
             self._notify_failures += 1
         return result
+
+    def _notification_destination(self, work):
+        """The authorized destination reference for the work's repo —
+        the first allowlisted ``telegram_chats`` entry (CFG02 restricted
+        form). ``None`` when no destination is configured: nothing is
+        enqueued rather than inventing a destination."""
+        effective = self.configs.get(work["repo_id"]) if work else None
+        chats = ((effective or {}).get("authorization") or {}).get(
+            "telegram_chats") or []
+        return f"telegram:{chats[0]}" if chats else None
 
     def _recovered_event(self, work_key, source, action, *, reason,
                          task_id=None, attempt_id=None,
