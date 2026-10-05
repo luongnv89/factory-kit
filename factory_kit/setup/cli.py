@@ -12,6 +12,12 @@ PRD §4.1 install flow; issue #7 / Task 2.2. Wired by the
     python3 -m factory_kit.setup uninstall --repo . [--out plan.json]
     python3 -m factory_kit.setup remove --repo . --plan plan.json \\
         --history retain|export|delete --accepted-by <operator>
+    python3 -m factory_kit.setup upgrade --repo . --manifest new.yml \\
+        [--out upgrade.json]         # read-only upgrade plan (F10)
+    python3 -m factory_kit.setup migrate --repo . --plan upgrade.json \\
+        --accepted-by <operator>     # fenced staged migration
+    python3 -m factory_kit.setup repair --repo . --repaired-by <op>
+    python3 -m factory_kit.setup rollback --repo . --rolled-back-by <op>
 
 Exit codes (shared gi-* vocabulary):
 
@@ -26,7 +32,8 @@ State paths default under the operator profile
 ``--registrations`` override them for tests and alternate profiles.
 ``remove`` additionally accepts ``--intake-db`` for the durable intake
 store — required when ``--history export|delete`` must touch task
-history (F08 A4).
+history (F08 A4). ``upgrade``/``migrate`` accept the same flag so the
+generation fence can commit over live work (F10 A2).
 """
 
 from __future__ import annotations
@@ -46,6 +53,8 @@ from . import ownership
 from . import plan as plan_mod
 from . import readiness as readiness_mod
 from . import remove as remove_mod
+from . import repair as repair_mod
+from . import upgrade as upgrade_mod
 
 
 def _emit(payload):
@@ -281,6 +290,136 @@ def cmd_remove(args):
         else 1
 
 
+def cmd_upgrade(args):
+    """Read-only: emit the reviewable upgrade plan (F10 A1)."""
+    try:
+        store = ownership.SetupStore(_state_path(args))
+    except ownership.OwnershipError as exc:
+        print(f"✗ {exc}", file=sys.stderr)
+        return 3
+    # Operator-supplied reviewed resolutions — parsed BEFORE inspection
+    # so they generate inside the plan and the digest binds them (A4).
+    resolutions = {}
+    for spec in args.resolution or []:
+        if "=" not in spec:
+            print(f"✗ --resolution expects entry-id=value, got "
+                  f"{spec!r}", file=sys.stderr)
+            return 2
+        entry_id, resolution = spec.split("=", 1)
+        resolutions[entry_id] = resolution
+    try:
+        plan = upgrade_mod.inspect_upgrade(
+            args.repo, store,
+            manifest_source=args.manifest,
+            registration_store=RegistrationStore(
+                _registrations_path(args)),
+            intake_store=_intake_store(args),
+            resolutions=resolutions or None)
+    except (upgrade_mod.UpgradeError, OSError) as exc:
+        print(f"✗ upgrade inspection failed: {exc}", file=sys.stderr)
+        return 4
+    known = {entry["id"] for entry in plan["files"]}
+    for entry_id in resolutions:
+        if entry_id not in known:
+            print(f"✗ --resolution names unknown entry {entry_id!r}",
+                  file=sys.stderr)
+            return 2
+    plan["review_hint"] = (
+        "review files[]/entries[]/compatibility[]/migration_steps[]/"
+        "rollback — apply with `python3 -m factory_kit.setup migrate "
+        "--plan <file> --accepted-by <you>`")
+    if args.out:
+        Path(args.out).write_text(
+            json.dumps(plan, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8")
+        print(f"○ upgrade plan written to {args.out} "
+              f"(digest {plan['upgrade_digest'][:12]}…)",
+              file=sys.stderr)
+    else:
+        _emit(plan)
+    return 0 if plan["appliable"] else 1
+
+
+def cmd_migrate(args):
+    """Apply an accepted upgrade plan across durable boundaries (A2)."""
+    plan = _load_plan(args.plan)
+    if plan is None:
+        return 3
+    try:
+        accepted = upgrade_mod.accept_upgrade(plan, args.accepted_by)
+    except upgrade_mod.UpgradeError as exc:
+        print(f"✗ upgrade plan refused: {exc}", file=sys.stderr)
+        return 1
+    try:
+        store = ownership.SetupStore(_state_path(args))
+    except ownership.OwnershipError as exc:
+        print(f"✗ {exc}", file=sys.stderr)
+        return 3
+    try:
+        result = upgrade_mod.apply_upgrade(
+            accepted, args.repo, store,
+            registration_store=RegistrationStore(
+                _registrations_path(args)),
+            intake_store=_intake_store(args))
+    except upgrade_mod.UpgradeError as exc:
+        print(f"✗ upgrade refused: {exc}", file=sys.stderr)
+        return 1
+    except ownership.OwnershipError as exc:
+        print(f"✗ setup state error: {exc}", file=sys.stderr)
+        return 3
+    _emit(result)
+    return 0 if result["outcome"] in ("upgraded", "already-upgraded") \
+        else 1
+
+
+def cmd_repair(args):
+    """Restore interrupted migrations to their validated checkpoint —
+    or park them with a specific conflict (F10 A3)."""
+    try:
+        store = ownership.SetupStore(_state_path(args))
+    except ownership.OwnershipError as exc:
+        print(f"✗ {exc}", file=sys.stderr)
+        return 3
+    try:
+        result = repair_mod.repair_migration(
+            args.repo, store,
+            registration_store=RegistrationStore(
+                _registrations_path(args)),
+            migration_id=args.migration_id,
+            repaired_by=args.repaired_by)
+    except repair_mod.RepairError as exc:
+        print(f"✗ repair: {exc}", file=sys.stderr)
+        return 1
+    except ownership.OwnershipError as exc:
+        print(f"✗ setup state error: {exc}", file=sys.stderr)
+        return 3
+    _emit(result)
+    outcomes = {r["outcome"] for r in result.get("repairs", [result])}
+    return 0 if outcomes <= {"repaired", "already-sealed"} else 1
+
+
+def cmd_rollback(args):
+    """Restore the previous validated registration/configuration —
+    the documented F10 rollback (A5)."""
+    try:
+        store = ownership.SetupStore(_state_path(args))
+    except ownership.OwnershipError as exc:
+        print(f"✗ {exc}", file=sys.stderr)
+        return 3
+    try:
+        result = upgrade_mod.rollback_upgrade(
+            args.repo, store,
+            RegistrationStore(_registrations_path(args)),
+            migration_id=args.migration_id,
+            rolled_back_by=args.rolled_back_by)
+    except (upgrade_mod.UpgradeError, ownership.OwnershipError) as exc:
+        print(f"✗ rollback: {exc}", file=sys.stderr)
+        return 1
+    _emit(result)
+    return 0 if result["outcome"] in ("restored",
+                                      "already-rolled-back") else 1
+
+
 def cmd_status(args):
     try:
         store = ownership.SetupStore(_state_path(args))
@@ -292,6 +431,8 @@ def cmd_status(args):
         "ownership": store.owned_files(),
         "remote_effects": store.effects(),
         "applied_plans": store.applied_plans(),
+        "migrations": store.migrations(),
+        "open_migrations": sorted(store.open_migrations()),
         "events": store.events(),
     }
     if args.repo:
@@ -385,6 +526,62 @@ def main(argv=None):
     p.add_argument("--registrations")
     p.add_argument("--intake-db")
     p.set_defaults(func=cmd_remove)
+
+    p = sub.add_parser("upgrade", help="emit the reviewable versioned "
+                                       "upgrade plan (read-only, F10)")
+    p.add_argument("--repo", required=True)
+    p.add_argument("--manifest", help="candidate .factory-kit.yml "
+                                      "(default: the installed bytes — "
+                                      "a re-affirming no-change plan)")
+    p.add_argument("--state")
+    p.add_argument("--registrations")
+    p.add_argument("--intake-db")
+    p.add_argument("--out", help="write the plan JSON here instead of "
+                                 "stdout")
+    p.add_argument("--resolution", action="append", metavar="ID=VALUE",
+                   help="stamp a reviewed resolution onto a file "
+                        "entry (e.g. file:.factory-kit.yml=discard) — "
+                        "the digest re-keys over it so acceptance "
+                        "binds the resolution")
+    p.set_defaults(func=cmd_upgrade)
+
+    p = sub.add_parser("migrate", help="apply an accepted upgrade plan "
+                                       "(fenced staged migration, F10)")
+    p.add_argument("--repo", required=True)
+    p.add_argument("--plan", required=True,
+                   help="upgrade plan JSON from `upgrade`")
+    p.add_argument("--accepted-by", required=True,
+                   help="operator identity accepting the reviewed plan")
+    p.add_argument("--state")
+    p.add_argument("--registrations")
+    p.add_argument("--intake-db")
+    p.set_defaults(func=cmd_migrate)
+
+    p = sub.add_parser("repair", help="restore interrupted migrations "
+                                      "to the validated checkpoint or "
+                                      "park with a conflict (F10)")
+    p.add_argument("--repo", required=True)
+    p.add_argument("--migration-id", help="repair only this migration "
+                                          "(default: every open "
+                                          "migration)")
+    p.add_argument("--repaired-by", required=True,
+                   help="operator identity performing the repair")
+    p.add_argument("--state")
+    p.add_argument("--registrations")
+    p.set_defaults(func=cmd_repair)
+
+    p = sub.add_parser("rollback", help="restore the previous validated "
+                                        "registration/configuration "
+                                        "(documented F10 rollback)")
+    p.add_argument("--repo", required=True)
+    p.add_argument("--migration-id", help="roll back this migration "
+                                          "(default: the most recent "
+                                          "checkpointed one)")
+    p.add_argument("--rolled-back-by", required=True,
+                   help="operator identity performing the rollback")
+    p.add_argument("--state")
+    p.add_argument("--registrations")
+    p.set_defaults(func=cmd_rollback)
 
     args = parser.parse_args(argv)
     return args.func(args)

@@ -24,7 +24,17 @@ remove --plan <file> --history retain|export|delete --accepted-by
 <operator>` applies it — intake stops first, the active-generation
 fence commits before termination, user edits and shared infrastructure
 survive, provider outages leave a visible cleanup-pending backlog, and
-the registration ends as an identity tombstone. The packaged support
+the registration ends as an identity tombstone. Versioned upgrade,
+repair and rollback (issue #26 / Task 4.2, F10) extend the same
+contract: `python3 -m factory_kit.setup upgrade` emits a reviewable
+compatibility-checked plan; `migrate` applies it across durable stage
+boundaries — intake fence first, then a checkpoint of every owned byte
+and the registration digests, then owned-file writes, a new authorized
+generation, re-validation and dependency/skill provenance pinning —
+leaving dispatch denied until substantive readiness re-passes;
+`repair` restores the validated checkpoint or parks on a named
+conflict after any interruption; `rollback` restores the previous
+validated registration/configuration byte-for-byte. The packaged support
 recipe (issue #23 / Task 3.9) lives in `docs/recipes/` — tested
 installation/removal commands, operations and recovery vocabulary, the
 backup/restore rehearsal and the tested-only support matrix — exercised
@@ -49,7 +59,7 @@ acceptance is still pending; no gate was waived for schedule.
 - [Internal v1.0 evidence gate](docs/evidence/v1.0-gate.md) — requirement-to-evidence audit, 7/8 gates open (M02 closed)
 - [v1.0 acceptance record](docs/decisions/v1.0-acceptance.md) — no-go pending owner decision
 - [§5.1 measured local targets](docs/measurements/v1-targets.md)
-- [Tested support recipe](docs/recipes/) — installation, operations, backup/restore, support matrix
+- [Tested support recipe](docs/recipes/) — installation, operations, backup/restore, upgrade/repair/rollback, support matrix
 - [Decision records](docs/decisions/)
 - [Canonical manifest example](.factory-kit.yml)
 - [Reference diagram](assets/warp-ai-factory-reference.jpg)

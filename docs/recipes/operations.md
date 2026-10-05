@@ -49,6 +49,7 @@ bodies, signatures or secrets.
 | `parked: ambiguous-outcome` | Pending remote intent, no matching remote object — cannot prove what happened | Operator inspects remote, then re-recovers |
 | `parked: duplicate-remote-pr` | More than one remote object claims the identity | Operator resolves the duplicates |
 | `quarantined` | Fenced attempt whose descendant termination is uncertain | Explicit operator `resolved` before replacement eligibility |
+| `upgrading` / `parked` (migration) | Reviewed upgrade in flight / migration parked on a named conflict — dispatch denied throughout | `repair` restores the validated checkpoint; `rollback` restores the previous digests; see `upgrade-repair.md` |
 | `deferred: task-binding-unpublished` | Hermes kanban association still down | Next recovery pass retries the same reserved task ID |
 | Readiness blockers | `missing-executable`, `unsupported-version`, `model-auth-failed`, `model-unavailable`, `skill-version-mismatch`, `conflicting-task-owner`, `base-unprotected`, `verification-contract-unmet`, `cancellation-inadequate`, `missing-transport`, `unsupported-interface`, `unsupported-runtime`, `unsupported-host` | Fix the named prerequisite; readiness re-runs |
 
@@ -94,6 +95,7 @@ remote mutation, then converges on the identity-owned remote object:
 | Symptom | Check | Honest outcome |
 |---|---|---|
 | Setup seems ignored | `status` → registration `readiness.verdict` | `pending` until readiness passes |
+| Dispatch denied after upgrade | `status` → migration `stage`, registration `readiness.verdict` | `pending`/`restored`/`parked` until `setup_checked` re-passes; a parked migration names its conflict |
 | Readiness exit 1 | `blocker_codes` + `outcomes[]` | named blocker, `dispatch: denied` |
 | Nothing dispatched after restart | `recovery_completed` events, `work.parked_reason` | resumed / parked / quarantined is explicit |
 | Duplicate PRs on the remote | `duplicate-remote-pr` alert | parked; resolve remote, re-recover |
