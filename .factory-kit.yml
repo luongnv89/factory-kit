@@ -1,0 +1,116 @@
+# .factory-kit.yml — factory-kit project manifest (schema v1)
+#
+# Canonical annotated example for a factory-managed project repository.
+# This file is the *target project's* manifest: it lives at that project's
+# repo root and is repo-reviewed code. It is documented here from spike
+# evidence (PRD §6.3; docs/decisions/package-config-contract.md) — the
+# filename is finalized, not aspirational. IDD settings stay in
+# .gitissue.yml; the two never write each other (factory_kit.config.precedence).
+#
+# Syntax is the kit's restricted-YAML subset (factory_kit.config.yamlmini):
+# nested maps, block/inline scalar lists, scalars, comments — no anchors,
+# no lists of mappings, no multiline scalars.
+
+factory_kit: 1
+
+# CFG01 — identity. `repo_id` is the immutable GitHub repository node ID and
+# is the *only* authority key; `owner`/`name` are display fields — renaming
+# them never changes repository authority or re-keys registration.
+identity:
+  repo_id: "R_kgDOQncOdA"          # GitHub node ID — immutable
+  owner: luongnv89                 # display owner
+  name: money-mind                 # display name
+
+# One local registration owner (§6.3 Identity).
+registration:
+  owner: luongnv89
+
+# CFG02 — authorization. Deny by default: nothing executes unless
+# execution_opt_in is true AND the acting principal is allowlisted.
+# Telegram allowlists accept numeric user/chat IDs only.
+authorization:
+  execution_opt_in: true
+  github_actors: [luongnv89]
+  github_roles: [maintainer]
+  telegram_users: [123456789]
+  telegram_chats: [-1001234567890]
+
+# CFG03 — runtime and roles. The spike-selected supported runtime is the
+# Hermes Kanban profile worker; implementation and review each pin an
+# available model (role separation is independent sessions, never one
+# session playing both).
+runtime:
+  name: hermes-kanban
+  roles:
+    implementation:
+      model: "openai-codex/gpt-6-luna"
+    review:
+      model: "openai-codex/gpt-6-luna"
+  tools:
+    allow: [git, gh, hermes]
+    deny: []
+  capabilities:
+    allow: [workspace.scratch, workspace.worktree]
+    deny: [workspace.dir-ambient]
+
+# CFG04 — skills. Approved skill IDs with immutable revisions; newly
+# discovered skills never execute (auto_discover stays false).
+skills:
+  auto_discover: false
+  approved:
+    issue-resolver: "0.19.0"
+    issue-pr-review: "0.19.0"
+
+# CFG05 — verification. The operator-approved contract: nonempty acceptance
+# commands plus the check provider/contexts/permitted terminal conclusions.
+# An empty contract is rejected even when a project has no protected checks.
+verification:
+  acceptance_commands:
+    - "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build"
+  required_checks:
+    provider: github
+    contexts: ["Code Quality & Build", "Security Scan"]
+    conclusions: [success]
+
+# CFG06 — limits. Q9-proposed defaults, validated as configuration:
+# 1 active task, 2 implementation attempts, 60 active-worker minutes,
+# 24 wall hours — each bounded, not measured.
+limits:
+  active_tasks: 1
+  implementation_attempts: 2
+  active_worker_minutes: 60
+  wall_hours: 24
+
+# CFG07 — evidence and retention. 7-day worker logs, 30-day detailed audit,
+# identity tombstones until explicit registration removal (replay
+# resistance), aggregate-only export with required redactions (§7.1).
+evidence:
+  observation_freshness_minutes: 15
+  event_retention_days: 30
+  worker_log_retention_days: 7
+  audit_retention_days: 30
+  export:
+    aggregate_only: true
+    redact: [issue_body, code, usernames, tokens, chat_text]
+  tombstones:
+    retain_until_registration_removal: true
+
+# CFG08 — secrets. Only approved secret-storage references
+# (env|hermes-secrets|bw|op|vault:<ref>); literal credentials are rejected.
+secrets:
+  webhook_signing_key: "env:FACTORY_KIT_WEBHOOK_SECRET"
+  telegram_bot_token: "hermes-secrets:factory-kit/telegram-bot-token"
+
+# CFG09 — endpoint policy. One preview provider (Vercel previews only), one
+# merge method (squash), 60-minute approval expiry, 10-minute maximum merge
+# smoke age. production_deploy, package_publish and autonomous_merge are
+# disabled and carry no key that could enable them.
+endpoint:
+  preview:
+    provider: vercel
+    environment: preview
+  merge:
+    method: squash
+    approval_expiry_minutes: 60
+    max_smoke_age_minutes: 10
+  disabled: [production_deploy, package_publish, autonomous_merge]
