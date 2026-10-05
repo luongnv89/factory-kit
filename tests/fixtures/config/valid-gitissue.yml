@@ -1,0 +1,15 @@
+# An existing IDD configuration coexisting with the factory manifest.
+# The factory never writes this file; overlapping keys are conflicts.
+platform: github
+issue:
+  auto_normalize: true
+  template: default
+resolve:
+  approval_gate: auto
+  auto_test: true
+  test_timeout: 300
+  max_commits: 10
+security:
+  allow_pattern: ""
+projects:
+  sync_enabled: false
