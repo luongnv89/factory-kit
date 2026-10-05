@@ -175,7 +175,7 @@ class TestAcceptanceRecord(unittest.TestCase):
 
     def test_owner_decision_pending_and_no_go(self):
         self.assertIn("Luong", self.text)
-        self.assertRegex(self.text, r"NO-GO", )
+        self.assertIn("NO-GO", self.text)
         self.assertRegex(self.text, r"[Pp]ending")
         # Acceptance must remain the owner's unchecked act.
         self.assertIn("- [ ] **Accepted — internal v1.0**", self.text)
