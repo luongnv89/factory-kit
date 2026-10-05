@@ -56,7 +56,15 @@ boundary probes (`python3 -m factory_kit.privacy.boundary`) that deny
 external code without demonstrated filesystem/network/privileged-write
 and credential-scope isolation — a worktree, prompt rule or branch
 protection is never evidence — and consent-aware aggregate exports in
-`diagnostics/report.py`, per `docs/pilot/consent-admission.md`.
+`diagnostics/report.py`, per `docs/pilot/consent-admission.md`. The
+external-pilot observation study (issue #29 / Task 4.5) ships as
+`tools/probes/external_pilot.py`: three simulated distinct-environment
+installations of the pinned walkthrough as real `python3 -m
+factory_kit.setup` legs, gated per participant by the consent gate,
+recorded on a minimized `pilot_observation_recorded` trail, with
+weekly repeat-use reports classified honestly and live-observation
+prerequisites named — per `docs/measurements/external-study.md` and
+`docs/pilot/observations.md`.
 
 ## Documents
 
@@ -70,8 +78,10 @@ protection is never evidence — and consent-aware aggregate exports in
 - [v1.0 acceptance record](docs/decisions/v1.0-acceptance.md) — no-go pending owner decision
 - [§5.1 measured local targets](docs/measurements/v1-targets.md)
 - [§1.4 dogfood cohort comparison](docs/measurements/dogfood-comparison.md) — scripted two-project cohort rehearsal, named live-run blockers
+- [External-pilot study](docs/measurements/external-study.md) — scripted three-environment install + repeat-use rehearsal under the consent gate, named live-observation blockers
 - [Tested support recipe](docs/recipes/) — installation, operations, backup/restore, upgrade/repair/rollback, support matrix
 - [Pilot consent and workload-trust admission](docs/pilot/consent-admission.md) — obligations record, consent gate, boundary probes, named blockers
+- [External-pilot observations](docs/pilot/observations.md) — per-participant minimized evidence log
 - [Decision records](docs/decisions/)
 - [Canonical manifest example](.factory-kit.yml)
 - [Reference diagram](assets/warp-ai-factory-reference.jpg)
