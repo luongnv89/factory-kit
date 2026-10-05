@@ -69,6 +69,7 @@ protection is never evidence — and consent-aware aggregate exports in
 - [Internal v1.0 evidence gate](docs/evidence/v1.0-gate.md) — requirement-to-evidence audit, 7/8 gates open (M02 closed)
 - [v1.0 acceptance record](docs/decisions/v1.0-acceptance.md) — no-go pending owner decision
 - [§5.1 measured local targets](docs/measurements/v1-targets.md)
+- [§1.4 dogfood cohort comparison](docs/measurements/dogfood-comparison.md) — scripted two-project cohort rehearsal, named live-run blockers
 - [Tested support recipe](docs/recipes/) — installation, operations, backup/restore, upgrade/repair/rollback, support matrix
 - [Pilot consent and workload-trust admission](docs/pilot/consent-admission.md) — obligations record, consent gate, boundary probes, named blockers
 - [Decision records](docs/decisions/)

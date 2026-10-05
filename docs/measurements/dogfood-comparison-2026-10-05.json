@@ -1,0 +1,4429 @@
+{
+ "run_id": "dogfood-cohort-1791217183",
+ "version": "1.0.0",
+ "kind": "dogfood-cohort",
+ "mode": "scripted-replay",
+ "generated_at": "2026-10-05T16:19:43Z",
+ "environment": {
+  "python": "3.14.7",
+  "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+  "machine": "arm64",
+  "manifest": "/Users/montimage/buildspace/luongnv89/factory-kit/.factory-kit.yml",
+  "manifest_effective_digest": "471800e23c5595c818afde9d59d627dc6800fba44ca6444430d072303433a372",
+  "fixture_identity": {
+   "cohort": "dogfood-cohort-v1",
+   "baseline": "dogfood-baseline-v1",
+   "remote": "ScriptedRemote \u2014 no GitHub network in path",
+   "preview": "ScriptedPreview \u2014 no provider network",
+   "worker": "ScriptedWorker \u2014 no model network",
+   "stores": "IntakeStore SQLite \u2014 BEGIN IMMEDIATE"
+  },
+  "reproduce": "python3 tools/probes/dogfood_cohort.py --write docs/measurements/dogfood-comparison-$(date +%F).json"
+ },
+ "protocol": {
+  "recorded_before_selection": "2026-10-05",
+  "selector": "trusted maintainer (single owner)",
+  "inclusion_criteria": [
+   "bounded scope: a single PR-addressable issue, no cross-repo work",
+   "no secrets, personal data or production-credential handling in scope",
+   "acceptance criteria writable as a checklist",
+   "size class S or M \u2014 comparable to a direct-IDD fix"
+  ],
+  "task_mix": {
+   "improvement": 4,
+   "feature": 3,
+   "bug": 2,
+   "documentation": 1
+  },
+  "cohort_size": 10,
+  "baseline_size": 10,
+  "endpoint": [
+   "issue-accepted",
+   "preview-verified",
+   "human-approved",
+   "merged"
+  ],
+  "q9_target_status": "proposed \u2014 pending owner acceptance (docs/decisions/q9-acceptance.md)",
+  "observation_window": {
+   "kind": "days-after-mvp-release",
+   "days": 30,
+   "declared_start": "2026-10-05T00:00:00Z"
+  }
+ },
+ "q9_target_status": "proposed \u2014 pending owner acceptance (docs/decisions/q9-acceptance.md)",
+ "projects": [
+  {
+   "slot": "project-a",
+   "name": "luongnv89/money-mind",
+   "repo_id": "R_kgDOQncOdA",
+   "registered": true,
+   "issues": [
+    "c1",
+    "c2",
+    "c3",
+    "c4",
+    "c5"
+   ],
+   "lingering_active": [],
+   "diagnostics": {
+    "schema_version": 1,
+    "generated_at": "2026-10-05T16:19:43.413+00:00",
+    "work": {
+     "total": 5,
+     "by_state": {
+      "completed": 3,
+      "parked": 1,
+      "blocked": 1
+     }
+    },
+    "outcomes": {
+     "completed": 3,
+     "blocked": 1,
+     "failed": 0,
+     "canceled": 0,
+     "in_progress": 1
+    },
+    "rates": {
+     "completion_rate": 0.6,
+     "terminal_rate": 0.8
+    },
+    "installation": {
+     "attempts": null,
+     "applied": null
+    },
+    "effort": {
+     "records": 9,
+     "current_records": 9,
+     "baseline_minutes": 0,
+     "intervention_minutes": 74.0,
+     "unknown_records": 0
+    },
+    "usage": {
+     "attempts": 10,
+     "active_seconds_measured": 4200.0,
+     "unknown_usage": 0,
+     "durations": {
+      "queue_seconds": {
+       "measured": 100.0,
+       "unknown": 0
+      },
+      "model_execution_seconds": {
+       "measured": 5500.0,
+       "unknown": 0
+      },
+      "ci_wait_seconds": {
+       "measured": 950.0,
+       "unknown": 0
+      },
+      "human_wait_seconds": {
+       "measured": 9240.0,
+       "unknown": 0
+      }
+     }
+    },
+    "alerts": {
+     "total": 0,
+     "by_severity": {}
+    },
+    "notifications": {
+     "delivered": 0,
+     "failed": 0
+    }
+   }
+  },
+  {
+   "slot": "project-b",
+   "name": "luongnv89/factory-kit-selftest",
+   "repo_id": "R_kgDOFkDogfoodB",
+   "registered": true,
+   "issues": [
+    "c6",
+    "c7",
+    "c8",
+    "c9",
+    "c10"
+   ],
+   "lingering_active": [],
+   "diagnostics": {
+    "schema_version": 1,
+    "generated_at": "2026-10-05T16:19:43.483+00:00",
+    "work": {
+     "total": 5,
+     "by_state": {
+      "completed": 1,
+      "blocked": 2,
+      "canceled": 1,
+      "parked": 1
+     }
+    },
+    "outcomes": {
+     "completed": 1,
+     "blocked": 2,
+     "failed": 0,
+     "canceled": 1,
+     "in_progress": 1
+    },
+    "rates": {
+     "completion_rate": 0.2,
+     "terminal_rate": 0.8
+    },
+    "installation": {
+     "attempts": null,
+     "applied": null
+    },
+    "effort": {
+     "records": 7,
+     "current_records": 7,
+     "baseline_minutes": 0,
+     "intervention_minutes": 63.0,
+     "unknown_records": 0
+    },
+    "usage": {
+     "attempts": 8,
+     "active_seconds_measured": 2820.0,
+     "unknown_usage": 3,
+     "durations": {
+      "queue_seconds": {
+       "measured": 50.0,
+       "unknown": 2
+      },
+      "model_execution_seconds": {
+       "measured": 2730.0,
+       "unknown": 2
+      },
+      "ci_wait_seconds": {
+       "measured": 310.0,
+       "unknown": 2
+      },
+      "human_wait_seconds": {
+       "measured": 6120.0,
+       "unknown": 2
+      }
+     }
+    },
+    "alerts": {
+     "total": 0,
+     "by_severity": {}
+    },
+    "notifications": {
+     "delivered": 0,
+     "failed": 0
+    }
+   }
+  }
+ ],
+ "issues": [
+  {
+   "key": "c1",
+   "project": "project-a",
+   "issue": 101,
+   "task_class": "improvement",
+   "path": "merged",
+   "title": "Bound the retry budget table",
+   "stages": {
+    "accepted": true,
+    "preview_verified": true,
+    "merge_ready": true,
+    "human_approved": true,
+    "merged": true
+   },
+   "human_decision": null,
+   "merged_at": "2026-10-05T16:19:43.364+00:00",
+   "outcome": "merged",
+   "store_bucket": "completed",
+   "work_key": "gh:R_kgDOQncOdA#101:g1",
+   "merge_sha": "merge-100-99727f48",
+   "effort_ids": [
+    "eff-a6e9cd9a5175",
+    "eff-4df18786a967"
+   ],
+   "measurement": "recorded",
+   "effort_rows": 2,
+   "intervention_minutes": 13.0,
+   "intervention_categories": [
+    "approval",
+    "monitoring"
+   ],
+   "usage": {
+    "attempts": 2,
+    "unknown": 0,
+    "known_tokens": 2,
+    "known_billed": 2,
+    "known_quota": 2
+   },
+   "waits": {
+    "queue_seconds": {
+     "measured_s": 24.0,
+     "unknown": 0
+    },
+    "model_execution_seconds": {
+     "measured_s": 1080.0,
+     "unknown": 0
+    },
+    "ci_wait_seconds": {
+     "measured_s": 190.0,
+     "unknown": 0
+    },
+    "human_wait_seconds": {
+     "measured_s": 840.0,
+     "unknown": 0
+    }
+   },
+   "evidence": {
+    "present": true,
+    "status": "verified",
+    "head_sha": "99727f48c2dab9495e03aad2b5751ffe9f3e1834",
+    "remote_head": "99727f48c2dab9495e03aad2b5751ffe9f3e1834"
+   },
+   "work_state": "completed",
+   "repo_id": "R_kgDOQncOdA"
+  },
+  {
+   "key": "c2",
+   "project": "project-a",
+   "issue": 102,
+   "task_class": "feature",
+   "path": "merged",
+   "title": "Add ledger export subcommand",
+   "stages": {
+    "accepted": true,
+    "preview_verified": true,
+    "merge_ready": true,
+    "human_approved": true,
+    "merged": true
+   },
+   "human_decision": null,
+   "merged_at": "2026-10-05T16:19:43.377+00:00",
+   "outcome": "merged",
+   "store_bucket": "completed",
+   "work_key": "gh:R_kgDOQncOdA#102:g1",
+   "merge_sha": "merge-101-1186dcae",
+   "effort_ids": [
+    "eff-bb4a759c71dd",
+    "eff-cfe6c210b79b"
+   ],
+   "measurement": "recorded",
+   "effort_rows": 2,
+   "intervention_minutes": 25.0,
+   "intervention_categories": [
+    "approval",
+    "correction"
+   ],
+   "usage": {
+    "attempts": 2,
+    "unknown": 0,
+    "known_tokens": 2,
+    "known_billed": 2,
+    "known_quota": 2
+   },
+   "waits": {
+    "queue_seconds": {
+     "measured_s": 18.0,
+     "unknown": 0
+    },
+    "model_execution_seconds": {
+     "measured_s": 1620.0,
+     "unknown": 0
+    },
+    "ci_wait_seconds": {
+     "measured_s": 280.0,
+     "unknown": 0
+    },
+    "human_wait_seconds": {
+     "measured_s": 1200.0,
+     "unknown": 0
+    }
+   },
+   "evidence": {
+    "present": true,
+    "status": "verified",
+    "head_sha": "1186dcae8d383120b2ca9dc6b044ac7a494ef684",
+    "remote_head": "1186dcae8d383120b2ca9dc6b044ac7a494ef684"
+   },
+   "work_state": "completed",
+   "repo_id": "R_kgDOQncOdA"
+  },
+  {
+   "key": "c3",
+   "project": "project-a",
+   "issue": 103,
+   "task_class": "improvement",
+   "path": "merge_ready",
+   "title": "Tighten intake dedup window",
+   "stages": {
+    "accepted": true,
+    "preview_verified": true,
+    "merge_ready": true,
+    "human_approved": false,
+    "merged": false
+   },
+   "human_decision": null,
+   "merged_at": null,
+   "outcome": "merge_ready",
+   "store_bucket": "in_progress",
+   "work_key": "gh:R_kgDOQncOdA#103:g1",
+   "effort_ids": [
+    "eff-0ea8177150a1",
+    "eff-eb1f8fdff77f"
+   ],
+   "measurement": "recorded",
+   "effort_rows": 2,
+   "intervention_minutes": 9.0,
+   "intervention_categories": [
+    "approval",
+    "monitoring"
+   ],
+   "usage": {
+    "attempts": 2,
+    "unknown": 0,
+    "known_tokens": 2,
+    "known_billed": 2,
+    "known_quota": 2
+   },
+   "waits": {
+    "queue_seconds": {
+     "measured_s": 16.0,
+     "unknown": 0
+    },
+    "model_execution_seconds": {
+     "measured_s": 860.0,
+     "unknown": 0
+    },
+    "ci_wait_seconds": {
+     "measured_s": 140.0,
+     "unknown": 0
+    },
+    "human_wait_seconds": {
+     "measured_s": 4800.0,
+     "unknown": 0
+    }
+   },
+   "evidence": {
+    "present": true,
+    "status": "verified",
+    "head_sha": "007f689d780148a1267007d47e03fbbfbe23acda",
+    "remote_head": "007f689d780148a1267007d47e03fbbfbe23acda"
+   },
+   "work_state": "parked",
+   "repo_id": "R_kgDOQncOdA"
+  },
+  {
+   "key": "c4",
+   "project": "project-a",
+   "issue": 104,
+   "task_class": "bug",
+   "path": "declined",
+   "title": "Fix stale status after fence",
+   "stages": {
+    "accepted": true,
+    "preview_verified": true,
+    "merge_ready": true,
+    "human_approved": false,
+    "merged": false
+   },
+   "human_decision": "declined",
+   "merged_at": null,
+   "outcome": "declined",
+   "store_bucket": "blocked",
+   "work_key": "gh:R_kgDOQncOdA#104:g1",
+   "effort_ids": [
+    "eff-e2580fa391a0",
+    "eff-d3b919323789"
+   ],
+   "measurement": "recorded",
+   "effort_rows": 2,
+   "intervention_minutes": 21.0,
+   "intervention_categories": [
+    "approval",
+    "investigation"
+   ],
+   "usage": {
+    "attempts": 2,
+    "unknown": 0,
+    "known_tokens": 2,
+    "known_billed": 2,
+    "known_quota": 2
+   },
+   "waits": {
+    "queue_seconds": {
+     "measured_s": 30.0,
+     "unknown": 0
+    },
+    "model_execution_seconds": {
+     "measured_s": 1380.0,
+     "unknown": 0
+    },
+    "ci_wait_seconds": {
+     "measured_s": 220.0,
+     "unknown": 0
+    },
+    "human_wait_seconds": {
+     "measured_s": 1800.0,
+     "unknown": 0
+    }
+   },
+   "evidence": {
+    "present": true,
+    "status": "verified",
+    "head_sha": "3d300104b047f3e9647c4e21547329064b382a9a",
+    "remote_head": "3d300104b047f3e9647c4e21547329064b382a9a"
+   },
+   "work_state": "blocked",
+   "repo_id": "R_kgDOQncOdA"
+  },
+  {
+   "key": "c5",
+   "project": "project-a",
+   "issue": 105,
+   "task_class": "improvement",
+   "path": "merged",
+   "title": "Rename confusing status label",
+   "stages": {
+    "accepted": true,
+    "preview_verified": true,
+    "merge_ready": true,
+    "human_approved": true,
+    "merged": true
+   },
+   "human_decision": null,
+   "merged_at": "2026-10-05T16:19:43.410+00:00",
+   "outcome": "merged",
+   "store_bucket": "completed",
+   "work_key": "gh:R_kgDOQncOdA#105:g1",
+   "merge_sha": "merge-104-a5ce6a0f",
+   "effort_ids": [
+    "eff-03e72d7a3974"
+   ],
+   "measurement": "recorded",
+   "effort_rows": 1,
+   "intervention_minutes": 6.0,
+   "intervention_categories": [
+    "approval"
+   ],
+   "usage": {
+    "attempts": 2,
+    "unknown": 0,
+    "known_tokens": 2,
+    "known_billed": 2,
+    "known_quota": 2
+   },
+   "waits": {
+    "queue_seconds": {
+     "measured_s": 12.0,
+     "unknown": 0
+    },
+    "model_execution_seconds": {
+     "measured_s": 560.0,
+     "unknown": 0
+    },
+    "ci_wait_seconds": {
+     "measured_s": 120.0,
+     "unknown": 0
+    },
+    "human_wait_seconds": {
+     "measured_s": 600.0,
+     "unknown": 0
+    }
+   },
+   "evidence": {
+    "present": true,
+    "status": "verified",
+    "head_sha": "a5ce6a0fb0230426a52766f6342b1afaf2c850d2",
+    "remote_head": "a5ce6a0fb0230426a52766f6342b1afaf2c850d2"
+   },
+   "work_state": "completed",
+   "repo_id": "R_kgDOQncOdA"
+  },
+  {
+   "key": "c6",
+   "project": "project-b",
+   "issue": 201,
+   "task_class": "feature",
+   "path": "merged",
+   "title": "Add fixture seed subcommand",
+   "stages": {
+    "accepted": true,
+    "preview_verified": true,
+    "merge_ready": true,
+    "human_approved": true,
+    "merged": true
+   },
+   "human_decision": null,
+   "merged_at": "2026-10-05T16:19:43.453+00:00",
+   "outcome": "merged",
+   "store_bucket": "completed",
+   "work_key": "gh:R_kgDOFkDogfoodB#201:g1",
+   "merge_sha": "merge-100-3b8db5b4",
+   "effort_ids": [
+    "eff-52b754144b0b",
+    "eff-793f84e810ce"
+   ],
+   "measurement": "recorded",
+   "effort_rows": 2,
+   "intervention_minutes": 16.0,
+   "intervention_categories": [
+    "approval",
+    "monitoring"
+   ],
+   "usage": {
+    "attempts": 2,
+    "unknown": 0,
+    "known_tokens": 2,
+    "known_billed": 2,
+    "known_quota": 2
+   },
+   "waits": {
+    "queue_seconds": {
+     "measured_s": 22.0,
+     "unknown": 0
+    },
+    "model_execution_seconds": {
+     "measured_s": 1240.0,
+     "unknown": 0
+    },
+    "ci_wait_seconds": {
+     "measured_s": 200.0,
+     "unknown": 0
+    },
+    "human_wait_seconds": {
+     "measured_s": 960.0,
+     "unknown": 0
+    }
+   },
+   "evidence": {
+    "present": true,
+    "status": "verified",
+    "head_sha": "3b8db5b4adb22b018fbc02bbf7bd57753f162efd",
+    "remote_head": "3b8db5b4adb22b018fbc02bbf7bd57753f162efd"
+   },
+   "work_state": "completed",
+   "repo_id": "R_kgDOFkDogfoodB"
+  },
+  {
+   "key": "c7",
+   "project": "project-b",
+   "issue": 202,
+   "task_class": "bug",
+   "path": "failed_attempt",
+   "title": "Fix reconcile watermark regression",
+   "stages": {
+    "accepted": true,
+    "preview_verified": false,
+    "merge_ready": false,
+    "human_approved": false,
+    "merged": false
+   },
+   "human_decision": null,
+   "merged_at": null,
+   "outcome": "failed",
+   "store_bucket": "blocked",
+   "work_key": "gh:R_kgDOFkDogfoodB#202:g1",
+   "effort_ids": [
+    "eff-d12ac93501c9"
+   ],
+   "measurement": "recorded",
+   "effort_rows": 1,
+   "intervention_minutes": 20.0,
+   "intervention_categories": [
+    "investigation"
+   ],
+   "usage": {
+    "attempts": 1,
+    "unknown": 0,
+    "known_tokens": 1,
+    "known_billed": 0,
+    "known_quota": 1
+   },
+   "waits": {
+    "queue_seconds": {
+     "measured_s": 10.0,
+     "unknown": 0
+    },
+    "model_execution_seconds": {
+     "measured_s": 720.0,
+     "unknown": 0
+    },
+    "ci_wait_seconds": {
+     "measured_s": 0.0,
+     "unknown": 0
+    },
+    "human_wait_seconds": {
+     "measured_s": 1500.0,
+     "unknown": 0
+    }
+   },
+   "evidence": {
+    "present": false,
+    "status": null,
+    "head_sha": null,
+    "remote_head": null
+   },
+   "work_state": "blocked",
+   "repo_id": "R_kgDOFkDogfoodB"
+  },
+  {
+   "key": "c8",
+   "project": "project-b",
+   "issue": 203,
+   "task_class": "improvement",
+   "path": "canceled",
+   "title": "Reorder diagnostics sections",
+   "stages": {
+    "accepted": true,
+    "preview_verified": false,
+    "merge_ready": false,
+    "human_approved": false,
+    "merged": false
+   },
+   "human_decision": null,
+   "merged_at": null,
+   "outcome": "canceled",
+   "store_bucket": "canceled",
+   "work_key": "gh:R_kgDOFkDogfoodB#203:g1",
+   "effort_ids": [
+    "eff-f71a0a70283d",
+    "eff-d59d6b74caee"
+   ],
+   "measurement": "recorded",
+   "effort_rows": 2,
+   "intervention_minutes": 10.0,
+   "intervention_categories": [
+    "cleanup",
+    "monitoring"
+   ],
+   "usage": {
+    "attempts": 1,
+    "unknown": 0,
+    "known_tokens": 1,
+    "known_billed": 1,
+    "known_quota": 1
+   },
+   "waits": {
+    "queue_seconds": {
+     "measured_s": 4.0,
+     "unknown": 0
+    },
+    "model_execution_seconds": {
+     "measured_s": 150.0,
+     "unknown": 0
+    },
+    "ci_wait_seconds": {
+     "measured_s": 0.0,
+     "unknown": 0
+    },
+    "human_wait_seconds": {
+     "measured_s": 60.0,
+     "unknown": 0
+    }
+   },
+   "evidence": {
+    "present": false,
+    "status": null,
+    "head_sha": null,
+    "remote_head": null
+   },
+   "work_state": "canceled",
+   "repo_id": "R_kgDOFkDogfoodB"
+  },
+  {
+   "key": "c9",
+   "project": "project-b",
+   "issue": 204,
+   "task_class": "documentation",
+   "path": "merge_ready",
+   "title": "Document retention defaults",
+   "stages": {
+    "accepted": true,
+    "preview_verified": true,
+    "merge_ready": true,
+    "human_approved": false,
+    "merged": false
+   },
+   "human_decision": null,
+   "merged_at": null,
+   "outcome": "merge_ready",
+   "store_bucket": "in_progress",
+   "work_key": "gh:R_kgDOFkDogfoodB#204:g1",
+   "effort_ids": [],
+   "measurement": "missing-effort-record",
+   "effort_rows": 0,
+   "intervention_minutes": null,
+   "intervention_categories": [],
+   "usage": {
+    "attempts": 2,
+    "unknown": 0,
+    "known_tokens": 2,
+    "known_billed": 2,
+    "known_quota": 2
+   },
+   "waits": {
+    "queue_seconds": {
+     "measured_s": 14.0,
+     "unknown": 0
+    },
+    "model_execution_seconds": {
+     "measured_s": 620.0,
+     "unknown": 0
+    },
+    "ci_wait_seconds": {
+     "measured_s": 110.0,
+     "unknown": 0
+    },
+    "human_wait_seconds": {
+     "measured_s": 3600.0,
+     "unknown": 0
+    }
+   },
+   "evidence": {
+    "present": true,
+    "status": "verified",
+    "head_sha": "a374c672fb192b0b03e09938ede3f0c0bab7c45d",
+    "remote_head": "a374c672fb192b0b03e09938ede3f0c0bab7c45d"
+   },
+   "work_state": "parked",
+   "repo_id": "R_kgDOFkDogfoodB"
+  },
+  {
+   "key": "c10",
+   "project": "project-b",
+   "issue": 205,
+   "task_class": "feature",
+   "path": "verification_blocked",
+   "title": "Add merge method toggle",
+   "stages": {
+    "accepted": true,
+    "preview_verified": false,
+    "merge_ready": false,
+    "human_approved": false,
+    "merged": false
+   },
+   "human_decision": null,
+   "merged_at": null,
+   "outcome": "blocked",
+   "store_bucket": "blocked",
+   "work_key": "gh:R_kgDOFkDogfoodB#205:g1",
+   "evidence_status": "failed",
+   "effort_ids": [
+    "eff-e3dce816c7cf",
+    "eff-e221481034f2"
+   ],
+   "measurement": "recorded",
+   "effort_rows": 2,
+   "intervention_minutes": 17.0,
+   "intervention_categories": [
+    "correction",
+    "investigation"
+   ],
+   "usage": {
+    "attempts": 2,
+    "unknown": 2,
+    "known_tokens": 0,
+    "known_billed": 0,
+    "known_quota": 0
+   },
+   "waits": {
+    "queue_seconds": {
+     "measured_s": 0.0,
+     "unknown": 2
+    },
+    "model_execution_seconds": {
+     "measured_s": 0.0,
+     "unknown": 2
+    },
+    "ci_wait_seconds": {
+     "measured_s": 0.0,
+     "unknown": 2
+    },
+    "human_wait_seconds": {
+     "measured_s": 0.0,
+     "unknown": 2
+    }
+   },
+   "evidence": {
+    "present": true,
+    "status": "failed",
+    "head_sha": "0ba2117ffd6eeee838e687e0d558e6e0bb4d2102",
+    "remote_head": "0ba2117ffd6eeee838e687e0d558e6e0bb4d2102"
+   },
+   "work_state": "blocked",
+   "repo_id": "R_kgDOFkDogfoodB"
+  }
+ ],
+ "baseline_comparability": {
+  "comparable": true,
+  "checks": {
+   "baseline_size_10": true,
+   "same_maintainer": true,
+   "endpoint_standard_recorded": true,
+   "collection_window_days": true,
+   "all_minutes_recorded": true
+  }
+ },
+ "metrics": {
+  "cohort_size": 10,
+  "intervention_minutes": {
+   "per_issue": {
+    "c1": 13.0,
+    "c2": 25.0,
+    "c3": 9.0,
+    "c4": 21.0,
+    "c5": 6.0,
+    "c6": 16.0,
+    "c7": 20.0,
+    "c8": 10.0,
+    "c9": null,
+    "c10": 17.0
+   },
+   "known_n": 9,
+   "missing_n": 1,
+   "missing_keys": [
+    "c9"
+   ],
+   "median": 16.0,
+   "median_successful": 13.0,
+   "median_unsuccessful": 18.5,
+   "successful_n": 6,
+   "unsuccessful_n": 4
+  },
+  "baseline": {
+   "n": 10,
+   "median": 23.0,
+   "per_issue": {
+    "b1": 22.0,
+    "b2": 35.0,
+    "b3": 27.0,
+    "b4": 14.0,
+    "b5": 18.0,
+    "b6": 41.0,
+    "b7": 19.0,
+    "b8": 24.0,
+    "b9": 31.0,
+    "b10": 16.0
+   },
+   "outcomes": {
+    "merged": 8,
+    "declined": 1,
+    "abandoned": 1
+   }
+  },
+  "intervention_reduction_pct": 30.43,
+  "overhead": {
+   "setup_minutes": {
+    "project-a": 25.0,
+    "project-b": 20.0
+   },
+   "maintenance_minutes": 30.0,
+   "total_overhead_minutes": 75.0,
+   "amortized_per_issue_minutes": 7.5,
+   "median_total_burden_minutes": 23.5
+  },
+  "waits": {
+   "queue_seconds": {
+    "measured_s": 150.0,
+    "unknown": 2
+   },
+   "model_execution_seconds": {
+    "measured_s": 8230.0,
+    "unknown": 2
+   },
+   "ci_wait_seconds": {
+    "measured_s": 1260.0,
+    "unknown": 2
+   },
+   "human_wait_seconds": {
+    "measured_s": 15360.0,
+    "unknown": 2
+   }
+  },
+  "usage": {
+   "attempts": 18,
+   "unknown": 2,
+   "known_tokens": 16,
+   "known_billed": 15,
+   "known_quota": 16
+  },
+  "intervention_categories_observed": [
+   "approval",
+   "cleanup",
+   "correction",
+   "investigation",
+   "monitoring"
+  ]
+ },
+ "audits": {
+  "one_active_task": {
+   "violations": [],
+   "samples": 22
+  },
+  "sequential_registrations": {
+   "order": [
+    "project-a",
+    "project-b"
+   ],
+   "sequential": true
+  },
+  "revision_evidence": {
+   "verified_revision": [
+    "c1",
+    "c2",
+    "c3",
+    "c4",
+    "c5",
+    "c6",
+    "c9"
+   ],
+   "explicit_terminal": [
+    "c7",
+    "c8",
+    "c10"
+   ],
+   "violations": []
+  },
+  "secret_scan": {
+   "outcome": "clean"
+  },
+  "denominator_integrity": {
+   "cohort_size": 10,
+   "accounted": 10,
+   "unaccounted": [],
+   "outcomes": {
+    "merged": 4,
+    "merge_ready": 2,
+    "declined": 1,
+    "failed": 1,
+    "canceled": 1,
+    "blocked": 1
+   },
+   "human_declines": [
+    "c4"
+   ]
+  }
+ },
+ "export": {
+  "project-a": {
+   "authority_key": "gh:R_kgDOQncOdA",
+   "exported_at": "2026-10-05T16:19:43.415+00:00",
+   "expanded": false,
+   "retention": {
+    "policy": {
+     "worker_log_days": 7.0,
+     "audit_days": 30.0,
+     "worker_log_seconds": 604800.0,
+     "audit_seconds": 2592000.0
+    },
+    "explanation": [
+     "worker-log detail (attempt liveness heartbeats) is deleted after 7 days",
+     "detailed audit metadata (event detail, usage payloads, check artifacts, preview/control detail) is pruned 30 days after work reaches a terminal state \u2014 active and parked work is never pruned",
+     "identity tombstones persist until explicit registration removal: work logical identity, delivery dedup records, control/command identities, publication/merge intent identities and the notification outbox stay, so an old webhook delivery still collides with dedup instead of recreating work",
+     "export copies the retained history; delete removes the repo-scoped detail rows \u2014 neither drops tombstones while the registration stands; only the reviewed registration removal does"
+    ]
+   },
+   "work_keys": [
+    "gh:R_kgDOQncOdA#101:g1",
+    "gh:R_kgDOQncOdA#102:g1",
+    "gh:R_kgDOQncOdA#103:g1",
+    "gh:R_kgDOQncOdA#104:g1",
+    "gh:R_kgDOQncOdA#105:g1"
+   ],
+   "tables": {
+    "work": [
+     {
+      "work_key": "gh:R_kgDOQncOdA#101:g1",
+      "authority_key": "gh:R_kgDOQncOdA",
+      "repo_id": "R_kgDOQncOdA",
+      "issue": 101,
+      "generation": 1,
+      "task_id": "fk-task-000001",
+      "task_state": "bound",
+      "state": "completed",
+      "context_fingerprint": "b453fd1aaa3eeb4eb29bb1cd623f170d822cba14342d30d4a00519e82770b490",
+      "issue_revision": "2026-10-05",
+      "authorization_evidence": "{\"actor\": \"luongnv89\", \"opt_in_label\": \"factory-kit\", \"policy_digest\": \"a3808f62b97d652152c437a250e8ef5f71159c3de1d4ee4244e23922395ba410\", \"via\": \"github_actor\"}",
+      "config_digest": "471800e23c5595c818afde9d59d627dc6800fba44ca6444430d072303433a372",
+      "policy_digest": "a3808f62b97d652152c437a250e8ef5f71159c3de1d4ee4244e23922395ba410",
+      "linked_pr": "100",
+      "reevaluation_required": 0,
+      "parked_reason": null,
+      "created_at": "2026-10-05T16:19:43.352+00:00",
+      "updated_at": "2026-10-05T16:19:43.364+00:00"
+     },
+     {
+      "work_key": "gh:R_kgDOQncOdA#102:g1",
+      "authority_key": "gh:R_kgDOQncOdA",
+      "repo_id": "R_kgDOQncOdA",
+      "issue": 102,
+      "generation": 1,
+      "task_id": "fk-task-000011",
+      "task_state": "bound",
+      "state": "completed",
+      "context_fingerprint": "0aedcbd57fbb4880555557554500856eadf3eecfeb54d7bdebaa1c24c25e178d",
+      "issue_revision": "2026-10-05",
+      "authorization_evidence": "{\"actor\": \"luongnv89\", \"opt_in_label\": \"factory-kit\", \"policy_digest\": \"a3808f62b97d652152c437a250e8ef5f71159c3de1d4ee4244e23922395ba410\", \"via\": \"github_actor\"}",
+      "config_digest": "471800e23c5595c818afde9d59d627dc6800fba44ca6444430d072303433a372",
+      "policy_digest": "a3808f62b97d652152c437a250e8ef5f71159c3de1d4ee4244e23922395ba410",
+      "linked_pr": "101",
+      "reevaluation_required": 0,
+      "parked_reason": null,
+      "created_at": "2026-10-05T16:19:43.366+00:00",
+      "updated_at": "2026-10-05T16:19:43.378+00:00"
+     },
+     {
+      "work_key": "gh:R_kgDOQncOdA#103:g1",
+      "authority_key": "gh:R_kgDOQncOdA",
+      "repo_id": "R_kgDOQncOdA",
+      "issue": 103,
+      "generation": 1,
+      "task_id": "fk-task-000021",
+      "task_state": "bound",
+      "state": "parked",
+      "context_fingerprint": "c963dff299dd0c7d3b2d6ed7fed61d3be541db4af7eeb943d575f990aa440035",
+      "issue_revision": "2026-10-05",
+      "authorization_evidence": "{\"actor\": \"luongnv89\", \"opt_in_label\": \"factory-kit\", \"policy_digest\": \"a3808f62b97d652152c437a250e8ef5f71159c3de1d4ee4244e23922395ba410\", \"via\": \"github_actor\"}",
+      "config_digest": "471800e23c5595c818afde9d59d627dc6800fba44ca6444430d072303433a372",
+      "policy_digest": "a3808f62b97d652152c437a250e8ef5f71159c3de1d4ee4244e23922395ba410",
+      "linked_pr": "102",
+      "reevaluation_required": 0,
+      "parked_reason": "awaiting-approval-decision",
+      "created_at": "2026-10-05T16:19:43.379+00:00",
+      "updated_at": "2026-10-05T16:19:43.387+00:00"
+     },
+     {
+      "work_key": "gh:R_kgDOQncOdA#104:g1",
+      "authority_key": "gh:R_kgDOQncOdA",
+      "repo_id": "R_kgDOQncOdA",
+      "issue": 104,
+      "generation": 1,
+      "task_id": "fk-task-000028",
+      "task_state": "bound",
+      "state": "blocked",
+      "context_fingerprint": "bfab6eb9931f57dccf55cd804e87f61127e2a782cb6ebacc9adec32f0d61e4ae",
+      "issue_revision": "2026-10-05",
+      "authorization_evidence": "{\"actor\": \"luongnv89\", \"opt_in_label\": \"factory-kit\", \"policy_digest\": \"a3808f62b97d652152c437a250e8ef5f71159c3de1d4ee4244e23922395ba410\", \"via\": \"github_actor\"}",
+      "config_digest": "471800e23c5595c818afde9d59d627dc6800fba44ca6444430d072303433a372",
+      "policy_digest": "a3808f62b97d652152c437a250e8ef5f71159c3de1d4ee4244e23922395ba410",
+      "linked_pr": "103",
+      "reevaluation_required": 0,
+      "parked_reason": "approval-rejected",
+      "created_at": "2026-10-05T16:19:43.389+00:00",
+      "updated_at": "2026-10-05T16:19:43.398+00:00"
+     },
+     {
+      "work_key": "gh:R_kgDOQncOdA#105:g1",
+      "authority_key": "gh:R_kgDOQncOdA",
+      "repo_id": "R_kgDOQncOdA",
+      "issue": 105,
+      "generation": 1,
+      "task_id": "fk-task-000037",
+      "task_state": "bound",
+      "state": "completed",
+      "context_fingerprint": "92b6754f59d04f7bd8815a0ecad626ae4792c6e713e83759c4ca052ac9bb3c83",
+      "issue_revision": "2026-10-05",
+      "authorization_evidence": "{\"actor\": \"luongnv89\", \"opt_in_label\": \"factory-kit\", \"policy_digest\": \"a3808f62b97d652152c437a250e8ef5f71159c3de1d4ee4244e23922395ba410\", \"via\": \"github_actor\"}",
+      "config_digest": "471800e23c5595c818afde9d59d627dc6800fba44ca6444430d072303433a372",
+      "policy_digest": "a3808f62b97d652152c437a250e8ef5f71159c3de1d4ee4244e23922395ba410",
+      "linked_pr": "104",
+      "reevaluation_required": 0,
+      "parked_reason": null,
+      "created_at": "2026-10-05T16:19:43.399+00:00",
+      "updated_at": "2026-10-05T16:19:43.411+00:00"
+     }
+    ],
+    "deliveries": [
+     {
+      "delivery_id": "d-rec-101-f58766b2",
+      "channel": "reconciliation",
+      "work_key": "gh:R_kgDOQncOdA#101:g1",
+      "outcome": "accepted",
+      "reason": null,
+      "seq": 1,
+      "ts": "2026-10-05T16:19:43.352+00:00"
+     },
+     {
+      "delivery_id": "d-rec-102-3ad278e7",
+      "channel": "reconciliation",
+      "work_key": "gh:R_kgDOQncOdA#102:g1",
+      "outcome": "accepted",
+      "reason": null,
+      "seq": 11,
+      "ts": "2026-10-05T16:19:43.366+00:00"
+     },
+     {
+      "delivery_id": "d-rec-103-0f698cf7",
+      "channel": "reconciliation",
+      "work_key": "gh:R_kgDOQncOdA#103:g1",
+      "outcome": "accepted",
+      "reason": null,
+      "seq": 21,
+      "ts": "2026-10-05T16:19:43.379+00:00"
+     },
+     {
+      "delivery_id": "d-rec-104-e20341ba",
+      "channel": "reconciliation",
+      "work_key": "gh:R_kgDOQncOdA#104:g1",
+      "outcome": "accepted",
+      "reason": null,
+      "seq": 28,
+      "ts": "2026-10-05T16:19:43.389+00:00"
+     },
+     {
+      "delivery_id": "d-rec-105-fa0ee8d4",
+      "channel": "reconciliation",
+      "work_key": "gh:R_kgDOQncOdA#105:g1",
+      "outcome": "accepted",
+      "reason": null,
+      "seq": 37,
+      "ts": "2026-10-05T16:19:43.400+00:00"
+     }
+    ],
+    "attempt_ledger": [
+     {
+      "attempt_id": "fk-task-000001-a01",
+      "work_key": "gh:R_kgDOQncOdA#101:g1",
+      "role": "implementation",
+      "state": "completed",
+      "started": "2026-10-05T16:19:43.354+00:00",
+      "ended": "2026-10-05T16:19:43.354+00:00"
+     },
+     {
+      "attempt_id": "fk-task-000001-a02",
+      "work_key": "gh:R_kgDOQncOdA#101:g1",
+      "role": "review",
+      "state": "completed",
+      "started": "2026-10-05T16:19:43.355+00:00",
+      "ended": "2026-10-05T16:19:43.355+00:00"
+     },
+     {
+      "attempt_id": "fk-task-000011-a01",
+      "work_key": "gh:R_kgDOQncOdA#102:g1",
+      "role": "implementation",
+      "state": "completed",
+      "started": "2026-10-05T16:19:43.368+00:00",
+      "ended": "2026-10-05T16:19:43.368+00:00"
+     },
+     {
+      "attempt_id": "fk-task-000011-a02",
+      "work_key": "gh:R_kgDOQncOdA#102:g1",
+      "role": "review",
+      "state": "completed",
+      "started": "2026-10-05T16:19:43.369+00:00",
+      "ended": "2026-10-05T16:19:43.370+00:00"
+     },
+     {
+      "attempt_id": "fk-task-000021-a01",
+      "work_key": "gh:R_kgDOQncOdA#103:g1",
+      "role": "implementation",
+      "state": "completed",
+      "started": "2026-10-05T16:19:43.381+00:00",
+      "ended": "2026-10-05T16:19:43.381+00:00"
+     },
+     {
+      "attempt_id": "fk-task-000021-a02",
+      "work_key": "gh:R_kgDOQncOdA#103:g1",
+      "role": "review",
+      "state": "completed",
+      "started": "2026-10-05T16:19:43.382+00:00",
+      "ended": "2026-10-05T16:19:43.382+00:00"
+     },
+     {
+      "attempt_id": "fk-task-000028-a01",
+      "work_key": "gh:R_kgDOQncOdA#104:g1",
+      "role": "implementation",
+      "state": "completed",
+      "started": "2026-10-05T16:19:43.391+00:00",
+      "ended": "2026-10-05T16:19:43.391+00:00"
+     },
+     {
+      "attempt_id": "fk-task-000028-a02",
+      "work_key": "gh:R_kgDOQncOdA#104:g1",
+      "role": "review",
+      "state": "completed",
+      "started": "2026-10-05T16:19:43.392+00:00",
+      "ended": "2026-10-05T16:19:43.392+00:00"
+     },
+     {
+      "attempt_id": "fk-task-000037-a01",
+      "work_key": "gh:R_kgDOQncOdA#105:g1",
+      "role": "implementation",
+      "state": "completed",
+      "started": "2026-10-05T16:19:43.401+00:00",
+      "ended": "2026-10-05T16:19:43.402+00:00"
+     },
+     {
+      "attempt_id": "fk-task-000037-a02",
+      "work_key": "gh:R_kgDOQncOdA#105:g1",
+      "role": "review",
+      "state": "completed",
+      "started": "2026-10-05T16:19:43.403+00:00",
+      "ended": "2026-10-05T16:19:43.403+00:00"
+     }
+    ],
+    "work_queue": [
+     {
+      "work_key": "gh:R_kgDOQncOdA#101:g1",
+      "enqueued_seq": 5,
+      "state": "awaiting-approval",
+      "reason": "approval:apr-eae0d440f68c",
+      "enqueued_at": "2026-10-05T16:19:43.360+00:00"
+     },
+     {
+      "work_key": "gh:R_kgDOQncOdA#102:g1",
+      "enqueued_seq": 15,
+      "state": "awaiting-approval",
+      "reason": "approval:apr-81bba22491fb",
+      "enqueued_at": "2026-10-05T16:19:43.374+00:00"
+     },
+     {
+      "work_key": "gh:R_kgDOQncOdA#103:g1",
+      "enqueued_seq": 25,
+      "state": "awaiting-approval",
+      "reason": "approval:apr-431ad59ccfdb",
+      "enqueued_at": "2026-10-05T16:19:43.387+00:00"
+     },
+     {
+      "work_key": "gh:R_kgDOQncOdA#104:g1",
+      "enqueued_seq": 32,
+      "state": "blocked",
+      "reason": "approval-rejected",
+      "enqueued_at": "2026-10-05T16:19:43.397+00:00"
+     },
+     {
+      "work_key": "gh:R_kgDOQncOdA#105:g1",
+      "enqueued_seq": 41,
+      "state": "awaiting-approval",
+      "reason": "approval:apr-7ed5230c1411",
+      "enqueued_at": "2026-10-05T16:19:43.407+00:00"
+     }
+    ],
+    "attempt_records": [
+     {
+      "attempt_id": "fk-task-000001-a01",
+      "work_key": "gh:R_kgDOQncOdA#101:g1",
+      "task_id": "fk-task-000001",
+      "generation": 1,
+      "role": "implementation",
+      "session_id": "sess-fk-task-000001-a01",
+      "runtime": "hermes-kanban",
+      "model": "gpt-6-luna",
+      "skills": "{}",
+      "config_digest": "c",
+      "policy_digest": "p",
+      "workspace": "/var/folders/vp/p2cr7_xx3cb4t1fg99_x_d5c0000gn/T/fk-cohort-eqlj_ynr/project-a/ws",
+      "limits": "{}",
+      "heartbeat_at": "2026-10-05T16:19:43.354+00:00",
+      "heartbeat_epoch": 1791217183.329201,
+      "beats": 1,
+      "verdict": "completed",
+      "outcome": "completed",
+      "started": "2026-10-05T16:19:43.354+00:00",
+      "ended": "2026-10-05T16:19:43.354+00:00",
+      "duration_s": 10.0,
+      "usage_state": "measured"
+     },
+     {
+      "attempt_id": "fk-task-000001-a02",
+      "work_key": "gh:R_kgDOQncOdA#101:g1",
+      "task_id": "fk-task-000001",
+      "generation": 1,
+      "role": "review",
+      "session_id": "sess-fk-task-000001-a02",
+      "runtime": "hermes-kanban",
+      "model": "gpt-6-luna",
+      "skills": "{}",
+      "config_digest": "c",
+      "policy_digest": "p",
+      "workspace": "/var/folders/vp/p2cr7_xx3cb4t1fg99_x_d5c0000gn/T/fk-cohort-eqlj_ynr/project-a/ws",
+      "limits": "{}",
+      "heartbeat_at": "2026-10-05T16:19:43.355+00:00",
+      "heartbeat_epoch": 1791217183.329201,
+      "beats": 1,
+      "verdict": "completed",
+      "outcome": "completed",
+      "started": "2026-10-05T16:19:43.355+00:00",
+      "ended": "2026-10-05T16:19:43.355+00:00",
+      "duration_s": 10.0,
+      "usage_state": "measured"
+     },
+     {
+      "attempt_id": "fk-task-000011-a01",
+      "work_key": "gh:R_kgDOQncOdA#102:g1",
+      "task_id": "fk-task-000011",
+      "generation": 1,
+      "role": "implementation",
+      "session_id": "sess-fk-task-000011-a01",
+      "runtime": "hermes-kanban",
+      "model": "gpt-6-luna",
+      "skills": "{}",
+      "config_digest": "c",
+      "policy_digest": "p",
+      "workspace": "/var/folders/vp/p2cr7_xx3cb4t1fg99_x_d5c0000gn/T/fk-cohort-eqlj_ynr/project-a/ws",
+      "limits": "{}",
+      "heartbeat_at": "2026-10-05T16:19:43.368+00:00",
+      "heartbeat_epoch": 1791217183.329201,
+      "beats": 1,
+      "verdict": "completed",
+      "outcome": "completed",
+      "started": "2026-10-05T16:19:43.368+00:00",
+      "ended": "2026-10-05T16:19:43.368+00:00",
+      "duration_s": 10.0,
+      "usage_state": "measured"
+     },
+     {
+      "attempt_id": "fk-task-000011-a02",
+      "work_key": "gh:R_kgDOQncOdA#102:g1",
+      "task_id": "fk-task-000011",
+      "generation": 1,
+      "role": "review",
+      "session_id": "sess-fk-task-000011-a02",
+      "runtime": "hermes-kanban",
+      "model": "gpt-6-luna",
+      "skills": "{}",
+      "config_digest": "c",
+      "policy_digest": "p",
+      "workspace": "/var/folders/vp/p2cr7_xx3cb4t1fg99_x_d5c0000gn/T/fk-cohort-eqlj_ynr/project-a/ws",
+      "limits": "{}",
+      "heartbeat_at": "2026-10-05T16:19:43.369+00:00",
+      "heartbeat_epoch": 1791217183.329201,
+      "beats": 1,
+      "verdict": "completed",
+      "outcome": "completed",
+      "started": "2026-10-05T16:19:43.369+00:00",
+      "ended": "2026-10-05T16:19:43.370+00:00",
+      "duration_s": 10.0,
+      "usage_state": "measured"
+     },
+     {
+      "attempt_id": "fk-task-000021-a01",
+      "work_key": "gh:R_kgDOQncOdA#103:g1",
+      "task_id": "fk-task-000021",
+      "generation": 1,
+      "role": "implementation",
+      "session_id": "sess-fk-task-000021-a01",
+      "runtime": "hermes-kanban",
+      "model": "gpt-6-luna",
+      "skills": "{}",
+      "config_digest": "c",
+      "policy_digest": "p",
+      "workspace": "/var/folders/vp/p2cr7_xx3cb4t1fg99_x_d5c0000gn/T/fk-cohort-eqlj_ynr/project-a/ws",
+      "limits": "{}",
+      "heartbeat_at": "2026-10-05T16:19:43.381+00:00",
+      "heartbeat_epoch": 1791217183.329201,
+      "beats": 1,
+      "verdict": "completed",
+      "outcome": "completed",
+      "started": "2026-10-05T16:19:43.381+00:00",
+      "ended": "2026-10-05T16:19:43.381+00:00",
+      "duration_s": 10.0,
+      "usage_state": "measured"
+     },
+     {
+      "attempt_id": "fk-task-000021-a02",
+      "work_key": "gh:R_kgDOQncOdA#103:g1",
+      "task_id": "fk-task-000021",
+      "generation": 1,
+      "role": "review",
+      "session_id": "sess-fk-task-000021-a02",
+      "runtime": "hermes-kanban",
+      "model": "gpt-6-luna",
+      "skills": "{}",
+      "config_digest": "c",
+      "policy_digest": "p",
+      "workspace": "/var/folders/vp/p2cr7_xx3cb4t1fg99_x_d5c0000gn/T/fk-cohort-eqlj_ynr/project-a/ws",
+      "limits": "{}",
+      "heartbeat_at": "2026-10-05T16:19:43.382+00:00",
+      "heartbeat_epoch": 1791217183.329201,
+      "beats": 1,
+      "verdict": "completed",
+      "outcome": "completed",
+      "started": "2026-10-05T16:19:43.382+00:00",
+      "ended": "2026-10-05T16:19:43.382+00:00",
+      "duration_s": 10.0,
+      "usage_state": "measured"
+     },
+     {
+      "attempt_id": "fk-task-000028-a01",
+      "work_key": "gh:R_kgDOQncOdA#104:g1",
+      "task_id": "fk-task-000028",
+      "generation": 1,
+      "role": "implementation",
+      "session_id": "sess-fk-task-000028-a01",
+      "runtime": "hermes-kanban",
+      "model": "gpt-6-luna",
+      "skills": "{}",
+      "config_digest": "c",
+      "policy_digest": "p",
+      "workspace": "/var/folders/vp/p2cr7_xx3cb4t1fg99_x_d5c0000gn/T/fk-cohort-eqlj_ynr/project-a/ws",
+      "limits": "{}",
+      "heartbeat_at": "2026-10-05T16:19:43.391+00:00",
+      "heartbeat_epoch": 1791217183.329201,
+      "beats": 1,
+      "verdict": "completed",
+      "outcome": "completed",
+      "started": "2026-10-05T16:19:43.391+00:00",
+      "ended": "2026-10-05T16:19:43.391+00:00",
+      "duration_s": 10.0,
+      "usage_state": "measured"
+     },
+     {
+      "attempt_id": "fk-task-000028-a02",
+      "work_key": "gh:R_kgDOQncOdA#104:g1",
+      "task_id": "fk-task-000028",
+      "generation": 1,
+      "role": "review",
+      "session_id": "sess-fk-task-000028-a02",
+      "runtime": "hermes-kanban",
+      "model": "gpt-6-luna",
+      "skills": "{}",
+      "config_digest": "c",
+      "policy_digest": "p",
+      "workspace": "/var/folders/vp/p2cr7_xx3cb4t1fg99_x_d5c0000gn/T/fk-cohort-eqlj_ynr/project-a/ws",
+      "limits": "{}",
+      "heartbeat_at": "2026-10-05T16:19:43.392+00:00",
+      "heartbeat_epoch": 1791217183.329201,
+      "beats": 1,
+      "verdict": "completed",
+      "outcome": "completed",
+      "started": "2026-10-05T16:19:43.392+00:00",
+      "ended": "2026-10-05T16:19:43.392+00:00",
+      "duration_s": 10.0,
+      "usage_state": "measured"
+     },
+     {
+      "attempt_id": "fk-task-000037-a01",
+      "work_key": "gh:R_kgDOQncOdA#105:g1",
+      "task_id": "fk-task-000037",
+      "generation": 1,
+      "role": "implementation",
+      "session_id": "sess-fk-task-000037-a01",
+      "runtime": "hermes-kanban",
+      "model": "gpt-6-luna",
+      "skills": "{}",
+      "config_digest": "c",
+      "policy_digest": "p",
+      "workspace": "/var/folders/vp/p2cr7_xx3cb4t1fg99_x_d5c0000gn/T/fk-cohort-eqlj_ynr/project-a/ws",
+      "limits": "{}",
+      "heartbeat_at": "2026-10-05T16:19:43.401+00:00",
+      "heartbeat_epoch": 1791217183.329201,
+      "beats": 1,
+      "verdict": "completed",
+      "outcome": "completed",
+      "started": "2026-10-05T16:19:43.401+00:00",
+      "ended": "2026-10-05T16:19:43.402+00:00",
+      "duration_s": 10.0,
+      "usage_state": "measured"
+     },
+     {
+      "attempt_id": "fk-task-000037-a02",
+      "work_key": "gh:R_kgDOQncOdA#105:g1",
+      "task_id": "fk-task-000037",
+      "generation": 1,
+      "role": "review",
+      "session_id": "sess-fk-task-000037-a02",
+      "runtime": "hermes-kanban",
+      "model": "gpt-6-luna",
+      "skills": "{}",
+      "config_digest": "c",
+      "policy_digest": "p",
+      "workspace": "/var/folders/vp/p2cr7_xx3cb4t1fg99_x_d5c0000gn/T/fk-cohort-eqlj_ynr/project-a/ws",
+      "limits": "{}",
+      "heartbeat_at": "2026-10-05T16:19:43.403+00:00",
+      "heartbeat_epoch": 1791217183.329201,
+      "beats": 1,
+      "verdict": "completed",
+      "outcome": "completed",
+      "started": "2026-10-05T16:19:43.403+00:00",
+      "ended": "2026-10-05T16:19:43.403+00:00",
+      "duration_s": 10.0,
+      "usage_state": "measured"
+     }
+    ],
+    "attempt_liveness": [
+     {
+      "attempt_id": "fk-task-000001-a01",
+      "work_key": "gh:R_kgDOQncOdA#101:g1",
+      "last_beat": "2026-10-05T16:19:43.354+00:00",
+      "last_beat_epoch": 1791217183.329201,
+      "beats": 1
+     },
+     {
+      "attempt_id": "fk-task-000001-a02",
+      "work_key": "gh:R_kgDOQncOdA#101:g1",
+      "last_beat": "2026-10-05T16:19:43.355+00:00",
+      "last_beat_epoch": 1791217183.329201,
+      "beats": 1
+     },
+     {
+      "attempt_id": "fk-task-000011-a01",
+      "work_key": "gh:R_kgDOQncOdA#102:g1",
+      "last_beat": "2026-10-05T16:19:43.368+00:00",
+      "last_beat_epoch": 1791217183.329201,
+      "beats": 1
+     },
+     {
+      "attempt_id": "fk-task-000011-a02",
+      "work_key": "gh:R_kgDOQncOdA#102:g1",
+      "last_beat": "2026-10-05T16:19:43.369+00:00",
+      "last_beat_epoch": 1791217183.329201,
+      "beats": 1
+     },
+     {
+      "attempt_id": "fk-task-000021-a01",
+      "work_key": "gh:R_kgDOQncOdA#103:g1",
+      "last_beat": "2026-10-05T16:19:43.381+00:00",
+      "last_beat_epoch": 1791217183.329201,
+      "beats": 1
+     },
+     {
+      "attempt_id": "fk-task-000021-a02",
+      "work_key": "gh:R_kgDOQncOdA#103:g1",
+      "last_beat": "2026-10-05T16:19:43.382+00:00",
+      "last_beat_epoch": 1791217183.329201,
+      "beats": 1
+     },
+     {
+      "attempt_id": "fk-task-000028-a01",
+      "work_key": "gh:R_kgDOQncOdA#104:g1",
+      "last_beat": "2026-10-05T16:19:43.391+00:00",
+      "last_beat_epoch": 1791217183.329201,
+      "beats": 1
+     },
+     {
+      "attempt_id": "fk-task-000028-a02",
+      "work_key": "gh:R_kgDOQncOdA#104:g1",
+      "last_beat": "2026-10-05T16:19:43.392+00:00",
+      "last_beat_epoch": 1791217183.329201,
+      "beats": 1
+     },
+     {
+      "attempt_id": "fk-task-000037-a01",
+      "work_key": "gh:R_kgDOQncOdA#105:g1",
+      "last_beat": "2026-10-05T16:19:43.401+00:00",
+      "last_beat_epoch": 1791217183.329201,
+      "beats": 1
+     },
+     {
+      "attempt_id": "fk-task-000037-a02",
+      "work_key": "gh:R_kgDOQncOdA#105:g1",
+      "last_beat": "2026-10-05T16:19:43.403+00:00",
+      "last_beat_epoch": 1791217183.329201,
+      "beats": 1
+     }
+    ],
+    "attempt_usage": [
+     {
+      "attempt_id": "fk-task-000001-a01",
+      "work_key": "gh:R_kgDOQncOdA#101:g1",
+      "role": "implementation",
+      "active_seconds": 600.0,
+      "recorded_at": "2026-10-05T16:19:43.354+00:00"
+     },
+     {
+      "attempt_id": "fk-task-000001-a02",
+      "work_key": "gh:R_kgDOQncOdA#101:g1",
+      "role": "review",
+      "active_seconds": 240.0,
+      "recorded_at": "2026-10-05T16:19:43.355+00:00"
+     },
+     {
+      "attempt_id": "fk-task-000011-a01",
+      "work_key": "gh:R_kgDOQncOdA#102:g1",
+      "role": "implementation",
+      "active_seconds": 600.0,
+      "recorded_at": "2026-10-05T16:19:43.368+00:00"
+     },
+     {
+      "attempt_id": "fk-task-000011-a02",
+      "work_key": "gh:R_kgDOQncOdA#102:g1",
+      "role": "review",
+      "active_seconds": 240.0,
+      "recorded_at": "2026-10-05T16:19:43.370+00:00"
+     },
+     {
+      "attempt_id": "fk-task-000021-a01",
+      "work_key": "gh:R_kgDOQncOdA#103:g1",
+      "role": "implementation",
+      "active_seconds": 600.0,
+      "recorded_at": "2026-10-05T16:19:43.381+00:00"
+     },
+     {
+      "attempt_id": "fk-task-000021-a02",
+      "work_key": "gh:R_kgDOQncOdA#103:g1",
+      "role": "review",
+      "active_seconds": 240.0,
+      "recorded_at": "2026-10-05T16:19:43.382+00:00"
+     },
+     {
+      "attempt_id": "fk-task-000028-a01",
+      "work_key": "gh:R_kgDOQncOdA#104:g1",
+      "role": "implementation",
+      "active_seconds": 600.0,
+      "recorded_at": "2026-10-05T16:19:43.391+00:00"
+     },
+     {
+      "attempt_id": "fk-task-000028-a02",
+      "work_key": "gh:R_kgDOQncOdA#104:g1",
+      "role": "review",
+      "active_seconds": 240.0,
+      "recorded_at": "2026-10-05T16:19:43.392+00:00"
+     },
+     {
+      "attempt_id": "fk-task-000037-a01",
+      "work_key": "gh:R_kgDOQncOdA#105:g1",
+      "role": "implementation",
+      "active_seconds": 600.0,
+      "recorded_at": "2026-10-05T16:19:43.402+00:00"
+     },
+     {
+      "attempt_id": "fk-task-000037-a02",
+      "work_key": "gh:R_kgDOQncOdA#105:g1",
+      "role": "review",
+      "active_seconds": 240.0,
+      "recorded_at": "2026-10-05T16:19:43.403+00:00"
+     }
+    ],
+    "execution_fence": [],
+    "work_control": [],
+    "review_records": [
+     {
+      "review_id": "rev-036963af4fda",
+      "work_key": "gh:R_kgDOQncOdA#101:g1",
+      "attempt_id": "fk-task-000001-a02",
+      "session_id": "sess-fk-task-000001-a02",
+      "role": "review",
+      "model": null,
+      "verdict": "approved",
+      "sha": "99727f48c2dab9495e03aad2b5751ffe9f3e1834",
+      "recorded_at": "2026-10-05T16:19:43.356+00:00"
+     },
+     {
+      "review_id": "rev-c4c9e3fba46f",
+      "work_key": "gh:R_kgDOQncOdA#102:g1",
+      "attempt_id": "fk-task-000011-a02",
+      "session_id": "sess-fk-task-000011-a02",
+      "role": "review",
+      "model": null,
+      "verdict": "approved",
+      "sha": "1186dcae8d383120b2ca9dc6b044ac7a494ef684",
+      "recorded_at": "2026-10-05T16:19:43.370+00:00"
+     },
+     {
+      "review_id": "rev-720f736f1bed",
+      "work_key": "gh:R_kgDOQncOdA#103:g1",
+      "attempt_id": "fk-task-000021-a02",
+      "session_id": "sess-fk-task-000021-a02",
+      "role": "review",
+      "model": null,
+      "verdict": "approved",
+      "sha": "007f689d780148a1267007d47e03fbbfbe23acda",
+      "recorded_at": "2026-10-05T16:19:43.383+00:00"
+     },
+     {
+      "review_id": "rev-ebdfbb7e9924",
+      "work_key": "gh:R_kgDOQncOdA#104:g1",
+      "attempt_id": "fk-task-000028-a02",
+      "session_id": "sess-fk-task-000028-a02",
+      "role": "review",
+      "model": null,
+      "verdict": "approved",
+      "sha": "3d300104b047f3e9647c4e21547329064b382a9a",
+      "recorded_at": "2026-10-05T16:19:43.393+00:00"
+     },
+     {
+      "review_id": "rev-518971b478ae",
+      "work_key": "gh:R_kgDOQncOdA#105:g1",
+      "attempt_id": "fk-task-000037-a02",
+      "session_id": "sess-fk-task-000037-a02",
+      "role": "review",
+      "model": null,
+      "verdict": "approved",
+      "sha": "a5ce6a0fb0230426a52766f6342b1afaf2c850d2",
+      "recorded_at": "2026-10-05T16:19:43.404+00:00"
+     }
+    ],
+    "verification_evidence": [
+     {
+      "evidence_id": "ev-601fdfa7f774",
+      "work_key": "gh:R_kgDOQncOdA#101:g1",
+      "seq": 2,
+      "pr_number": "100",
+      "pr_url": "https://example.test/luongnv89/money-mind/pull/100",
+      "head_sha": "99727f48c2dab9495e03aad2b5751ffe9f3e1834",
+      "base_name": "main",
+      "base_sha": "e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5",
+      "review_id": "rev-036963af4fda",
+      "review_session": "sess-fk-task-000001-a02",
+      "contract_digest": "3f71555c1880388966c86723ad3ea4e5a72afada40cd306b5fbe68cf0aa32d16",
+      "status": "verified",
+      "reason": "verified",
+      "observed_at": "2026-10-05T16:19:43.357+00:00"
+     },
+     {
+      "evidence_id": "ev-bb688fa20237",
+      "work_key": "gh:R_kgDOQncOdA#102:g1",
+      "seq": 12,
+      "pr_number": "101",
+      "pr_url": "https://example.test/luongnv89/money-mind/pull/101",
+      "head_sha": "1186dcae8d383120b2ca9dc6b044ac7a494ef684",
+      "base_name": "main",
+      "base_sha": "e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5",
+      "review_id": "rev-c4c9e3fba46f",
+      "review_session": "sess-fk-task-000011-a02",
+      "contract_digest": "3f71555c1880388966c86723ad3ea4e5a72afada40cd306b5fbe68cf0aa32d16",
+      "status": "verified",
+      "reason": "verified",
+      "observed_at": "2026-10-05T16:19:43.371+00:00"
+     },
+     {
+      "evidence_id": "ev-b5d39effd696",
+      "work_key": "gh:R_kgDOQncOdA#103:g1",
+      "seq": 22,
+      "pr_number": "102",
+      "pr_url": "https://example.test/luongnv89/money-mind/pull/102",
+      "head_sha": "007f689d780148a1267007d47e03fbbfbe23acda",
+      "base_name": "main",
+      "base_sha": "e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5",
+      "review_id": "rev-720f736f1bed",
+      "review_session": "sess-fk-task-000021-a02",
+      "contract_digest": "3f71555c1880388966c86723ad3ea4e5a72afada40cd306b5fbe68cf0aa32d16",
+      "status": "verified",
+      "reason": "verified",
+      "observed_at": "2026-10-05T16:19:43.384+00:00"
+     },
+     {
+      "evidence_id": "ev-6d64ad5d7760",
+      "work_key": "gh:R_kgDOQncOdA#104:g1",
+      "seq": 29,
+      "pr_number": "103",
+      "pr_url": "https://example.test/luongnv89/money-mind/pull/103",
+      "head_sha": "3d300104b047f3e9647c4e21547329064b382a9a",
+      "base_name": "main",
+      "base_sha": "e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5",
+      "review_id": "rev-ebdfbb7e9924",
+      "review_session": "sess-fk-task-000028-a02",
+      "contract_digest": "3f71555c1880388966c86723ad3ea4e5a72afada40cd306b5fbe68cf0aa32d16",
+      "status": "verified",
+      "reason": "verified",
+      "observed_at": "2026-10-05T16:19:43.394+00:00"
+     },
+     {
+      "evidence_id": "ev-d79d1c96f179",
+      "work_key": "gh:R_kgDOQncOdA#105:g1",
+      "seq": 38,
+      "pr_number": "104",
+      "pr_url": "https://example.test/luongnv89/money-mind/pull/104",
+      "head_sha": "a5ce6a0fb0230426a52766f6342b1afaf2c850d2",
+      "base_name": "main",
+      "base_sha": "e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5",
+      "review_id": "rev-518971b478ae",
+      "review_session": "sess-fk-task-000037-a02",
+      "contract_digest": "3f71555c1880388966c86723ad3ea4e5a72afada40cd306b5fbe68cf0aa32d16",
+      "status": "verified",
+      "reason": "verified",
+      "observed_at": "2026-10-05T16:19:43.405+00:00"
+     }
+    ],
+    "operator_effort": [
+     {
+      "effort_id": "eff-a6e9cd9a5175",
+      "work_key": "gh:R_kgDOQncOdA#101:g1",
+      "actor_ref": "telegram:123456789",
+      "active_minutes": 8.0,
+      "category": "approval",
+      "source": "cohort-fixture",
+      "supersedes": null,
+      "seq": 9,
+      "event_seq": 13,
+      "recorded_at": "2026-10-05T16:19:43.365+00:00"
+     },
+     {
+      "effort_id": "eff-4df18786a967",
+      "work_key": "gh:R_kgDOQncOdA#101:g1",
+      "actor_ref": "telegram:123456789",
+      "active_minutes": 5.0,
+      "category": "monitoring",
+      "source": "cohort-fixture",
+      "supersedes": null,
+      "seq": 10,
+      "event_seq": 14,
+      "recorded_at": "2026-10-05T16:19:43.365+00:00"
+     },
+     {
+      "effort_id": "eff-bb4a759c71dd",
+      "work_key": "gh:R_kgDOQncOdA#102:g1",
+      "actor_ref": "telegram:123456789",
+      "active_minutes": 10.0,
+      "category": "approval",
+      "source": "cohort-fixture",
+      "supersedes": null,
+      "seq": 19,
+      "event_seq": 27,
+      "recorded_at": "2026-10-05T16:19:43.378+00:00"
+     },
+     {
+      "effort_id": "eff-cfe6c210b79b",
+      "work_key": "gh:R_kgDOQncOdA#102:g1",
+      "actor_ref": "telegram:123456789",
+      "active_minutes": 15.0,
+      "category": "correction",
+      "source": "cohort-fixture",
+      "supersedes": null,
+      "seq": 20,
+      "event_seq": 28,
+      "recorded_at": "2026-10-05T16:19:43.378+00:00"
+     },
+     {
+      "effort_id": "eff-0ea8177150a1",
+      "work_key": "gh:R_kgDOQncOdA#103:g1",
+      "actor_ref": "telegram:123456789",
+      "active_minutes": 6.0,
+      "category": "approval",
+      "source": "cohort-fixture",
+      "supersedes": null,
+      "seq": 26,
+      "event_seq": 38,
+      "recorded_at": "2026-10-05T16:19:43.388+00:00"
+     },
+     {
+      "effort_id": "eff-eb1f8fdff77f",
+      "work_key": "gh:R_kgDOQncOdA#103:g1",
+      "actor_ref": "telegram:123456789",
+      "active_minutes": 3.0,
+      "category": "monitoring",
+      "source": "cohort-fixture",
+      "supersedes": null,
+      "seq": 27,
+      "event_seq": 39,
+      "recorded_at": "2026-10-05T16:19:43.388+00:00"
+     },
+     {
+      "effort_id": "eff-e2580fa391a0",
+      "work_key": "gh:R_kgDOQncOdA#104:g1",
+      "actor_ref": "telegram:123456789",
+      "active_minutes": 12.0,
+      "category": "approval",
+      "source": "cohort-fixture",
+      "supersedes": null,
+      "seq": 35,
+      "event_seq": 51,
+      "recorded_at": "2026-10-05T16:19:43.398+00:00"
+     },
+     {
+      "effort_id": "eff-d3b919323789",
+      "work_key": "gh:R_kgDOQncOdA#104:g1",
+      "actor_ref": "telegram:123456789",
+      "active_minutes": 9.0,
+      "category": "investigation",
+      "source": "cohort-fixture",
+      "supersedes": null,
+      "seq": 36,
+      "event_seq": 52,
+      "recorded_at": "2026-10-05T16:19:43.399+00:00"
+     },
+     {
+      "effort_id": "eff-03e72d7a3974",
+      "work_key": "gh:R_kgDOQncOdA#105:g1",
+      "actor_ref": "telegram:123456789",
+      "active_minutes": 6.0,
+      "category": "approval",
+      "source": "cohort-fixture",
+      "supersedes": null,
+      "seq": 45,
+      "event_seq": 65,
+      "recorded_at": "2026-10-05T16:19:43.411+00:00"
+     }
+    ],
+    "preview_records": [
+     {
+      "preview_id": "prev-08605b28bbd6",
+      "work_key": "gh:R_kgDOQncOdA#101:g1",
+      "seq": 3,
+      "task_id": "fk-task-000001",
+      "generation": 1,
+      "provider": "vercel",
+      "deployment_id": "dpl-0001-dbc7fe5a",
+      "artifact_identity": "dbc7fe5a041a9926",
+      "head_sha": "99727f48c2dab9495e03aad2b5751ffe9f3e1834",
+      "base_name": "main",
+      "base_sha": "e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5",
+      "url": "https://preview-dpl-0001-dbc7fe5a.example.test",
+      "visibility": "unlisted",
+      "environment": "preview",
+      "smoke_expected": "200",
+      "state": "verified",
+      "reason": null,
+      "cleanup_owner": "factory",
+      "expires_epoch": 1791303583.329201,
+      "cleanup_deadline_epoch": 1791307183.329201,
+      "observed_at": "2026-10-05T16:19:43.359+00:00",
+      "removed_at": null,
+      "created_at": "2026-10-05T16:19:43.358+00:00",
+      "updated_at": "2026-10-05T16:19:43.359+00:00"
+     },
+     {
+      "preview_id": "prev-ac4433f20399",
+      "work_key": "gh:R_kgDOQncOdA#102:g1",
+      "seq": 13,
+      "task_id": "fk-task-000011",
+      "generation": 1,
+      "provider": "vercel",
+      "deployment_id": "dpl-0002-876dc325",
+      "artifact_identity": "876dc325a844a700",
+      "head_sha": "1186dcae8d383120b2ca9dc6b044ac7a494ef684",
+      "base_name": "main",
+      "base_sha": "e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5",
+      "url": "https://preview-dpl-0002-876dc325.example.test",
+      "visibility": "unlisted",
+      "environment": "preview",
+      "smoke_expected": "200",
+      "state": "verified",
+      "reason": null,
+      "cleanup_owner": "factory",
+      "expires_epoch": 1791303583.329201,
+      "cleanup_deadline_epoch": 1791307183.329201,
+      "observed_at": "2026-10-05T16:19:43.373+00:00",
+      "removed_at": null,
+      "created_at": "2026-10-05T16:19:43.372+00:00",
+      "updated_at": "2026-10-05T16:19:43.373+00:00"
+     },
+     {
+      "preview_id": "prev-88f978f50336",
+      "work_key": "gh:R_kgDOQncOdA#103:g1",
+      "seq": 23,
+      "task_id": "fk-task-000021",
+      "generation": 1,
+      "provider": "vercel",
+      "deployment_id": "dpl-0003-1451d747",
+      "artifact_identity": "1451d7471837fd08",
+      "head_sha": "007f689d780148a1267007d47e03fbbfbe23acda",
+      "base_name": "main",
+      "base_sha": "e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5",
+      "url": "https://preview-dpl-0003-1451d747.example.test",
+      "visibility": "unlisted",
+      "environment": "preview",
+      "smoke_expected": "200",
+      "state": "verified",
+      "reason": null,
+      "cleanup_owner": "factory",
+      "expires_epoch": 1791303583.329201,
+      "cleanup_deadline_epoch": 1791307183.329201,
+      "observed_at": "2026-10-05T16:19:43.386+00:00",
+      "removed_at": null,
+      "created_at": "2026-10-05T16:19:43.385+00:00",
+      "updated_at": "2026-10-05T16:19:43.386+00:00"
+     },
+     {
+      "preview_id": "prev-e328ba989363",
+      "work_key": "gh:R_kgDOQncOdA#104:g1",
+      "seq": 30,
+      "task_id": "fk-task-000028",
+      "generation": 1,
+      "provider": "vercel",
+      "deployment_id": "dpl-0004-0a8fc895",
+      "artifact_identity": "0a8fc895dc517ec2",
+      "head_sha": "3d300104b047f3e9647c4e21547329064b382a9a",
+      "base_name": "main",
+      "base_sha": "e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5",
+      "url": "https://preview-dpl-0004-0a8fc895.example.test",
+      "visibility": "unlisted",
+      "environment": "preview",
+      "smoke_expected": "200",
+      "state": "verified",
+      "reason": null,
+      "cleanup_owner": "factory",
+      "expires_epoch": 1791303583.329201,
+      "cleanup_deadline_epoch": 1791307183.329201,
+      "observed_at": "2026-10-05T16:19:43.396+00:00",
+      "removed_at": null,
+      "created_at": "2026-10-05T16:19:43.395+00:00",
+      "updated_at": "2026-10-05T16:19:43.396+00:00"
+     },
+     {
+      "preview_id": "prev-9965c6cbc307",
+      "work_key": "gh:R_kgDOQncOdA#105:g1",
+      "seq": 39,
+      "task_id": "fk-task-000037",
+      "generation": 1,
+      "provider": "vercel",
+      "deployment_id": "dpl-0005-7ca46710",
+      "artifact_identity": "7ca4671041c9d2d7",
+      "head_sha": "a5ce6a0fb0230426a52766f6342b1afaf2c850d2",
+      "base_name": "main",
+      "base_sha": "e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5",
+      "url": "https://preview-dpl-0005-7ca46710.example.test",
+      "visibility": "unlisted",
+      "environment": "preview",
+      "smoke_expected": "200",
+      "state": "verified",
+      "reason": null,
+      "cleanup_owner": "factory",
+      "expires_epoch": 1791303583.329201,
+      "cleanup_deadline_epoch": 1791307183.329201,
+      "observed_at": "2026-10-05T16:19:43.406+00:00",
+      "removed_at": null,
+      "created_at": "2026-10-05T16:19:43.406+00:00",
+      "updated_at": "2026-10-05T16:19:43.406+00:00"
+     }
+    ],
+    "approval_requests": [
+     {
+      "request_id": "apr-eae0d440f68c",
+      "work_key": "gh:R_kgDOQncOdA#101:g1",
+      "seq": 4,
+      "task_id": "fk-task-000001",
+      "generation": 1,
+      "authority_key": "gh:R_kgDOQncOdA",
+      "repo_id": "R_kgDOQncOdA",
+      "action": "merge",
+      "target": "luongnv89/money-mind#100",
+      "pr_number": "100",
+      "pr_url": "https://example.test/luongnv89/money-mind/pull/100",
+      "head_sha": "99727f48c2dab9495e03aad2b5751ffe9f3e1834",
+      "base_name": "main",
+      "base_sha": "e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5",
+      "evidence_id": "ev-601fdfa7f774",
+      "preview_id": "prev-08605b28bbd6",
+      "evidence_digest": "9aa233fc4233e76f449703f990adf97cf282736aab5a996697db13f925b8c507",
+      "preview_digest": "3132deb189b07acb149e76174119bd8d19c27213658214e08b6fca8a7acfa974",
+      "config_digest": "471800e23c5595c818afde9d59d627dc6800fba44ca6444430d072303433a372",
+      "policy_digest": "a3808f62b97d652152c437a250e8ef5f71159c3de1d4ee4244e23922395ba410",
+      "merge_method": "squash",
+      "state": "consumed",
+      "reason": null,
+      "decision_id": "dec-f2f87c93db51",
+      "actor_ref": "telegram:123456789",
+      "issued_at": "2026-10-05T16:19:43.359+00:00",
+      "expires_epoch": 1791220783.329201,
+      "consumed_seq": 7,
+      "created_at": "2026-10-05T16:19:43.360+00:00",
+      "updated_at": "2026-10-05T16:19:43.363+00:00"
+     },
+     {
+      "request_id": "apr-81bba22491fb",
+      "work_key": "gh:R_kgDOQncOdA#102:g1",
+      "seq": 14,
+      "task_id": "fk-task-000011",
+      "generation": 1,
+      "authority_key": "gh:R_kgDOQncOdA",
+      "repo_id": "R_kgDOQncOdA",
+      "action": "merge",
+      "target": "luongnv89/money-mind#101",
+      "pr_number": "101",
+      "pr_url": "https://example.test/luongnv89/money-mind/pull/101",
+      "head_sha": "1186dcae8d383120b2ca9dc6b044ac7a494ef684",
+      "base_name": "main",
+      "base_sha": "e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5",
+      "evidence_id": "ev-bb688fa20237",
+      "preview_id": "prev-ac4433f20399",
+      "evidence_digest": "e3c6b303a6040e98df0cb78893b9eddd1d5432a889fe9c94895ee682df8372e0",
+      "preview_digest": "3079f0d0e45cd15458c43c1a83800cf1dd7194c979412b45d84dc2e351e160c3",
+      "config_digest": "471800e23c5595c818afde9d59d627dc6800fba44ca6444430d072303433a372",
+      "policy_digest": "a3808f62b97d652152c437a250e8ef5f71159c3de1d4ee4244e23922395ba410",
+      "merge_method": "squash",
+      "state": "consumed",
+      "reason": null,
+      "decision_id": "dec-fac2760831c5",
+      "actor_ref": "telegram:123456789",
+      "issued_at": "2026-10-05T16:19:43.373+00:00",
+      "expires_epoch": 1791220783.329201,
+      "consumed_seq": 17,
+      "created_at": "2026-10-05T16:19:43.374+00:00",
+      "updated_at": "2026-10-05T16:19:43.376+00:00"
+     },
+     {
+      "request_id": "apr-431ad59ccfdb",
+      "work_key": "gh:R_kgDOQncOdA#103:g1",
+      "seq": 24,
+      "task_id": "fk-task-000021",
+      "generation": 1,
+      "authority_key": "gh:R_kgDOQncOdA",
+      "repo_id": "R_kgDOQncOdA",
+      "action": "merge",
+      "target": "luongnv89/money-mind#102",
+      "pr_number": "102",
+      "pr_url": "https://example.test/luongnv89/money-mind/pull/102",
+      "head_sha": "007f689d780148a1267007d47e03fbbfbe23acda",
+      "base_name": "main",
+      "base_sha": "e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5",
+      "evidence_id": "ev-b5d39effd696",
+      "preview_id": "prev-88f978f50336",
+      "evidence_digest": "594773522716496e24e55ce24b58aaf8829c350556efe739aa8bb471e8b8ad0d",
+      "preview_digest": "907f61a56d8d9f3b2c0bcaf50831248a7f3979f7d0016fe7dfccc43353140cc7",
+      "config_digest": "471800e23c5595c818afde9d59d627dc6800fba44ca6444430d072303433a372",
+      "policy_digest": "a3808f62b97d652152c437a250e8ef5f71159c3de1d4ee4244e23922395ba410",
+      "merge_method": "squash",
+      "state": "awaiting",
+      "reason": null,
+      "decision_id": null,
+      "actor_ref": null,
+      "issued_at": "2026-10-05T16:19:43.386+00:00",
+      "expires_epoch": 1791220783.329201,
+      "consumed_seq": null,
+      "created_at": "2026-10-05T16:19:43.386+00:00",
+      "updated_at": "2026-10-05T16:19:43.386+00:00"
+     },
+     {
+      "request_id": "apr-0ff2f5fee8b5",
+      "work_key": "gh:R_kgDOQncOdA#104:g1",
+      "seq": 31,
+      "task_id": "fk-task-000028",
+      "generation": 1,
+      "authority_key": "gh:R_kgDOQncOdA",
+      "repo_id": "R_kgDOQncOdA",
+      "action": "merge",
+      "target": "luongnv89/money-mind#103",
+      "pr_number": "103",
+      "pr_url": "https://example.test/luongnv89/money-mind/pull/103",
+      "head_sha": "3d300104b047f3e9647c4e21547329064b382a9a",
+      "base_name": "main",
+      "base_sha": "e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5",
+      "evidence_id": "ev-6d64ad5d7760",
+      "preview_id": "prev-e328ba989363",
+      "evidence_digest": "19804891389a049b061e5cbb6faf4527808207b5bdb44d6898aae943e083ceef",
+      "preview_digest": "b1426f7332c9e8afd894fb86068f21cdb584aff4fc07b633e32e9370d23b3b51",
+      "config_digest": "471800e23c5595c818afde9d59d627dc6800fba44ca6444430d072303433a372",
+      "policy_digest": "a3808f62b97d652152c437a250e8ef5f71159c3de1d4ee4244e23922395ba410",
+      "merge_method": "squash",
+      "state": "rejected",
+      "reason": null,
+      "decision_id": "dec-3b3287e1e8cd",
+      "actor_ref": "telegram:123456789",
+      "issued_at": "2026-10-05T16:19:43.396+00:00",
+      "expires_epoch": 1791220783.329201,
+      "consumed_seq": null,
+      "created_at": "2026-10-05T16:19:43.396+00:00",
+      "updated_at": "2026-10-05T16:19:43.397+00:00"
+     },
+     {
+      "request_id": "apr-7ed5230c1411",
+      "work_key": "gh:R_kgDOQncOdA#105:g1",
+      "seq": 40,
+      "task_id": "fk-task-000037",
+      "generation": 1,
+      "authority_key": "gh:R_kgDOQncOdA",
+      "repo_id": "R_kgDOQncOdA",
+      "action": "merge",
+      "target": "luongnv89/money-mind#104",
+      "pr_number": "104",
+      "pr_url": "https://example.test/luongnv89/money-mind/pull/104",
+      "head_sha": "a5ce6a0fb0230426a52766f6342b1afaf2c850d2",
+      "base_name": "main",
+      "base_sha": "e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5",
+      "evidence_id": "ev-d79d1c96f179",
+      "preview_id": "prev-9965c6cbc307",
+      "evidence_digest": "d5e4f7abedb72ced00e8c60e20e035c762ce76c538923556fa7690db3bc71824",
+      "preview_digest": "37376ae19e81345f701575272f9328568f04fd21ae0c3535e55c532181ef856c",
+      "config_digest": "471800e23c5595c818afde9d59d627dc6800fba44ca6444430d072303433a372",
+      "policy_digest": "a3808f62b97d652152c437a250e8ef5f71159c3de1d4ee4244e23922395ba410",
+      "merge_method": "squash",
+      "state": "consumed",
+      "reason": null,
+      "decision_id": "dec-6af1bcce47c3",
+      "actor_ref": "telegram:123456789",
+      "issued_at": "2026-10-05T16:19:43.407+00:00",
+      "expires_epoch": 1791220783.329201,
+      "consumed_seq": 43,
+      "created_at": "2026-10-05T16:19:43.407+00:00",
+      "updated_at": "2026-10-05T16:19:43.409+00:00"
+     }
+    ],
+    "approval_decisions": [
+     {
+      "decision_id": "dec-f2f87c93db51",
+      "request_id": "apr-eae0d440f68c",
+      "work_key": "gh:R_kgDOQncOdA#101:g1",
+      "seq": 6,
+      "command_id": null,
+      "actor_ref": "telegram:123456789",
+      "chat_ref": "telegram:-1001234567890",
+      "action": "merge",
+      "target": "luongnv89/money-mind#100",
+      "verdict": "approve",
+      "outcome": "accepted",
+      "reason": null,
+      "state": "consumed",
+      "received_at": "2026-10-05T16:19:43.361+00:00",
+      "decided_at": "2026-10-05T16:19:43.361+00:00"
+     },
+     {
+      "decision_id": "dec-fac2760831c5",
+      "request_id": "apr-81bba22491fb",
+      "work_key": "gh:R_kgDOQncOdA#102:g1",
+      "seq": 16,
+      "command_id": null,
+      "actor_ref": "telegram:123456789",
+      "chat_ref": "telegram:-1001234567890",
+      "action": "merge",
+      "target": "luongnv89/money-mind#101",
+      "verdict": "approve",
+      "outcome": "accepted",
+      "reason": null,
+      "state": "consumed",
+      "received_at": "2026-10-05T16:19:43.374+00:00",
+      "decided_at": "2026-10-05T16:19:43.375+00:00"
+     },
+     {
+      "decision_id": "dec-3b3287e1e8cd",
+      "request_id": "apr-0ff2f5fee8b5",
+      "work_key": "gh:R_kgDOQncOdA#104:g1",
+      "seq": 33,
+      "command_id": null,
+      "actor_ref": "telegram:123456789",
+      "chat_ref": "telegram:-1001234567890",
+      "action": "merge",
+      "target": "luongnv89/money-mind#103",
+      "verdict": "reject",
+      "outcome": "rejected",
+      "reason": "rejected-by-actor",
+      "state": "recorded",
+      "received_at": "2026-10-05T16:19:43.397+00:00",
+      "decided_at": "2026-10-05T16:19:43.397+00:00"
+     },
+     {
+      "decision_id": "dec-6af1bcce47c3",
+      "request_id": "apr-7ed5230c1411",
+      "work_key": "gh:R_kgDOQncOdA#105:g1",
+      "seq": 42,
+      "command_id": null,
+      "actor_ref": "telegram:123456789",
+      "chat_ref": "telegram:-1001234567890",
+      "action": "merge",
+      "target": "luongnv89/money-mind#104",
+      "verdict": "approve",
+      "outcome": "accepted",
+      "reason": null,
+      "state": "consumed",
+      "received_at": "2026-10-05T16:19:43.408+00:00",
+      "decided_at": "2026-10-05T16:19:43.408+00:00"
+     }
+    ],
+    "publication_intents": [],
+    "control_records": [],
+    "alerts": [],
+    "notification_outbox": [],
+    "results": [],
+    "events": [
+     {
+      "seq": 1,
+      "ts": "2026-10-05T16:19:43.352+00:00",
+      "kind": "work_accepted",
+      "delivery_id": "d-rec-101-f58766b2",
+      "work_key": "gh:R_kgDOQncOdA#101:g1",
+      "reason": null,
+      "config_digest": "471800e23c5595c818afde9d59d627dc6800fba44ca6444430d072303433a372",
+      "supersedes": null
+     },
+     {
+      "seq": 2,
+      "ts": "2026-10-05T16:19:43.352+00:00",
+      "kind": "task_bound",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#101:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 3,
+      "ts": "2026-10-05T16:19:43.354+00:00",
+      "kind": "attempt_started",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#101:g1",
+      "reason": null,
+      "config_digest": "c",
+      "supersedes": null
+     },
+     {
+      "seq": 4,
+      "ts": "2026-10-05T16:19:43.354+00:00",
+      "kind": "attempt_finished",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#101:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 5,
+      "ts": "2026-10-05T16:19:43.355+00:00",
+      "kind": "attempt_started",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#101:g1",
+      "reason": null,
+      "config_digest": "c",
+      "supersedes": null
+     },
+     {
+      "seq": 6,
+      "ts": "2026-10-05T16:19:43.356+00:00",
+      "kind": "attempt_finished",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#101:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 7,
+      "ts": "2026-10-05T16:19:43.356+00:00",
+      "kind": "review_recorded",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#101:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 8,
+      "ts": "2026-10-05T16:19:43.357+00:00",
+      "kind": "evidence_checked",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#101:g1",
+      "reason": "verified",
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 9,
+      "ts": "2026-10-05T16:19:43.359+00:00",
+      "kind": "preview_verified",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#101:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 10,
+      "ts": "2026-10-05T16:19:43.361+00:00",
+      "kind": "approval_decided",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#101:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 11,
+      "ts": "2026-10-05T16:19:43.363+00:00",
+      "kind": "merge_intent_recorded",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#101:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 12,
+      "ts": "2026-10-05T16:19:43.364+00:00",
+      "kind": "merge_observed",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#101:g1",
+      "reason": "merged",
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 13,
+      "ts": "2026-10-05T16:19:43.365+00:00",
+      "kind": "operator_effort_recorded",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#101:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 14,
+      "ts": "2026-10-05T16:19:43.365+00:00",
+      "kind": "operator_effort_recorded",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#101:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 15,
+      "ts": "2026-10-05T16:19:43.366+00:00",
+      "kind": "work_accepted",
+      "delivery_id": "d-rec-102-3ad278e7",
+      "work_key": "gh:R_kgDOQncOdA#102:g1",
+      "reason": null,
+      "config_digest": "471800e23c5595c818afde9d59d627dc6800fba44ca6444430d072303433a372",
+      "supersedes": null
+     },
+     {
+      "seq": 16,
+      "ts": "2026-10-05T16:19:43.367+00:00",
+      "kind": "task_bound",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#102:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 17,
+      "ts": "2026-10-05T16:19:43.368+00:00",
+      "kind": "attempt_started",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#102:g1",
+      "reason": null,
+      "config_digest": "c",
+      "supersedes": null
+     },
+     {
+      "seq": 18,
+      "ts": "2026-10-05T16:19:43.369+00:00",
+      "kind": "attempt_finished",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#102:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 19,
+      "ts": "2026-10-05T16:19:43.369+00:00",
+      "kind": "attempt_started",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#102:g1",
+      "reason": null,
+      "config_digest": "c",
+      "supersedes": null
+     },
+     {
+      "seq": 20,
+      "ts": "2026-10-05T16:19:43.370+00:00",
+      "kind": "attempt_finished",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#102:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 21,
+      "ts": "2026-10-05T16:19:43.370+00:00",
+      "kind": "review_recorded",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#102:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 22,
+      "ts": "2026-10-05T16:19:43.371+00:00",
+      "kind": "evidence_checked",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#102:g1",
+      "reason": "verified",
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 23,
+      "ts": "2026-10-05T16:19:43.373+00:00",
+      "kind": "preview_verified",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#102:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 24,
+      "ts": "2026-10-05T16:19:43.375+00:00",
+      "kind": "approval_decided",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#102:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 25,
+      "ts": "2026-10-05T16:19:43.376+00:00",
+      "kind": "merge_intent_recorded",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#102:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 26,
+      "ts": "2026-10-05T16:19:43.377+00:00",
+      "kind": "merge_observed",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#102:g1",
+      "reason": "merged",
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 27,
+      "ts": "2026-10-05T16:19:43.378+00:00",
+      "kind": "operator_effort_recorded",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#102:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 28,
+      "ts": "2026-10-05T16:19:43.378+00:00",
+      "kind": "operator_effort_recorded",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#102:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 29,
+      "ts": "2026-10-05T16:19:43.379+00:00",
+      "kind": "work_accepted",
+      "delivery_id": "d-rec-103-0f698cf7",
+      "work_key": "gh:R_kgDOQncOdA#103:g1",
+      "reason": null,
+      "config_digest": "471800e23c5595c818afde9d59d627dc6800fba44ca6444430d072303433a372",
+      "supersedes": null
+     },
+     {
+      "seq": 30,
+      "ts": "2026-10-05T16:19:43.380+00:00",
+      "kind": "task_bound",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#103:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 31,
+      "ts": "2026-10-05T16:19:43.381+00:00",
+      "kind": "attempt_started",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#103:g1",
+      "reason": null,
+      "config_digest": "c",
+      "supersedes": null
+     },
+     {
+      "seq": 32,
+      "ts": "2026-10-05T16:19:43.382+00:00",
+      "kind": "attempt_finished",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#103:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 33,
+      "ts": "2026-10-05T16:19:43.382+00:00",
+      "kind": "attempt_started",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#103:g1",
+      "reason": null,
+      "config_digest": "c",
+      "supersedes": null
+     },
+     {
+      "seq": 34,
+      "ts": "2026-10-05T16:19:43.383+00:00",
+      "kind": "attempt_finished",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#103:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 35,
+      "ts": "2026-10-05T16:19:43.383+00:00",
+      "kind": "review_recorded",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#103:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 36,
+      "ts": "2026-10-05T16:19:43.384+00:00",
+      "kind": "evidence_checked",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#103:g1",
+      "reason": "verified",
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 37,
+      "ts": "2026-10-05T16:19:43.386+00:00",
+      "kind": "preview_verified",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#103:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 38,
+      "ts": "2026-10-05T16:19:43.388+00:00",
+      "kind": "operator_effort_recorded",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#103:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 39,
+      "ts": "2026-10-05T16:19:43.388+00:00",
+      "kind": "operator_effort_recorded",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#103:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 40,
+      "ts": "2026-10-05T16:19:43.389+00:00",
+      "kind": "work_accepted",
+      "delivery_id": "d-rec-104-e20341ba",
+      "work_key": "gh:R_kgDOQncOdA#104:g1",
+      "reason": null,
+      "config_digest": "471800e23c5595c818afde9d59d627dc6800fba44ca6444430d072303433a372",
+      "supersedes": null
+     },
+     {
+      "seq": 41,
+      "ts": "2026-10-05T16:19:43.390+00:00",
+      "kind": "task_bound",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#104:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 42,
+      "ts": "2026-10-05T16:19:43.391+00:00",
+      "kind": "attempt_started",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#104:g1",
+      "reason": null,
+      "config_digest": "c",
+      "supersedes": null
+     },
+     {
+      "seq": 43,
+      "ts": "2026-10-05T16:19:43.391+00:00",
+      "kind": "attempt_finished",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#104:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 44,
+      "ts": "2026-10-05T16:19:43.392+00:00",
+      "kind": "attempt_started",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#104:g1",
+      "reason": null,
+      "config_digest": "c",
+      "supersedes": null
+     },
+     {
+      "seq": 45,
+      "ts": "2026-10-05T16:19:43.393+00:00",
+      "kind": "attempt_finished",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#104:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 46,
+      "ts": "2026-10-05T16:19:43.393+00:00",
+      "kind": "review_recorded",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#104:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 47,
+      "ts": "2026-10-05T16:19:43.394+00:00",
+      "kind": "evidence_checked",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#104:g1",
+      "reason": "verified",
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 48,
+      "ts": "2026-10-05T16:19:43.396+00:00",
+      "kind": "preview_verified",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#104:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 49,
+      "ts": "2026-10-05T16:19:43.398+00:00",
+      "kind": "approval_decided",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#104:g1",
+      "reason": "rejected-by-actor",
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 50,
+      "ts": "2026-10-05T16:19:43.398+00:00",
+      "kind": "dispatch_blocked",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#104:g1",
+      "reason": "approval-rejected",
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 51,
+      "ts": "2026-10-05T16:19:43.398+00:00",
+      "kind": "operator_effort_recorded",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#104:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 52,
+      "ts": "2026-10-05T16:19:43.399+00:00",
+      "kind": "operator_effort_recorded",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#104:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 53,
+      "ts": "2026-10-05T16:19:43.400+00:00",
+      "kind": "work_accepted",
+      "delivery_id": "d-rec-105-fa0ee8d4",
+      "work_key": "gh:R_kgDOQncOdA#105:g1",
+      "reason": null,
+      "config_digest": "471800e23c5595c818afde9d59d627dc6800fba44ca6444430d072303433a372",
+      "supersedes": null
+     },
+     {
+      "seq": 54,
+      "ts": "2026-10-05T16:19:43.400+00:00",
+      "kind": "task_bound",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#105:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 55,
+      "ts": "2026-10-05T16:19:43.401+00:00",
+      "kind": "attempt_started",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#105:g1",
+      "reason": null,
+      "config_digest": "c",
+      "supersedes": null
+     },
+     {
+      "seq": 56,
+      "ts": "2026-10-05T16:19:43.402+00:00",
+      "kind": "attempt_finished",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#105:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 57,
+      "ts": "2026-10-05T16:19:43.403+00:00",
+      "kind": "attempt_started",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#105:g1",
+      "reason": null,
+      "config_digest": "c",
+      "supersedes": null
+     },
+     {
+      "seq": 58,
+      "ts": "2026-10-05T16:19:43.403+00:00",
+      "kind": "attempt_finished",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#105:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 59,
+      "ts": "2026-10-05T16:19:43.404+00:00",
+      "kind": "review_recorded",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#105:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 60,
+      "ts": "2026-10-05T16:19:43.405+00:00",
+      "kind": "evidence_checked",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#105:g1",
+      "reason": "verified",
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 61,
+      "ts": "2026-10-05T16:19:43.406+00:00",
+      "kind": "preview_verified",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#105:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 62,
+      "ts": "2026-10-05T16:19:43.408+00:00",
+      "kind": "approval_decided",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#105:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 63,
+      "ts": "2026-10-05T16:19:43.409+00:00",
+      "kind": "merge_intent_recorded",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#105:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 64,
+      "ts": "2026-10-05T16:19:43.410+00:00",
+      "kind": "merge_observed",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#105:g1",
+      "reason": "merged",
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 65,
+      "ts": "2026-10-05T16:19:43.411+00:00",
+      "kind": "operator_effort_recorded",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOQncOdA#105:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     }
+    ]
+   },
+   "secret_scan": "clean"
+  },
+  "project-b": {
+   "authority_key": "gh:R_kgDOFkDogfoodB",
+   "exported_at": "2026-10-05T16:19:43.485+00:00",
+   "expanded": false,
+   "retention": {
+    "policy": {
+     "worker_log_days": 7.0,
+     "audit_days": 30.0,
+     "worker_log_seconds": 604800.0,
+     "audit_seconds": 2592000.0
+    },
+    "explanation": [
+     "worker-log detail (attempt liveness heartbeats) is deleted after 7 days",
+     "detailed audit metadata (event detail, usage payloads, check artifacts, preview/control detail) is pruned 30 days after work reaches a terminal state \u2014 active and parked work is never pruned",
+     "identity tombstones persist until explicit registration removal: work logical identity, delivery dedup records, control/command identities, publication/merge intent identities and the notification outbox stay, so an old webhook delivery still collides with dedup instead of recreating work",
+     "export copies the retained history; delete removes the repo-scoped detail rows \u2014 neither drops tombstones while the registration stands; only the reviewed registration removal does"
+    ]
+   },
+   "work_keys": [
+    "gh:R_kgDOFkDogfoodB#201:g1",
+    "gh:R_kgDOFkDogfoodB#202:g1",
+    "gh:R_kgDOFkDogfoodB#203:g1",
+    "gh:R_kgDOFkDogfoodB#204:g1",
+    "gh:R_kgDOFkDogfoodB#205:g1"
+   ],
+   "tables": {
+    "work": [
+     {
+      "work_key": "gh:R_kgDOFkDogfoodB#201:g1",
+      "authority_key": "gh:R_kgDOFkDogfoodB",
+      "repo_id": "R_kgDOFkDogfoodB",
+      "issue": 201,
+      "generation": 1,
+      "task_id": "fk-task-000001",
+      "task_state": "bound",
+      "state": "completed",
+      "context_fingerprint": "9311e6aa1d8aa3a3982cbc5378155688dadfcda1f1c2a6bdfa4623dd6ba19afe",
+      "issue_revision": "2026-10-05",
+      "authorization_evidence": "{\"actor\": \"luongnv89\", \"opt_in_label\": \"factory-kit\", \"policy_digest\": \"3d48d71a844b9eabd44c1d7ceb5def114138ee0de313ace35ca622948bb237d8\", \"via\": \"github_actor\"}",
+      "config_digest": "886662075d30dfae80ed499cd7a724a725549884dabc2614b387767463a491cd",
+      "policy_digest": "3d48d71a844b9eabd44c1d7ceb5def114138ee0de313ace35ca622948bb237d8",
+      "linked_pr": "100",
+      "reevaluation_required": 0,
+      "parked_reason": null,
+      "created_at": "2026-10-05T16:19:43.441+00:00",
+      "updated_at": "2026-10-05T16:19:43.454+00:00"
+     },
+     {
+      "work_key": "gh:R_kgDOFkDogfoodB#202:g1",
+      "authority_key": "gh:R_kgDOFkDogfoodB",
+      "repo_id": "R_kgDOFkDogfoodB",
+      "issue": 202,
+      "generation": 1,
+      "task_id": "fk-task-000011",
+      "task_state": "bound",
+      "state": "blocked",
+      "context_fingerprint": "0715f8147b771ffcca3a4c5d5291a7650a064372e3c72d11db38b2874af5694a",
+      "issue_revision": "2026-10-05",
+      "authorization_evidence": "{\"actor\": \"luongnv89\", \"opt_in_label\": \"factory-kit\", \"policy_digest\": \"3d48d71a844b9eabd44c1d7ceb5def114138ee0de313ace35ca622948bb237d8\", \"via\": \"github_actor\"}",
+      "config_digest": "886662075d30dfae80ed499cd7a724a725549884dabc2614b387767463a491cd",
+      "policy_digest": "3d48d71a844b9eabd44c1d7ceb5def114138ee0de313ace35ca622948bb237d8",
+      "linked_pr": null,
+      "reevaluation_required": 0,
+      "parked_reason": "implementation-attempt-failed",
+      "created_at": "2026-10-05T16:19:43.455+00:00",
+      "updated_at": "2026-10-05T16:19:43.458+00:00"
+     },
+     {
+      "work_key": "gh:R_kgDOFkDogfoodB#203:g1",
+      "authority_key": "gh:R_kgDOFkDogfoodB",
+      "repo_id": "R_kgDOFkDogfoodB",
+      "issue": 203,
+      "generation": 1,
+      "task_id": "fk-task-000013",
+      "task_state": "bound",
+      "state": "canceled",
+      "context_fingerprint": "43faf1837e6426832696aac84bc46cdd0b5158de80aec35b99e27f25eeb97c0a",
+      "issue_revision": "2026-10-05",
+      "authorization_evidence": "{\"actor\": \"luongnv89\", \"opt_in_label\": \"factory-kit\", \"policy_digest\": \"3d48d71a844b9eabd44c1d7ceb5def114138ee0de313ace35ca622948bb237d8\", \"via\": \"github_actor\"}",
+      "config_digest": "886662075d30dfae80ed499cd7a724a725549884dabc2614b387767463a491cd",
+      "policy_digest": "3d48d71a844b9eabd44c1d7ceb5def114138ee0de313ace35ca622948bb237d8",
+      "linked_pr": null,
+      "reevaluation_required": 0,
+      "parked_reason": "cancel",
+      "created_at": "2026-10-05T16:19:43.459+00:00",
+      "updated_at": "2026-10-05T16:19:43.463+00:00"
+     },
+     {
+      "work_key": "gh:R_kgDOFkDogfoodB#204:g1",
+      "authority_key": "gh:R_kgDOFkDogfoodB",
+      "repo_id": "R_kgDOFkDogfoodB",
+      "issue": 204,
+      "generation": 1,
+      "task_id": "fk-task-000018",
+      "task_state": "bound",
+      "state": "parked",
+      "context_fingerprint": "e2d9f45c3fa85022360617fa21ccecb3ee1943c26e19deb5a1f645aed2f10031",
+      "issue_revision": "2026-10-05",
+      "authorization_evidence": "{\"actor\": \"luongnv89\", \"opt_in_label\": \"factory-kit\", \"policy_digest\": \"3d48d71a844b9eabd44c1d7ceb5def114138ee0de313ace35ca622948bb237d8\", \"via\": \"github_actor\"}",
+      "config_digest": "886662075d30dfae80ed499cd7a724a725549884dabc2614b387767463a491cd",
+      "policy_digest": "3d48d71a844b9eabd44c1d7ceb5def114138ee0de313ace35ca622948bb237d8",
+      "linked_pr": "101",
+      "reevaluation_required": 0,
+      "parked_reason": "awaiting-approval-decision",
+      "created_at": "2026-10-05T16:19:43.467+00:00",
+      "updated_at": "2026-10-05T16:19:43.475+00:00"
+     },
+     {
+      "work_key": "gh:R_kgDOFkDogfoodB#205:g1",
+      "authority_key": "gh:R_kgDOFkDogfoodB",
+      "repo_id": "R_kgDOFkDogfoodB",
+      "issue": 205,
+      "generation": 1,
+      "task_id": "fk-task-000023",
+      "task_state": "bound",
+      "state": "blocked",
+      "context_fingerprint": "cf463062b54eec7b01719e125815bd74589b2abfc80ae5d18372ef2f88a371ab",
+      "issue_revision": "2026-10-05",
+      "authorization_evidence": "{\"actor\": \"luongnv89\", \"opt_in_label\": \"factory-kit\", \"policy_digest\": \"3d48d71a844b9eabd44c1d7ceb5def114138ee0de313ace35ca622948bb237d8\", \"via\": \"github_actor\"}",
+      "config_digest": "886662075d30dfae80ed499cd7a724a725549884dabc2614b387767463a491cd",
+      "policy_digest": "3d48d71a844b9eabd44c1d7ceb5def114138ee0de313ace35ca622948bb237d8",
+      "linked_pr": "102",
+      "reevaluation_required": 0,
+      "parked_reason": "verification-failed",
+      "created_at": "2026-10-05T16:19:43.476+00:00",
+      "updated_at": "2026-10-05T16:19:43.481+00:00"
+     }
+    ],
+    "deliveries": [
+     {
+      "delivery_id": "d-rec-201-c889378c",
+      "channel": "reconciliation",
+      "work_key": "gh:R_kgDOFkDogfoodB#201:g1",
+      "outcome": "accepted",
+      "reason": null,
+      "seq": 1,
+      "ts": "2026-10-05T16:19:43.441+00:00"
+     },
+     {
+      "delivery_id": "d-rec-202-25b3b279",
+      "channel": "reconciliation",
+      "work_key": "gh:R_kgDOFkDogfoodB#202:g1",
+      "outcome": "accepted",
+      "reason": null,
+      "seq": 11,
+      "ts": "2026-10-05T16:19:43.455+00:00"
+     },
+     {
+      "delivery_id": "d-rec-203-c6333f16",
+      "channel": "reconciliation",
+      "work_key": "gh:R_kgDOFkDogfoodB#203:g1",
+      "outcome": "accepted",
+      "reason": null,
+      "seq": 13,
+      "ts": "2026-10-05T16:19:43.459+00:00"
+     },
+     {
+      "delivery_id": "d-rec-204-c98bea9c",
+      "channel": "reconciliation",
+      "work_key": "gh:R_kgDOFkDogfoodB#204:g1",
+      "outcome": "accepted",
+      "reason": null,
+      "seq": 18,
+      "ts": "2026-10-05T16:19:43.467+00:00"
+     },
+     {
+      "delivery_id": "d-rec-205-0b5deb7c",
+      "channel": "reconciliation",
+      "work_key": "gh:R_kgDOFkDogfoodB#205:g1",
+      "outcome": "accepted",
+      "reason": null,
+      "seq": 23,
+      "ts": "2026-10-05T16:19:43.476+00:00"
+     }
+    ],
+    "attempt_ledger": [
+     {
+      "attempt_id": "fk-task-000001-a01",
+      "work_key": "gh:R_kgDOFkDogfoodB#201:g1",
+      "role": "implementation",
+      "state": "completed",
+      "started": "2026-10-05T16:19:43.442+00:00",
+      "ended": "2026-10-05T16:19:43.443+00:00"
+     },
+     {
+      "attempt_id": "fk-task-000001-a02",
+      "work_key": "gh:R_kgDOFkDogfoodB#201:g1",
+      "role": "review",
+      "state": "completed",
+      "started": "2026-10-05T16:19:43.444+00:00",
+      "ended": "2026-10-05T16:19:43.444+00:00"
+     },
+     {
+      "attempt_id": "fk-task-000011-a01",
+      "work_key": "gh:R_kgDOFkDogfoodB#202:g1",
+      "role": "implementation",
+      "state": "failed",
+      "started": "2026-10-05T16:19:43.457+00:00",
+      "ended": "2026-10-05T16:19:43.457+00:00"
+     },
+     {
+      "attempt_id": "fk-task-000013-a01",
+      "work_key": "gh:R_kgDOFkDogfoodB#203:g1",
+      "role": "implementation",
+      "state": "fenced",
+      "started": "2026-10-05T16:19:43.461+00:00",
+      "ended": "2026-10-05T16:19:43.462+00:00"
+     },
+     {
+      "attempt_id": "fk-task-000018-a01",
+      "work_key": "gh:R_kgDOFkDogfoodB#204:g1",
+      "role": "implementation",
+      "state": "completed",
+      "started": "2026-10-05T16:19:43.469+00:00",
+      "ended": "2026-10-05T16:19:43.469+00:00"
+     },
+     {
+      "attempt_id": "fk-task-000018-a02",
+      "work_key": "gh:R_kgDOFkDogfoodB#204:g1",
+      "role": "review",
+      "state": "completed",
+      "started": "2026-10-05T16:19:43.470+00:00",
+      "ended": "2026-10-05T16:19:43.471+00:00"
+     },
+     {
+      "attempt_id": "fk-task-000023-a01",
+      "work_key": "gh:R_kgDOFkDogfoodB#205:g1",
+      "role": "implementation",
+      "state": "completed",
+      "started": "2026-10-05T16:19:43.478+00:00",
+      "ended": "2026-10-05T16:19:43.478+00:00"
+     },
+     {
+      "attempt_id": "fk-task-000023-a02",
+      "work_key": "gh:R_kgDOFkDogfoodB#205:g1",
+      "role": "review",
+      "state": "completed",
+      "started": "2026-10-05T16:19:43.479+00:00",
+      "ended": "2026-10-05T16:19:43.479+00:00"
+     }
+    ],
+    "work_queue": [
+     {
+      "work_key": "gh:R_kgDOFkDogfoodB#201:g1",
+      "enqueued_seq": 5,
+      "state": "awaiting-approval",
+      "reason": "approval:apr-a8f4a30fcda1",
+      "enqueued_at": "2026-10-05T16:19:43.449+00:00"
+     },
+     {
+      "work_key": "gh:R_kgDOFkDogfoodB#203:g1",
+      "enqueued_seq": 15,
+      "state": "done",
+      "reason": "cancel",
+      "enqueued_at": "2026-10-05T16:19:43.464+00:00"
+     },
+     {
+      "work_key": "gh:R_kgDOFkDogfoodB#204:g1",
+      "enqueued_seq": 22,
+      "state": "awaiting-approval",
+      "reason": "approval:apr-0674cd6efad9",
+      "enqueued_at": "2026-10-05T16:19:43.475+00:00"
+     }
+    ],
+    "attempt_records": [
+     {
+      "attempt_id": "fk-task-000001-a01",
+      "work_key": "gh:R_kgDOFkDogfoodB#201:g1",
+      "task_id": "fk-task-000001",
+      "generation": 1,
+      "role": "implementation",
+      "session_id": "sess-fk-task-000001-a01",
+      "runtime": "hermes-kanban",
+      "model": "gpt-6-luna",
+      "skills": "{}",
+      "config_digest": "c",
+      "policy_digest": "p",
+      "workspace": "/var/folders/vp/p2cr7_xx3cb4t1fg99_x_d5c0000gn/T/fk-cohort-eqlj_ynr/project-b/ws",
+      "limits": "{}",
+      "heartbeat_at": "2026-10-05T16:19:43.442+00:00",
+      "heartbeat_epoch": 1791217183.417759,
+      "beats": 1,
+      "verdict": "completed",
+      "outcome": "completed",
+      "started": "2026-10-05T16:19:43.442+00:00",
+      "ended": "2026-10-05T16:19:43.443+00:00",
+      "duration_s": 10.0,
+      "usage_state": "measured"
+     },
+     {
+      "attempt_id": "fk-task-000001-a02",
+      "work_key": "gh:R_kgDOFkDogfoodB#201:g1",
+      "task_id": "fk-task-000001",
+      "generation": 1,
+      "role": "review",
+      "session_id": "sess-fk-task-000001-a02",
+      "runtime": "hermes-kanban",
+      "model": "gpt-6-luna",
+      "skills": "{}",
+      "config_digest": "c",
+      "policy_digest": "p",
+      "workspace": "/var/folders/vp/p2cr7_xx3cb4t1fg99_x_d5c0000gn/T/fk-cohort-eqlj_ynr/project-b/ws",
+      "limits": "{}",
+      "heartbeat_at": "2026-10-05T16:19:43.444+00:00",
+      "heartbeat_epoch": 1791217183.417759,
+      "beats": 1,
+      "verdict": "completed",
+      "outcome": "completed",
+      "started": "2026-10-05T16:19:43.444+00:00",
+      "ended": "2026-10-05T16:19:43.444+00:00",
+      "duration_s": 10.0,
+      "usage_state": "measured"
+     },
+     {
+      "attempt_id": "fk-task-000011-a01",
+      "work_key": "gh:R_kgDOFkDogfoodB#202:g1",
+      "task_id": "fk-task-000011",
+      "generation": 1,
+      "role": "implementation",
+      "session_id": "sess-fk-task-000011-a01",
+      "runtime": "hermes-kanban",
+      "model": "gpt-6-luna",
+      "skills": "{}",
+      "config_digest": "c",
+      "policy_digest": "p",
+      "workspace": "/var/folders/vp/p2cr7_xx3cb4t1fg99_x_d5c0000gn/T/fk-cohort-eqlj_ynr/project-b/ws",
+      "limits": "{}",
+      "heartbeat_at": "2026-10-05T16:19:43.457+00:00",
+      "heartbeat_epoch": 1791217183.417759,
+      "beats": 1,
+      "verdict": "failed",
+      "outcome": "failed",
+      "started": "2026-10-05T16:19:43.457+00:00",
+      "ended": "2026-10-05T16:19:43.457+00:00",
+      "duration_s": 10.0,
+      "usage_state": "measured"
+     },
+     {
+      "attempt_id": "fk-task-000013-a01",
+      "work_key": "gh:R_kgDOFkDogfoodB#203:g1",
+      "task_id": "fk-task-000013",
+      "generation": 1,
+      "role": "implementation",
+      "session_id": "s-fk-task-000013-a01",
+      "runtime": "hermes-kanban",
+      "model": "gpt-6-luna",
+      "skills": "{}",
+      "config_digest": "886662075d30dfae80ed499cd7a724a725549884dabc2614b387767463a491cd",
+      "policy_digest": "3d48d71a844b9eabd44c1d7ceb5def114138ee0de313ace35ca622948bb237d8",
+      "workspace": "/var/folders/vp/p2cr7_xx3cb4t1fg99_x_d5c0000gn/T/fk-cohort-eqlj_ynr/project-b/ws",
+      "limits": "{}",
+      "heartbeat_at": "2026-10-05T16:19:43.461+00:00",
+      "heartbeat_epoch": 1791217183.417759,
+      "beats": 1,
+      "verdict": "canceled",
+      "outcome": "canceled",
+      "started": "2026-10-05T16:19:43.461+00:00",
+      "ended": "2026-10-05T16:19:43.465+00:00",
+      "duration_s": null,
+      "usage_state": "measured"
+     },
+     {
+      "attempt_id": "fk-task-000018-a01",
+      "work_key": "gh:R_kgDOFkDogfoodB#204:g1",
+      "task_id": "fk-task-000018",
+      "generation": 1,
+      "role": "implementation",
+      "session_id": "sess-fk-task-000018-a01",
+      "runtime": "hermes-kanban",
+      "model": "gpt-6-luna",
+      "skills": "{}",
+      "config_digest": "c",
+      "policy_digest": "p",
+      "workspace": "/var/folders/vp/p2cr7_xx3cb4t1fg99_x_d5c0000gn/T/fk-cohort-eqlj_ynr/project-b/ws",
+      "limits": "{}",
+      "heartbeat_at": "2026-10-05T16:19:43.469+00:00",
+      "heartbeat_epoch": 1791217183.417759,
+      "beats": 1,
+      "verdict": "completed",
+      "outcome": "completed",
+      "started": "2026-10-05T16:19:43.469+00:00",
+      "ended": "2026-10-05T16:19:43.469+00:00",
+      "duration_s": 10.0,
+      "usage_state": "measured"
+     },
+     {
+      "attempt_id": "fk-task-000018-a02",
+      "work_key": "gh:R_kgDOFkDogfoodB#204:g1",
+      "task_id": "fk-task-000018",
+      "generation": 1,
+      "role": "review",
+      "session_id": "sess-fk-task-000018-a02",
+      "runtime": "hermes-kanban",
+      "model": "gpt-6-luna",
+      "skills": "{}",
+      "config_digest": "c",
+      "policy_digest": "p",
+      "workspace": "/var/folders/vp/p2cr7_xx3cb4t1fg99_x_d5c0000gn/T/fk-cohort-eqlj_ynr/project-b/ws",
+      "limits": "{}",
+      "heartbeat_at": "2026-10-05T16:19:43.470+00:00",
+      "heartbeat_epoch": 1791217183.417759,
+      "beats": 1,
+      "verdict": "completed",
+      "outcome": "completed",
+      "started": "2026-10-05T16:19:43.470+00:00",
+      "ended": "2026-10-05T16:19:43.471+00:00",
+      "duration_s": 10.0,
+      "usage_state": "measured"
+     },
+     {
+      "attempt_id": "fk-task-000023-a01",
+      "work_key": "gh:R_kgDOFkDogfoodB#205:g1",
+      "task_id": "fk-task-000023",
+      "generation": 1,
+      "role": "implementation",
+      "session_id": "sess-fk-task-000023-a01",
+      "runtime": "hermes-kanban",
+      "model": "gpt-6-luna",
+      "skills": "{}",
+      "config_digest": "c",
+      "policy_digest": "p",
+      "workspace": "/var/folders/vp/p2cr7_xx3cb4t1fg99_x_d5c0000gn/T/fk-cohort-eqlj_ynr/project-b/ws",
+      "limits": "{}",
+      "heartbeat_at": "2026-10-05T16:19:43.478+00:00",
+      "heartbeat_epoch": 1791217183.417759,
+      "beats": 1,
+      "verdict": "completed",
+      "outcome": "completed",
+      "started": "2026-10-05T16:19:43.478+00:00",
+      "ended": "2026-10-05T16:19:43.478+00:00",
+      "duration_s": 10.0,
+      "usage_state": "unknown"
+     },
+     {
+      "attempt_id": "fk-task-000023-a02",
+      "work_key": "gh:R_kgDOFkDogfoodB#205:g1",
+      "task_id": "fk-task-000023",
+      "generation": 1,
+      "role": "review",
+      "session_id": "sess-fk-task-000023-a02",
+      "runtime": "hermes-kanban",
+      "model": "gpt-6-luna",
+      "skills": "{}",
+      "config_digest": "c",
+      "policy_digest": "p",
+      "workspace": "/var/folders/vp/p2cr7_xx3cb4t1fg99_x_d5c0000gn/T/fk-cohort-eqlj_ynr/project-b/ws",
+      "limits": "{}",
+      "heartbeat_at": "2026-10-05T16:19:43.479+00:00",
+      "heartbeat_epoch": 1791217183.417759,
+      "beats": 1,
+      "verdict": "completed",
+      "outcome": "completed",
+      "started": "2026-10-05T16:19:43.479+00:00",
+      "ended": "2026-10-05T16:19:43.479+00:00",
+      "duration_s": 10.0,
+      "usage_state": "unknown"
+     }
+    ],
+    "attempt_liveness": [
+     {
+      "attempt_id": "fk-task-000001-a01",
+      "work_key": "gh:R_kgDOFkDogfoodB#201:g1",
+      "last_beat": "2026-10-05T16:19:43.442+00:00",
+      "last_beat_epoch": 1791217183.417759,
+      "beats": 1
+     },
+     {
+      "attempt_id": "fk-task-000001-a02",
+      "work_key": "gh:R_kgDOFkDogfoodB#201:g1",
+      "last_beat": "2026-10-05T16:19:43.444+00:00",
+      "last_beat_epoch": 1791217183.417759,
+      "beats": 1
+     },
+     {
+      "attempt_id": "fk-task-000011-a01",
+      "work_key": "gh:R_kgDOFkDogfoodB#202:g1",
+      "last_beat": "2026-10-05T16:19:43.457+00:00",
+      "last_beat_epoch": 1791217183.417759,
+      "beats": 1
+     },
+     {
+      "attempt_id": "fk-task-000013-a01",
+      "work_key": "gh:R_kgDOFkDogfoodB#203:g1",
+      "last_beat": "2026-10-05T16:19:43.461+00:00",
+      "last_beat_epoch": 1791217183.417759,
+      "beats": 1
+     },
+     {
+      "attempt_id": "fk-task-000018-a01",
+      "work_key": "gh:R_kgDOFkDogfoodB#204:g1",
+      "last_beat": "2026-10-05T16:19:43.469+00:00",
+      "last_beat_epoch": 1791217183.417759,
+      "beats": 1
+     },
+     {
+      "attempt_id": "fk-task-000018-a02",
+      "work_key": "gh:R_kgDOFkDogfoodB#204:g1",
+      "last_beat": "2026-10-05T16:19:43.470+00:00",
+      "last_beat_epoch": 1791217183.417759,
+      "beats": 1
+     },
+     {
+      "attempt_id": "fk-task-000023-a01",
+      "work_key": "gh:R_kgDOFkDogfoodB#205:g1",
+      "last_beat": "2026-10-05T16:19:43.478+00:00",
+      "last_beat_epoch": 1791217183.417759,
+      "beats": 1
+     },
+     {
+      "attempt_id": "fk-task-000023-a02",
+      "work_key": "gh:R_kgDOFkDogfoodB#205:g1",
+      "last_beat": "2026-10-05T16:19:43.479+00:00",
+      "last_beat_epoch": 1791217183.417759,
+      "beats": 1
+     }
+    ],
+    "attempt_usage": [
+     {
+      "attempt_id": "fk-task-000001-a01",
+      "work_key": "gh:R_kgDOFkDogfoodB#201:g1",
+      "role": "implementation",
+      "active_seconds": 600.0,
+      "recorded_at": "2026-10-05T16:19:43.443+00:00"
+     },
+     {
+      "attempt_id": "fk-task-000001-a02",
+      "work_key": "gh:R_kgDOFkDogfoodB#201:g1",
+      "role": "review",
+      "active_seconds": 240.0,
+      "recorded_at": "2026-10-05T16:19:43.444+00:00"
+     },
+     {
+      "attempt_id": "fk-task-000011-a01",
+      "work_key": "gh:R_kgDOFkDogfoodB#202:g1",
+      "role": "implementation",
+      "active_seconds": 300.0,
+      "recorded_at": "2026-10-05T16:19:43.457+00:00"
+     },
+     {
+      "attempt_id": "fk-task-000013-a01",
+      "work_key": "gh:R_kgDOFkDogfoodB#203:g1",
+      "role": "implementation",
+      "active_seconds": null,
+      "recorded_at": "2026-10-05T16:19:43.465+00:00"
+     },
+     {
+      "attempt_id": "fk-task-000018-a01",
+      "work_key": "gh:R_kgDOFkDogfoodB#204:g1",
+      "role": "implementation",
+      "active_seconds": 600.0,
+      "recorded_at": "2026-10-05T16:19:43.469+00:00"
+     },
+     {
+      "attempt_id": "fk-task-000018-a02",
+      "work_key": "gh:R_kgDOFkDogfoodB#204:g1",
+      "role": "review",
+      "active_seconds": 240.0,
+      "recorded_at": "2026-10-05T16:19:43.471+00:00"
+     },
+     {
+      "attempt_id": "fk-task-000023-a01",
+      "work_key": "gh:R_kgDOFkDogfoodB#205:g1",
+      "role": "implementation",
+      "active_seconds": 600.0,
+      "recorded_at": "2026-10-05T16:19:43.478+00:00"
+     },
+     {
+      "attempt_id": "fk-task-000023-a02",
+      "work_key": "gh:R_kgDOFkDogfoodB#205:g1",
+      "role": "review",
+      "active_seconds": 240.0,
+      "recorded_at": "2026-10-05T16:19:43.479+00:00"
+     }
+    ],
+    "execution_fence": [
+     {
+      "work_key": "gh:R_kgDOFkDogfoodB#203:g1",
+      "generation": 1,
+      "fenced": 1,
+      "fence_reason": "cancel",
+      "termination": "confirmed",
+      "updated_at": "2026-10-05T16:19:43.463+00:00"
+     }
+    ],
+    "work_control": [],
+    "review_records": [
+     {
+      "review_id": "rev-263067eec99f",
+      "work_key": "gh:R_kgDOFkDogfoodB#201:g1",
+      "attempt_id": "fk-task-000001-a02",
+      "session_id": "sess-fk-task-000001-a02",
+      "role": "review",
+      "model": null,
+      "verdict": "approved",
+      "sha": "3b8db5b4adb22b018fbc02bbf7bd57753f162efd",
+      "recorded_at": "2026-10-05T16:19:43.445+00:00"
+     },
+     {
+      "review_id": "rev-f5eb83ce4974",
+      "work_key": "gh:R_kgDOFkDogfoodB#204:g1",
+      "attempt_id": "fk-task-000018-a02",
+      "session_id": "sess-fk-task-000018-a02",
+      "role": "review",
+      "model": null,
+      "verdict": "approved",
+      "sha": "a374c672fb192b0b03e09938ede3f0c0bab7c45d",
+      "recorded_at": "2026-10-05T16:19:43.471+00:00"
+     },
+     {
+      "review_id": "rev-35f3b159b99c",
+      "work_key": "gh:R_kgDOFkDogfoodB#205:g1",
+      "attempt_id": "fk-task-000023-a02",
+      "session_id": "sess-fk-task-000023-a02",
+      "role": "review",
+      "model": null,
+      "verdict": "approved",
+      "sha": "0ba2117ffd6eeee838e687e0d558e6e0bb4d2102",
+      "recorded_at": "2026-10-05T16:19:43.480+00:00"
+     }
+    ],
+    "verification_evidence": [
+     {
+      "evidence_id": "ev-8cd92ff91fb9",
+      "work_key": "gh:R_kgDOFkDogfoodB#201:g1",
+      "seq": 2,
+      "pr_number": "100",
+      "pr_url": "https://example.test/luongnv89/factory-kit-selftest/pull/100",
+      "head_sha": "3b8db5b4adb22b018fbc02bbf7bd57753f162efd",
+      "base_name": "main",
+      "base_sha": "e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5",
+      "review_id": "rev-263067eec99f",
+      "review_session": "sess-fk-task-000001-a02",
+      "contract_digest": "3f71555c1880388966c86723ad3ea4e5a72afada40cd306b5fbe68cf0aa32d16",
+      "status": "verified",
+      "reason": "verified",
+      "observed_at": "2026-10-05T16:19:43.446+00:00"
+     },
+     {
+      "evidence_id": "ev-0e2955318b7c",
+      "work_key": "gh:R_kgDOFkDogfoodB#204:g1",
+      "seq": 19,
+      "pr_number": "101",
+      "pr_url": "https://example.test/luongnv89/factory-kit-selftest/pull/101",
+      "head_sha": "a374c672fb192b0b03e09938ede3f0c0bab7c45d",
+      "base_name": "main",
+      "base_sha": "e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5",
+      "review_id": "rev-f5eb83ce4974",
+      "review_session": "sess-fk-task-000018-a02",
+      "contract_digest": "3f71555c1880388966c86723ad3ea4e5a72afada40cd306b5fbe68cf0aa32d16",
+      "status": "verified",
+      "reason": "verified",
+      "observed_at": "2026-10-05T16:19:43.472+00:00"
+     },
+     {
+      "evidence_id": "ev-54ab3a98f7ca",
+      "work_key": "gh:R_kgDOFkDogfoodB#205:g1",
+      "seq": 24,
+      "pr_number": "102",
+      "pr_url": "https://example.test/luongnv89/factory-kit-selftest/pull/102",
+      "head_sha": "0ba2117ffd6eeee838e687e0d558e6e0bb4d2102",
+      "base_name": "main",
+      "base_sha": "e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5",
+      "review_id": "rev-35f3b159b99c",
+      "review_session": "sess-fk-task-000023-a02",
+      "contract_digest": "3f71555c1880388966c86723ad3ea4e5a72afada40cd306b5fbe68cf0aa32d16",
+      "status": "failed",
+      "reason": "required-check-missing:Security Scan",
+      "observed_at": "2026-10-05T16:19:43.481+00:00"
+     }
+    ],
+    "operator_effort": [
+     {
+      "effort_id": "eff-52b754144b0b",
+      "work_key": "gh:R_kgDOFkDogfoodB#201:g1",
+      "actor_ref": "telegram:123456789",
+      "active_minutes": 9.0,
+      "category": "approval",
+      "source": "cohort-fixture",
+      "supersedes": null,
+      "seq": 9,
+      "event_seq": 13,
+      "recorded_at": "2026-10-05T16:19:43.454+00:00"
+     },
+     {
+      "effort_id": "eff-793f84e810ce",
+      "work_key": "gh:R_kgDOFkDogfoodB#201:g1",
+      "actor_ref": "telegram:123456789",
+      "active_minutes": 7.0,
+      "category": "monitoring",
+      "source": "cohort-fixture",
+      "supersedes": null,
+      "seq": 10,
+      "event_seq": 14,
+      "recorded_at": "2026-10-05T16:19:43.454+00:00"
+     },
+     {
+      "effort_id": "eff-d12ac93501c9",
+      "work_key": "gh:R_kgDOFkDogfoodB#202:g1",
+      "actor_ref": "telegram:123456789",
+      "active_minutes": 20.0,
+      "category": "investigation",
+      "source": "cohort-fixture",
+      "supersedes": null,
+      "seq": 12,
+      "event_seq": 19,
+      "recorded_at": "2026-10-05T16:19:43.458+00:00"
+     },
+     {
+      "effort_id": "eff-f71a0a70283d",
+      "work_key": "gh:R_kgDOFkDogfoodB#203:g1",
+      "actor_ref": "telegram:123456789",
+      "active_minutes": 4.0,
+      "category": "monitoring",
+      "source": "cohort-fixture",
+      "supersedes": null,
+      "seq": 16,
+      "event_seq": 28,
+      "recorded_at": "2026-10-05T16:19:43.466+00:00"
+     },
+     {
+      "effort_id": "eff-d59d6b74caee",
+      "work_key": "gh:R_kgDOFkDogfoodB#203:g1",
+      "actor_ref": "telegram:123456789",
+      "active_minutes": 6.0,
+      "category": "cleanup",
+      "source": "cohort-fixture",
+      "supersedes": null,
+      "seq": 17,
+      "event_seq": 29,
+      "recorded_at": "2026-10-05T16:19:43.466+00:00"
+     },
+     {
+      "effort_id": "eff-e3dce816c7cf",
+      "work_key": "gh:R_kgDOFkDogfoodB#205:g1",
+      "actor_ref": "telegram:123456789",
+      "active_minutes": 12.0,
+      "category": "investigation",
+      "source": "cohort-fixture",
+      "supersedes": null,
+      "seq": 25,
+      "event_seq": 47,
+      "recorded_at": "2026-10-05T16:19:43.481+00:00"
+     },
+     {
+      "effort_id": "eff-e221481034f2",
+      "work_key": "gh:R_kgDOFkDogfoodB#205:g1",
+      "actor_ref": "telegram:123456789",
+      "active_minutes": 5.0,
+      "category": "correction",
+      "source": "cohort-fixture",
+      "supersedes": null,
+      "seq": 26,
+      "event_seq": 48,
+      "recorded_at": "2026-10-05T16:19:43.482+00:00"
+     }
+    ],
+    "preview_records": [
+     {
+      "preview_id": "prev-dd8042eb4190",
+      "work_key": "gh:R_kgDOFkDogfoodB#201:g1",
+      "seq": 3,
+      "task_id": "fk-task-000001",
+      "generation": 1,
+      "provider": "vercel",
+      "deployment_id": "dpl-0001-65e6a8e7",
+      "artifact_identity": "65e6a8e73bd00cfd",
+      "head_sha": "3b8db5b4adb22b018fbc02bbf7bd57753f162efd",
+      "base_name": "main",
+      "base_sha": "e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5",
+      "url": "https://preview-dpl-0001-65e6a8e7.example.test",
+      "visibility": "unlisted",
+      "environment": "preview",
+      "smoke_expected": "200",
+      "state": "verified",
+      "reason": null,
+      "cleanup_owner": "factory",
+      "expires_epoch": 1791303583.417759,
+      "cleanup_deadline_epoch": 1791307183.417759,
+      "observed_at": "2026-10-05T16:19:43.448+00:00",
+      "removed_at": null,
+      "created_at": "2026-10-05T16:19:43.447+00:00",
+      "updated_at": "2026-10-05T16:19:43.448+00:00"
+     },
+     {
+      "preview_id": "prev-268a09adb216",
+      "work_key": "gh:R_kgDOFkDogfoodB#204:g1",
+      "seq": 20,
+      "task_id": "fk-task-000018",
+      "generation": 1,
+      "provider": "vercel",
+      "deployment_id": "dpl-0002-46aa8308",
+      "artifact_identity": "46aa8308dac0550c",
+      "head_sha": "a374c672fb192b0b03e09938ede3f0c0bab7c45d",
+      "base_name": "main",
+      "base_sha": "e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5",
+      "url": "https://preview-dpl-0002-46aa8308.example.test",
+      "visibility": "unlisted",
+      "environment": "preview",
+      "smoke_expected": "200",
+      "state": "verified",
+      "reason": null,
+      "cleanup_owner": "factory",
+      "expires_epoch": 1791303583.417759,
+      "cleanup_deadline_epoch": 1791307183.417759,
+      "observed_at": "2026-10-05T16:19:43.474+00:00",
+      "removed_at": null,
+      "created_at": "2026-10-05T16:19:43.473+00:00",
+      "updated_at": "2026-10-05T16:19:43.474+00:00"
+     }
+    ],
+    "approval_requests": [
+     {
+      "request_id": "apr-a8f4a30fcda1",
+      "work_key": "gh:R_kgDOFkDogfoodB#201:g1",
+      "seq": 4,
+      "task_id": "fk-task-000001",
+      "generation": 1,
+      "authority_key": "gh:R_kgDOFkDogfoodB",
+      "repo_id": "R_kgDOFkDogfoodB",
+      "action": "merge",
+      "target": "luongnv89/factory-kit-selftest#100",
+      "pr_number": "100",
+      "pr_url": "https://example.test/luongnv89/factory-kit-selftest/pull/100",
+      "head_sha": "3b8db5b4adb22b018fbc02bbf7bd57753f162efd",
+      "base_name": "main",
+      "base_sha": "e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5",
+      "evidence_id": "ev-8cd92ff91fb9",
+      "preview_id": "prev-dd8042eb4190",
+      "evidence_digest": "4e34a6b17631a2eac6162e58a1ca46038f69880ad49df86a5ec33648710e2007",
+      "preview_digest": "8d7c22ab12d0fc7d14a07a40e03d7699492a8bab2e9cc444c1497c1a75e53643",
+      "config_digest": "886662075d30dfae80ed499cd7a724a725549884dabc2614b387767463a491cd",
+      "policy_digest": "3d48d71a844b9eabd44c1d7ceb5def114138ee0de313ace35ca622948bb237d8",
+      "merge_method": "squash",
+      "state": "consumed",
+      "reason": null,
+      "decision_id": "dec-28e587b98fee",
+      "actor_ref": "telegram:123456789",
+      "issued_at": "2026-10-05T16:19:43.449+00:00",
+      "expires_epoch": 1791220783.417759,
+      "consumed_seq": 7,
+      "created_at": "2026-10-05T16:19:43.449+00:00",
+      "updated_at": "2026-10-05T16:19:43.452+00:00"
+     },
+     {
+      "request_id": "apr-0674cd6efad9",
+      "work_key": "gh:R_kgDOFkDogfoodB#204:g1",
+      "seq": 21,
+      "task_id": "fk-task-000018",
+      "generation": 1,
+      "authority_key": "gh:R_kgDOFkDogfoodB",
+      "repo_id": "R_kgDOFkDogfoodB",
+      "action": "merge",
+      "target": "luongnv89/factory-kit-selftest#101",
+      "pr_number": "101",
+      "pr_url": "https://example.test/luongnv89/factory-kit-selftest/pull/101",
+      "head_sha": "a374c672fb192b0b03e09938ede3f0c0bab7c45d",
+      "base_name": "main",
+      "base_sha": "e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5",
+      "evidence_id": "ev-0e2955318b7c",
+      "preview_id": "prev-268a09adb216",
+      "evidence_digest": "303a944cca9397d2749a285e6f6baf8cdd13a05c7647d362b3201a610a7f62af",
+      "preview_digest": "199b8b17a224baa2422112cf141de0f4305d5d593a0d7f19742001bd9e81bbba",
+      "config_digest": "886662075d30dfae80ed499cd7a724a725549884dabc2614b387767463a491cd",
+      "policy_digest": "3d48d71a844b9eabd44c1d7ceb5def114138ee0de313ace35ca622948bb237d8",
+      "merge_method": "squash",
+      "state": "awaiting",
+      "reason": null,
+      "decision_id": null,
+      "actor_ref": null,
+      "issued_at": "2026-10-05T16:19:43.474+00:00",
+      "expires_epoch": 1791220783.417759,
+      "consumed_seq": null,
+      "created_at": "2026-10-05T16:19:43.475+00:00",
+      "updated_at": "2026-10-05T16:19:43.475+00:00"
+     }
+    ],
+    "approval_decisions": [
+     {
+      "decision_id": "dec-28e587b98fee",
+      "request_id": "apr-a8f4a30fcda1",
+      "work_key": "gh:R_kgDOFkDogfoodB#201:g1",
+      "seq": 6,
+      "command_id": null,
+      "actor_ref": "telegram:123456789",
+      "chat_ref": "telegram:-1001234567890",
+      "action": "merge",
+      "target": "luongnv89/factory-kit-selftest#100",
+      "verdict": "approve",
+      "outcome": "accepted",
+      "reason": null,
+      "state": "consumed",
+      "received_at": "2026-10-05T16:19:43.450+00:00",
+      "decided_at": "2026-10-05T16:19:43.450+00:00"
+     }
+    ],
+    "publication_intents": [],
+    "control_records": [
+     {
+      "command_id": "c-001",
+      "received_at": "2026-10-05T16:19:43.462+00:00",
+      "committed_at": "2026-10-05T16:19:43.462+00:00",
+      "actor_ref": "telegram:123456789",
+      "chat_ref": "telegram:-1001234567890",
+      "action": "cancel",
+      "repo_id": "R_kgDOFkDogfoodB",
+      "authority_key": "gh:R_kgDOFkDogfoodB",
+      "issue": 203,
+      "generation": 1,
+      "work_key": "gh:R_kgDOFkDogfoodB#203:g1",
+      "outcome": "accepted",
+      "reason": null,
+      "seq": 14
+     }
+    ],
+    "alerts": [],
+    "notification_outbox": [],
+    "results": [],
+    "events": [
+     {
+      "seq": 1,
+      "ts": "2026-10-05T16:19:43.441+00:00",
+      "kind": "work_accepted",
+      "delivery_id": "d-rec-201-c889378c",
+      "work_key": "gh:R_kgDOFkDogfoodB#201:g1",
+      "reason": null,
+      "config_digest": "886662075d30dfae80ed499cd7a724a725549884dabc2614b387767463a491cd",
+      "supersedes": null
+     },
+     {
+      "seq": 2,
+      "ts": "2026-10-05T16:19:43.441+00:00",
+      "kind": "task_bound",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOFkDogfoodB#201:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 3,
+      "ts": "2026-10-05T16:19:43.443+00:00",
+      "kind": "attempt_started",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOFkDogfoodB#201:g1",
+      "reason": null,
+      "config_digest": "c",
+      "supersedes": null
+     },
+     {
+      "seq": 4,
+      "ts": "2026-10-05T16:19:43.443+00:00",
+      "kind": "attempt_finished",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOFkDogfoodB#201:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 5,
+      "ts": "2026-10-05T16:19:43.444+00:00",
+      "kind": "attempt_started",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOFkDogfoodB#201:g1",
+      "reason": null,
+      "config_digest": "c",
+      "supersedes": null
+     },
+     {
+      "seq": 6,
+      "ts": "2026-10-05T16:19:43.444+00:00",
+      "kind": "attempt_finished",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOFkDogfoodB#201:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 7,
+      "ts": "2026-10-05T16:19:43.445+00:00",
+      "kind": "review_recorded",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOFkDogfoodB#201:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 8,
+      "ts": "2026-10-05T16:19:43.447+00:00",
+      "kind": "evidence_checked",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOFkDogfoodB#201:g1",
+      "reason": "verified",
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 9,
+      "ts": "2026-10-05T16:19:43.448+00:00",
+      "kind": "preview_verified",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOFkDogfoodB#201:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 10,
+      "ts": "2026-10-05T16:19:43.451+00:00",
+      "kind": "approval_decided",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOFkDogfoodB#201:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 11,
+      "ts": "2026-10-05T16:19:43.452+00:00",
+      "kind": "merge_intent_recorded",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOFkDogfoodB#201:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 12,
+      "ts": "2026-10-05T16:19:43.453+00:00",
+      "kind": "merge_observed",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOFkDogfoodB#201:g1",
+      "reason": "merged",
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 13,
+      "ts": "2026-10-05T16:19:43.454+00:00",
+      "kind": "operator_effort_recorded",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOFkDogfoodB#201:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 14,
+      "ts": "2026-10-05T16:19:43.454+00:00",
+      "kind": "operator_effort_recorded",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOFkDogfoodB#201:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 15,
+      "ts": "2026-10-05T16:19:43.455+00:00",
+      "kind": "work_accepted",
+      "delivery_id": "d-rec-202-25b3b279",
+      "work_key": "gh:R_kgDOFkDogfoodB#202:g1",
+      "reason": null,
+      "config_digest": "886662075d30dfae80ed499cd7a724a725549884dabc2614b387767463a491cd",
+      "supersedes": null
+     },
+     {
+      "seq": 16,
+      "ts": "2026-10-05T16:19:43.456+00:00",
+      "kind": "task_bound",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOFkDogfoodB#202:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 17,
+      "ts": "2026-10-05T16:19:43.457+00:00",
+      "kind": "attempt_started",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOFkDogfoodB#202:g1",
+      "reason": null,
+      "config_digest": "c",
+      "supersedes": null
+     },
+     {
+      "seq": 18,
+      "ts": "2026-10-05T16:19:43.458+00:00",
+      "kind": "attempt_finished",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOFkDogfoodB#202:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 19,
+      "ts": "2026-10-05T16:19:43.458+00:00",
+      "kind": "operator_effort_recorded",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOFkDogfoodB#202:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 20,
+      "ts": "2026-10-05T16:19:43.459+00:00",
+      "kind": "work_accepted",
+      "delivery_id": "d-rec-203-c6333f16",
+      "work_key": "gh:R_kgDOFkDogfoodB#203:g1",
+      "reason": null,
+      "config_digest": "886662075d30dfae80ed499cd7a724a725549884dabc2614b387767463a491cd",
+      "supersedes": null
+     },
+     {
+      "seq": 21,
+      "ts": "2026-10-05T16:19:43.460+00:00",
+      "kind": "task_bound",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOFkDogfoodB#203:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 22,
+      "ts": "2026-10-05T16:19:43.462+00:00",
+      "kind": "attempt_started",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOFkDogfoodB#203:g1",
+      "reason": null,
+      "config_digest": "886662075d30dfae80ed499cd7a724a725549884dabc2614b387767463a491cd",
+      "supersedes": null
+     },
+     {
+      "seq": 23,
+      "ts": "2026-10-05T16:19:43.462+00:00",
+      "kind": "work_fenced",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOFkDogfoodB#203:g1",
+      "reason": "cancel",
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 24,
+      "ts": "2026-10-05T16:19:43.462+00:00",
+      "kind": "control_recorded",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOFkDogfoodB#203:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 25,
+      "ts": "2026-10-05T16:19:43.463+00:00",
+      "kind": "fence_resolved",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOFkDogfoodB#203:g1",
+      "reason": "confirmed",
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 26,
+      "ts": "2026-10-05T16:19:43.464+00:00",
+      "kind": "work_terminated",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOFkDogfoodB#203:g1",
+      "reason": "cancel",
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 27,
+      "ts": "2026-10-05T16:19:43.465+00:00",
+      "kind": "attempt_finished",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOFkDogfoodB#203:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 28,
+      "ts": "2026-10-05T16:19:43.466+00:00",
+      "kind": "operator_effort_recorded",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOFkDogfoodB#203:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 29,
+      "ts": "2026-10-05T16:19:43.466+00:00",
+      "kind": "operator_effort_recorded",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOFkDogfoodB#203:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 30,
+      "ts": "2026-10-05T16:19:43.467+00:00",
+      "kind": "work_accepted",
+      "delivery_id": "d-rec-204-c98bea9c",
+      "work_key": "gh:R_kgDOFkDogfoodB#204:g1",
+      "reason": null,
+      "config_digest": "886662075d30dfae80ed499cd7a724a725549884dabc2614b387767463a491cd",
+      "supersedes": null
+     },
+     {
+      "seq": 31,
+      "ts": "2026-10-05T16:19:43.468+00:00",
+      "kind": "task_bound",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOFkDogfoodB#204:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 32,
+      "ts": "2026-10-05T16:19:43.469+00:00",
+      "kind": "attempt_started",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOFkDogfoodB#204:g1",
+      "reason": null,
+      "config_digest": "c",
+      "supersedes": null
+     },
+     {
+      "seq": 33,
+      "ts": "2026-10-05T16:19:43.470+00:00",
+      "kind": "attempt_finished",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOFkDogfoodB#204:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 34,
+      "ts": "2026-10-05T16:19:43.470+00:00",
+      "kind": "attempt_started",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOFkDogfoodB#204:g1",
+      "reason": null,
+      "config_digest": "c",
+      "supersedes": null
+     },
+     {
+      "seq": 35,
+      "ts": "2026-10-05T16:19:43.471+00:00",
+      "kind": "attempt_finished",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOFkDogfoodB#204:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 36,
+      "ts": "2026-10-05T16:19:43.471+00:00",
+      "kind": "review_recorded",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOFkDogfoodB#204:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 37,
+      "ts": "2026-10-05T16:19:43.472+00:00",
+      "kind": "evidence_checked",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOFkDogfoodB#204:g1",
+      "reason": "verified",
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 38,
+      "ts": "2026-10-05T16:19:43.474+00:00",
+      "kind": "preview_verified",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOFkDogfoodB#204:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 39,
+      "ts": "2026-10-05T16:19:43.476+00:00",
+      "kind": "work_accepted",
+      "delivery_id": "d-rec-205-0b5deb7c",
+      "work_key": "gh:R_kgDOFkDogfoodB#205:g1",
+      "reason": null,
+      "config_digest": "886662075d30dfae80ed499cd7a724a725549884dabc2614b387767463a491cd",
+      "supersedes": null
+     },
+     {
+      "seq": 40,
+      "ts": "2026-10-05T16:19:43.477+00:00",
+      "kind": "task_bound",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOFkDogfoodB#205:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 41,
+      "ts": "2026-10-05T16:19:43.478+00:00",
+      "kind": "attempt_started",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOFkDogfoodB#205:g1",
+      "reason": null,
+      "config_digest": "c",
+      "supersedes": null
+     },
+     {
+      "seq": 42,
+      "ts": "2026-10-05T16:19:43.478+00:00",
+      "kind": "attempt_finished",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOFkDogfoodB#205:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 43,
+      "ts": "2026-10-05T16:19:43.479+00:00",
+      "kind": "attempt_started",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOFkDogfoodB#205:g1",
+      "reason": null,
+      "config_digest": "c",
+      "supersedes": null
+     },
+     {
+      "seq": 44,
+      "ts": "2026-10-05T16:19:43.479+00:00",
+      "kind": "attempt_finished",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOFkDogfoodB#205:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 45,
+      "ts": "2026-10-05T16:19:43.480+00:00",
+      "kind": "review_recorded",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOFkDogfoodB#205:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 46,
+      "ts": "2026-10-05T16:19:43.481+00:00",
+      "kind": "evidence_checked",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOFkDogfoodB#205:g1",
+      "reason": "required-check-missing:Security Scan",
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 47,
+      "ts": "2026-10-05T16:19:43.481+00:00",
+      "kind": "operator_effort_recorded",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOFkDogfoodB#205:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     },
+     {
+      "seq": 48,
+      "ts": "2026-10-05T16:19:43.482+00:00",
+      "kind": "operator_effort_recorded",
+      "delivery_id": null,
+      "work_key": "gh:R_kgDOFkDogfoodB#205:g1",
+      "reason": null,
+      "config_digest": null,
+      "supersedes": null
+     }
+    ]
+   },
+   "secret_scan": "clean"
+  }
+ },
+ "live_prerequisites": [
+  {
+   "id": "q9-adoption",
+   "blocker": "Q9 numerical targets are still proposed \u2014 owner acceptance pending (docs/decisions/q9-acceptance.md)"
+  },
+  {
+   "id": "second-project-registration",
+   "blocker": "no live second project registration with a live Hermes runtime exists \u2014 both cohort legs ran on scripted ports"
+  },
+  {
+   "id": "thirty-day-window",
+   "blocker": "the 30-day post-MVP-release observation window has not elapsed \u2014 merged/declined counts are fixture-recorded, not live-observed"
+  },
+  {
+   "id": "human-decisions",
+   "blocker": "approval/decline decisions were scripted fixture inputs through the real decision path, not maintainer judgments on real diffs"
+  },
+  {
+   "id": "baseline-collection",
+   "blocker": "baseline minutes come from the recorded fixture table \u2014 a live baseline needs ten comparable direct-IDD issues logged in the same window"
+  }
+ ],
+ "targets": {
+  "order": [
+   "preview_merge_ready",
+   "human_approved_merged_30d",
+   "intervention_reduction"
+  ],
+  "results": [
+   {
+    "id": "preview_merge_ready",
+    "proposed": "at least 8 of 10 issues preview-verified and merge-ready",
+    "measured": 7,
+    "verdict": "fail",
+    "basis": "scripted-cohort-fixture",
+    "live_status": "pending-live-cohort",
+    "threshold": 8,
+    "denominator": 10
+   },
+   {
+    "id": "human_approved_merged_30d",
+    "proposed": "at least 3 human-approved and merged within 30 days of MVP release across two sequential registrations",
+    "measured": 4,
+    "verdict": "pass",
+    "basis": "scripted-cohort-fixture",
+    "live_status": "pending-live-cohort",
+    "threshold": 3,
+    "window_days": 30
+   },
+   {
+    "id": "intervention_reduction",
+    "proposed": "at least 25% lower median intervention minutes per issue than the ten-issue comparable baseline within the 30-day window",
+    "measured": 30.43,
+    "verdict": "inconclusive",
+    "basis": "scripted-cohort-fixture",
+    "live_status": "pending-live-cohort",
+    "threshold_pct": 25.0,
+    "cohort_median": 16.0,
+    "baseline_median": 23.0,
+    "missing_n": 1,
+    "baseline_comparable": true
+   }
+  ]
+ },
+ "instrumentation": "clean",
+ "breaches": [],
+ "verdict": "cohort-run-complete",
+ "study_outcome": "scripted rehearsal recorded \u2014 the live \u00a71.4 cohort stays open on the named live_prerequisites; fixture verdicts are not live-target claims"
+}

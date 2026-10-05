@@ -1,0 +1,25 @@
+{
+  "fixture_id": "dogfood-baseline-v1",
+  "kind": "recorded-baseline",
+  "description": "Ten comparable issues resolved by the same trusted maintainer through the direct-IDD workflow (no factory kit) — the operator-recorded active-intervention minutes the cohort is compared against (PRD §1.4 operator-time target).",
+  "comparability": {
+    "same_maintainer": true,
+    "endpoint_standard": "issue-to-merged-PR with human review",
+    "task_mix": {"improvement": 4, "feature": 3, "bug": 2, "documentation": 1},
+    "size_class": "S/M bounded — same inclusion criteria as the cohort",
+    "collection_window_days": 30,
+    "source": "operator effort log, recorded per issue at completion"
+  },
+  "issues": [
+    {"key": "b1", "task_class": "improvement", "outcome": "merged", "intervention_minutes": 22.0},
+    {"key": "b2", "task_class": "feature", "outcome": "merged", "intervention_minutes": 35.0},
+    {"key": "b3", "task_class": "bug", "outcome": "merged", "intervention_minutes": 27.0},
+    {"key": "b4", "task_class": "improvement", "outcome": "merged", "intervention_minutes": 14.0},
+    {"key": "b5", "task_class": "documentation", "outcome": "merged", "intervention_minutes": 18.0},
+    {"key": "b6", "task_class": "feature", "outcome": "merged", "intervention_minutes": 41.0},
+    {"key": "b7", "task_class": "improvement", "outcome": "abandoned", "intervention_minutes": 19.0},
+    {"key": "b8", "task_class": "bug", "outcome": "merged", "intervention_minutes": 24.0},
+    {"key": "b9", "task_class": "feature", "outcome": "merged", "intervention_minutes": 31.0},
+    {"key": "b10", "task_class": "improvement", "outcome": "declined", "intervention_minutes": 16.0}
+  ]
+}
