@@ -75,6 +75,19 @@ class RecordingEffectSink:
         })
         return {"effect_id": effect_id, "status": "recorded-intent"}
 
+    def remove(self, effect_id, entry=None) -> dict:
+        """Record a removal intent for a recorded effect (F08 A5).
+
+        Live remote mutation stays the named carried blocker
+        (``kanban-live-write``), so the honest durable state is a
+        *recorded* removal intent — diagnosable and idempotent, never a
+        claimed deletion. An unrecorded effect answers ``absent``.
+        """
+        if not self.store.has_effect(effect_id):
+            return {"effect_id": effect_id, "status": "absent"}
+        self.store.record_effect_removal(effect_id)
+        return {"effect_id": effect_id, "status": "removal-recorded"}
+
 
 def _safe_target(repo_root, rel_path, entry_id):
     """Resolve a plan path inside the repo; refuse traversal/symlinks.
@@ -163,6 +176,11 @@ def _apply_registration(entry, plan, registration_store,
     if outcome == "registered":
         return {"id": entry["id"], "status": "applied",
                 "detail": "registration row created (readiness pending)"}
+    if outcome == "re-registered":
+        return {"id": entry["id"], "status": "applied",
+                "detail": "identity re-registered after reviewed "
+                          "removal — the prior tombstone is recorded on "
+                          "the fresh row (readiness pending)"}
     return {"id": entry["id"], "status": "unchanged",
             "detail": f"registration already exists (outcome={outcome})"}
 

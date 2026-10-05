@@ -16,8 +16,11 @@ PRD §3.2 F01, §4.1 install flow, §6.1 integration ownership, §7.1
   merge-precondition probes) and the ``setup_checked`` event path
 - :mod:`factory_kit.setup.ownership` — the kit-owned per-project ledger:
   ownership checksums, remote-effect intents and the event trail
+- :mod:`factory_kit.setup.remove` — reviewed ownership-aware removal
+  (F08, issue #19): uninstall plan, fenced authority settlement,
+  explicit history choice, registration tombstone
 """
 
-from . import apply, ownership, plan, readiness
+from . import apply, ownership, plan, readiness, remove
 
-__all__ = ["apply", "ownership", "plan", "readiness"]
+__all__ = ["apply", "ownership", "plan", "readiness", "remove"]

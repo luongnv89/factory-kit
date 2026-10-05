@@ -90,6 +90,12 @@ class RegistrationStore:
         if record is None:
             raise RegistrationError(
                 f"no registration for repository {repo_id!r}")
+        if record.get("tombstone"):
+            raise RegistrationError(
+                f"registration for {repo_id!r} was removed "
+                f"(tombstone at {record.get('removed_at')!r} by "
+                f"{record.get('removed_by')!r}) — a removed identity "
+                "carries no work, generation or policy surface")
         return record
 
     @staticmethod
@@ -111,7 +117,28 @@ class RegistrationStore:
         """
         repo_id = effective["identity"]["repo_id"]
         existing = self._data["registrations"].get(repo_id)
+        if existing is not None and existing.get("tombstone"):
+            # Re-registration after a reviewed removal is a *new*
+            # registration — the tombstone stays quoted on the fresh
+            # record so the gravestone is audit, never silent state
+            # resurrection (F08 A4).
+            tombstone = existing
+            existing = None
+            resurrected_from = tombstone
+        else:
+            resurrected_from = None
         if existing is not None:
+            if existing.get("removal"):
+                # ``begin_removal`` committed the intake-stop — a setup
+                # re-run cannot silently re-arm a registration mid-
+                # removal; removal completes to the tombstone, then a
+                # fresh registration starts clean (F08 A3).
+                raise RegistrationError(
+                    f"registration for {repo_id!r} is being removed "
+                    f"(removal begun at "
+                    f"{existing['removal'].get('begun_at')!r}) — "
+                    "re-registration is only possible after the "
+                    "reviewed removal completes")
             display = effective["identity"]
             changed = (existing["display"]["owner"] != display["owner"] or
                        existing["display"]["name"] != display["name"])
@@ -162,12 +189,92 @@ class RegistrationStore:
             }],
             "work": {},
         }
+        if resurrected_from is not None:
+            record["prior_tombstone"] = {
+                "removed_at": resurrected_from.get("removed_at"),
+                "removed_by": resurrected_from.get("removed_by"),
+            }
         self._data["registrations"][repo_id] = record
         self._save()
-        return {"outcome": "registered", "registration": record}
+        outcome = "re-registered" if resurrected_from is not None \
+            else "registered"
+        return {"outcome": outcome, "registration": record}
 
     def get(self, repo_id):
         return self._data["registrations"].get(repo_id)
+
+    def is_tombstone(self, repo_id):
+        """True when the row exists as a removal gravestone — identity
+        retained for audit, no authority (F08 A4)."""
+        record = self._data["registrations"].get(repo_id)
+        return bool(record and record.get("tombstone"))
+
+    # -- removal (Task 3.5 / F08) ---------------------------------------------
+    #
+    # Removal is a two-stage durable transition: ``begin_removal`` stops
+    # intake *first* (readiness verdict ``removing``/dispatch ``denied`` —
+    # intake's gate denies every later delivery), parking the generation's
+    # bound work; ``remove`` then replaces the row with an identity
+    # tombstone. The tombstone is the record that this repo_id was once
+    # registered and deliberately removed — a display rename or a stale
+    # cached row can never silently resurrect authority, and every
+    # work-bound accessor (``record_work``, ``attempt_context``,
+    # ``apply_policy_change``, ``authorize_generation``) refuses a
+    # tombstoned identity via ``_registration``.
+
+    def begin_removal(self, repo_id, *, removed_by, now=None):
+        """Durably stop intake for this registration.
+
+        Commits *before* any credential/state removal (F08 A3): from
+        this write on, intake denies deliveries for the repo
+        (``registration-not-ready``), and active bound work is parked so
+        no new attempt can bind under the removal generation.
+        """
+        record = self._registration(repo_id)
+        record["readiness"] = {
+            "verdict": "removing",
+            "dispatch": "denied",
+            "detail": "reviewed removal in progress — intake stopped "
+                      "and bound work parked",
+        }
+        record["removal"] = {"begun_at": now or _utcnow(),
+                             "by": removed_by}
+        parked = []
+        for key, work in record["work"].items():
+            if work["state"] == "active":
+                work["state"] = "parked"
+                work["parked_reason"] = "registration-removal"
+                parked.append(key)
+        self._save()
+        return {"outcome": "removing", "repo_id": repo_id,
+                "parked_work": parked}
+
+    def remove(self, repo_id, *, removed_by, now=None):
+        """Replace the registration with an identity tombstone.
+
+        The tombstone keeps ``repo_id`` + ``authority_key`` +
+        ``removed_at``/``removed_by`` so removal consequences are
+        explainable (F08 A4): the row *proves* the identity is gone,
+        intake denies it, and accessors refuse it. Shared Hermes
+        infrastructure, IDD configuration, shared skills and tokens are
+        untouched — they were never owned by this registration.
+        """
+        record = self._registration(repo_id)
+        tombstone = {
+            "repo_id": repo_id,
+            "authority_key": record["authority_key"],
+            "tombstone": True,
+            "removed_at": now or _utcnow(),
+            "removed_by": removed_by,
+            "prior_owner": record["owner"],
+            "generations_removed": len(record.get("generations") or []),
+            "work_parked": sorted(
+                key for key, work in record.get("work", {}).items()
+                if work.get("state") == "parked"),
+        }
+        self._data["registrations"][repo_id] = tombstone
+        self._save()
+        return {"outcome": "tombstoned", "tombstone": tombstone}
 
     # -- work binding ---------------------------------------------------------
 

@@ -124,7 +124,7 @@ from datetime import datetime, timezone
 
 from factory_kit.events import schema as _events_schema
 
-__all__ = ["IntakeStoreError", "IntakeStore", "work_key_for"]
+__all__ = ["IntakeStore", "IntakeStoreError", "work_key_for"]
 
 
 class IntakeStoreError(Exception):
@@ -2368,3 +2368,176 @@ class IntakeStore:
                 "SELECT COUNT(*) FROM attempt_ledger WHERE state='active'"
             ).fetchone()[0],
         }
+
+    # -- repo-scoped history lifecycle (Task 3.5 / F08 A4) -------------------
+    #
+    # The store may hold several repo identities; removal of one
+    # registration touches only rows bound to *its* authority key.
+    # ``work_key`` embeds the authority key (``{authority}#{issue}:g{n}``)
+    # so every dependent table scopes by its ``work_key`` column; the
+    # exceptions below carry their own identity column
+    # (``control_records.authority_key``, ``alerts.identity`` = work_key,
+    # ``publication_intents.authority_key``).
+    #
+    # Deliberately out of scope — shared/global rows a single
+    # registration never owned: ``meta`` (the sequence), ``lane_state``
+    # rows for lanes never occupied by this repo, ``reconcile_watermark``
+    # (store-global), ``participant_agreements`` (consent outlives any
+    # registration), and denied-delivery ``events`` whose delivery_id was
+    # never bound to a work row (they carry no repo binding).
+
+    def work_rows_for_authority(self, authority_key):
+        """Every work row minted under one repo identity."""
+        return [r for r in self.work_rows()
+                if r["authority_key"] == authority_key]
+
+    def _history_scope(self, authority_key):
+        """(work_keys, attempt_ids, delivery_ids) for one identity —
+        the shared scoping export and delete agree on."""
+        work_keys = {r["work_key"] for r in
+                     self.work_rows_for_authority(authority_key)}
+        attempt_ids = {r["attempt_id"]
+                       for r in self._rows("attempt_ledger")
+                       if r["work_key"] in work_keys}
+        attempt_ids |= {r["attempt_id"]
+                        for r in self._rows("attempt_records")
+                        if r["work_key"] in work_keys}
+        attempt_ids |= {r["attempt_id"]
+                        for r in self._rows("attempt_liveness")
+                        if r["work_key"] in work_keys}
+        delivery_ids = {r["delivery_id"]
+                        for r in self._rows("deliveries")
+                        if r["work_key"] in work_keys}
+        return work_keys, attempt_ids, delivery_ids
+
+    #: table -> scoping column for the repo-scoped history tables.
+    #: ``"work_key"`` covers the common case; the remaining columns are
+    #: named per table.
+    _HISTORY_SCOPED_TABLES = (
+        ("deliveries", "work_key"),
+        ("attempt_ledger", "work_key"),
+        ("work_queue", "work_key"),
+        ("attempt_records", "work_key"),
+        ("attempt_liveness", "work_key"),
+        ("attempt_usage", "work_key"),
+        ("execution_fence", "work_key"),
+        ("work_control", "work_key"),
+        ("review_records", "work_key"),
+        ("verification_evidence", "work_key"),
+        ("operator_effort", "work_key"),
+        ("preview_records", "work_key"),
+        ("approval_requests", "work_key"),
+        ("approval_decisions", "work_key"),
+        ("publication_intents", "work_key"),
+        ("control_records", "work_key"),
+        ("alerts", "identity"),
+    )
+
+    def export_history(self, authority_key):
+        """Every durable row scoped to one repo identity — the
+        retain/export/delete choice's *export* payload (F08 A4).
+
+        Returns ``{"authority_key", "exported_at", "tables": {name:
+        [rows]}}`` — redaction rules are unchanged: the store never
+        held bodies, signatures or secrets, so the export is exactly
+        the durable audit surface.
+        """
+        work_keys, attempt_ids, delivery_ids = \
+            self._history_scope(authority_key)
+        tables = {
+            "work": [r for r in self.work_rows()
+                     if r["authority_key"] == authority_key],
+        }
+        for table, col in self._HISTORY_SCOPED_TABLES:
+            tables[table] = [r for r in self._rows(table)
+                             if r.get(col) in work_keys]
+        # Extra scoping the work_key column cannot express:
+        # publication intents/control rows that resolved no work key
+        # but still carry this authority, results keyed by attempt,
+        # and events joined via work_key or this repo's deliveries.
+        tables["publication_intents"] += [
+            r for r in self._rows("publication_intents")
+            if r.get("work_key") is None
+            and r.get("authority_key") == authority_key]
+        tables["control_records"] += [
+            r for r in self._rows("control_records")
+            if r.get("work_key") is None
+            and r.get("authority_key") == authority_key]
+        tables["results"] = [
+            r for r in self._rows("results")
+            if r.get("work_key") in work_keys
+            or r.get("attempt_id") in attempt_ids]
+        tables["events"] = [
+            r for r in self._rows("events")
+            if r.get("work_key") in work_keys
+            or r.get("delivery_id") in delivery_ids]
+        return {"authority_key": authority_key,
+                "exported_at": _utcnow(),
+                "work_keys": sorted(work_keys),
+                "tables": tables}
+
+    def delete_repo_history(self, authority_key):
+        """Delete every durable row scoped to one repo identity —
+        the *delete* history choice (F08 A4), inside ONE transaction
+        so a crash cannot leave a half-deleted history.
+
+        Returns the per-table deletion counts. The global rows
+        (``meta``, ``reconcile_watermark``, ``participant_agreements``)
+        and other identities' rows are untouched by construction.
+        ``publication_intents``/``control_records`` carry their own
+        ``authority_key`` so rows that never bound a work key are
+        still scoped out correctly.
+        """
+        work_keys, attempt_ids, delivery_ids = \
+            self._history_scope(authority_key)
+        counts = {}
+        with self.transact():
+            if work_keys:
+                marks = ",".join("?" for _ in work_keys)
+                params = sorted(work_keys)
+                for table, col in self._HISTORY_SCOPED_TABLES:
+                    cur = self._q(
+                        f"DELETE FROM {table} WHERE {col} IN ({marks})",
+                        params)
+                    counts[table] = cur.rowcount
+                if attempt_ids:
+                    amarks = ",".join("?" for _ in attempt_ids)
+                    cur = self._q(
+                        "DELETE FROM results WHERE attempt_id IN "
+                        f"({amarks})", sorted(attempt_ids))
+                    counts["results"] = cur.rowcount
+                cur = self._q(
+                    "DELETE FROM results WHERE work_key IN "
+                    f"({marks})", params)
+                counts["results"] = counts.get("results", 0) \
+                    + cur.rowcount
+                cur = self._q(
+                    "DELETE FROM lane_state WHERE occupied_work IN "
+                    f"({marks})", params)
+                counts["lane_state"] = cur.rowcount
+                # Events: work-scoped rows plus this identity's recorded
+                # deliveries (denied-delivery events are unresolvable
+                # and retained — they carry no repo binding).
+                cur = self._q(
+                    f"DELETE FROM events WHERE work_key IN ({marks})",
+                    params)
+                counts["events"] = cur.rowcount
+                if delivery_ids:
+                    dmarks = ",".join("?" for _ in delivery_ids)
+                    cur = self._q(
+                        "DELETE FROM events WHERE delivery_id IN "
+                        f"({dmarks})", sorted(delivery_ids))
+                    counts["events"] += cur.rowcount
+                cur = self._q(
+                    "DELETE FROM work WHERE authority_key=?",
+                    (authority_key,))
+                counts["work"] = cur.rowcount
+            # Identity-keyed tables — bound to a work_key or not, every
+            # row naming this authority goes (the work-scoped halves
+            # were already covered when work_keys was non-empty).
+            for table in ("publication_intents", "control_records"):
+                cur = self._q(
+                    f"DELETE FROM {table} WHERE authority_key=?",
+                    (authority_key,))
+                counts[table] = counts.get(table, 0) + cur.rowcount
+        return {"authority_key": authority_key, "deleted": counts}

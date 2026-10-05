@@ -145,6 +145,20 @@ class SetupStore:
     def owned_files(self):
         return dict(self._data["ownership"])
 
+    def forget_file(self, path):
+        """Drop an ownership row after a confirmed removal (F08).
+
+        Only called once the owned file is verifiably gone — keeping the
+        row would re-report a deliberately removed file as ``missing``
+        on the next status/plan pass. Returns ``True`` when a row was
+        dropped.
+        """
+        if path not in self._data["ownership"]:
+            return False
+        del self._data["ownership"][path]
+        self._save()
+        return True
+
     def verify_file(self, repo_root, path):
         """Compare a recorded checksum against the file on disk.
 
@@ -187,6 +201,27 @@ class SetupStore:
 
     def effects(self):
         return dict(self._data["remote_effects"])
+
+    def record_effect_removal(self, effect_id, *, detail=None):
+        """Mark a recorded remote effect as removal-requested (F08).
+
+        The row is *kept* and marked — never deleted: it is the durable
+        record that a removal intent exists for a remote resource, so an
+        unreachable provider stays diagnosable and a repeat setup never
+        duplicates the integration (A2/A5). Returns ``False`` for an
+        unknown effect id.
+        """
+        record = self._data["remote_effects"].get(effect_id)
+        if record is None:
+            return False
+        record["removal"] = {
+            "status": "removal-recorded",
+            "removed_at": _utcnow(),
+        }
+        if detail:
+            record["removal"]["detail"] = detail
+        self._save()
+        return True
 
     # -- applied plans ----------------------------------------------------------
 

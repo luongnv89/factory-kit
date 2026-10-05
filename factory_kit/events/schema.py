@@ -90,6 +90,15 @@ EVENT_SCHEMAS = {
     "setup_applied": {
         "required": ("plan_digest", "outcome"),
     },
+    # Task 3.5 — reviewed ownership-aware removal (F08). ``pending``
+    # lists remote cleanups left visibly incomplete (provider outage,
+    # quarantined termination) — its presence means the outcome is
+    # *not* a complete-removal claim (A5).
+    "setup_removed": {
+        "required": ("repo_id", "outcome"),
+        "nullable": ("removal_digest", "history", "removed_by",
+                     "pending", "preserved_edits"),
+    },
     # Task 2.3 — intake decision events.
     "work_accepted": {
         "required": ("delivery_id",),

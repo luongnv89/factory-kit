@@ -9,6 +9,9 @@ PRD §4.1 install flow; issue #7 / Task 2.2. Wired by the
         --accepted-by <operator>
     python3 -m factory_kit.setup readiness --repo . [--readings rec.json]
     python3 -m factory_kit.setup status [--state setup-state.json]
+    python3 -m factory_kit.setup uninstall --repo . [--out plan.json]
+    python3 -m factory_kit.setup remove --repo . --plan plan.json \\
+        --history retain|export|delete --accepted-by <operator>
 
 Exit codes (shared gi-* vocabulary):
 
@@ -21,6 +24,9 @@ Exit codes (shared gi-* vocabulary):
 State paths default under the operator profile
 (``~/.hermes/profiles/<profile>/factory-kit/``); ``--state`` and
 ``--registrations`` override them for tests and alternate profiles.
+``remove`` additionally accepts ``--intake-db`` for the durable intake
+store — required when ``--history export|delete`` must touch task
+history (F08 A4).
 """
 
 from __future__ import annotations
@@ -33,8 +39,13 @@ from pathlib import Path
 from factory_kit import VERSION
 from factory_kit.config.registration import RegistrationStore
 from factory_kit.config.schema import ConfigError, load_manifest_file
+from factory_kit.durable.store import IntakeStore
+
 from . import apply as apply_mod
-from . import ownership, plan as plan_mod, readiness as readiness_mod
+from . import ownership
+from . import plan as plan_mod
+from . import readiness as readiness_mod
+from . import remove as remove_mod
 
 
 def _emit(payload):
@@ -174,6 +185,102 @@ def cmd_readiness(args):
     return 0 if report["verdict"] == "ready" else 1
 
 
+def _intake_store(args):
+    """Open the durable intake store when a path resolves, else None."""
+    path = getattr(args, "intake_db", None)
+    if not path:
+        root = Path.home() / ".hermes" / "profiles" / args.profile / \
+            "factory-kit"
+        candidate = root / "intake.db"
+        path = str(candidate) if candidate.is_file() else None
+    if path is None:
+        return None
+    return IntakeStore(path)
+
+
+def cmd_uninstall(args):
+    """Read-only: emit the reviewable removal plan (F08 A1)."""
+    try:
+        store = ownership.SetupStore(_state_path(args))
+    except ownership.OwnershipError as exc:
+        print(f"✗ {exc}", file=sys.stderr)
+        return 3
+    try:
+        plan = remove_mod.inspect_removal(
+            args.repo, store,
+            registration_store=RegistrationStore(
+                _registrations_path(args)),
+            intake_store=_intake_store(args))
+    except (remove_mod.RemovalError, OSError) as exc:
+        print(f"✗ removal inspection failed: {exc}", file=sys.stderr)
+        return 4
+    # Operator-supplied reviewed resolutions — stamped INTO the plan so
+    # the digest re-keys over them and acceptance binds them (A2).
+    for spec in args.resolution or []:
+        if "=" not in spec:
+            print(f"✗ --resolution expects entry-id=value, got "
+                  f"{spec!r}", file=sys.stderr)
+            return 2
+        entry_id, resolution = spec.split("=", 1)
+        matched = False
+        for entry in plan["files"]:
+            if entry["id"] == entry_id:
+                entry["resolution"] = resolution
+                matched = True
+        if not matched:
+            print(f"✗ --resolution names unknown entry {entry_id!r}",
+                  file=sys.stderr)
+            return 2
+    if args.resolution:
+        plan["removal_digest"] = remove_mod.removal_digest(plan)
+    plan["review_hint"] = (
+        "review files[]/remote_effects[]/previews[]/authority — apply "
+        "with `python3 -m factory_kit.setup remove --plan <file> "
+        "--history retain|export|delete --accepted-by <you>`")
+    if args.out:
+        Path(args.out).write_text(
+            json.dumps(plan, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8")
+        print(f"○ removal plan written to {args.out} "
+              f"(digest {plan['removal_digest'][:12]}…)", file=sys.stderr)
+    else:
+        _emit(plan)
+    return 0 if plan["appliable"] else 1
+
+
+def cmd_remove(args):
+    plan = _load_plan(args.plan)
+    if plan is None:
+        return 3
+    try:
+        accepted = remove_mod.accept_removal(
+            plan, args.accepted_by, history=args.history)
+    except remove_mod.RemovalError as exc:
+        print(f"✗ removal plan refused: {exc}", file=sys.stderr)
+        return 1
+    try:
+        store = ownership.SetupStore(_state_path(args))
+    except ownership.OwnershipError as exc:
+        print(f"✗ {exc}", file=sys.stderr)
+        return 3
+    try:
+        result = remove_mod.apply_removal(
+            accepted, args.repo, store,
+            registration_store=RegistrationStore(
+                _registrations_path(args)),
+            intake_store=_intake_store(args),
+            export_path=args.export_path)
+    except remove_mod.RemovalError as exc:
+        print(f"✗ removal refused: {exc}", file=sys.stderr)
+        return 1
+    except ownership.OwnershipError as exc:
+        print(f"✗ setup state error: {exc}", file=sys.stderr)
+        return 3
+    _emit(result)
+    return 0 if result["outcome"] in ("removed", "nothing-to-remove") \
+        else 1
+
+
 def cmd_status(args):
     try:
         store = ownership.SetupStore(_state_path(args))
@@ -244,6 +351,40 @@ def main(argv=None):
                                   "repository root")
     p.add_argument("--state")
     p.set_defaults(func=cmd_status)
+
+    p = sub.add_parser("uninstall", help="emit the reviewable removal "
+                                         "plan (read-only, F08)")
+    p.add_argument("--repo", required=True)
+    p.add_argument("--state")
+    p.add_argument("--registrations")
+    p.add_argument("--intake-db", help="durable intake store path "
+                                       "(default: profile intake.db "
+                                       "when present)")
+    p.add_argument("--out", help="write the plan JSON here instead of "
+                                 "stdout")
+    p.add_argument("--resolution", action="append", metavar="ID=VALUE",
+                   help="stamp a reviewed resolution onto a file "
+                        "entry (e.g. file:.factory-kit.yml=discard) — "
+                        "the digest re-keys over it so acceptance "
+                        "binds the resolution")
+    p.set_defaults(func=cmd_uninstall)
+
+    p = sub.add_parser("remove", help="apply an accepted removal plan "
+                                      "(fenced + ownership-aware)")
+    p.add_argument("--repo", required=True)
+    p.add_argument("--plan", required=True,
+                   help="removal plan JSON from `uninstall`")
+    p.add_argument("--history", required=True,
+                   choices=list(remove_mod.HISTORY_CHOICES),
+                   help="explicit task-history choice (F08 A4)")
+    p.add_argument("--accepted-by", required=True,
+                   help="operator identity accepting the reviewed plan")
+    p.add_argument("--export-path", help="where --history export writes "
+                                         "the repo-scoped history JSON")
+    p.add_argument("--state")
+    p.add_argument("--registrations")
+    p.add_argument("--intake-db")
+    p.set_defaults(func=cmd_remove)
 
     args = parser.parse_args(argv)
     return args.func(args)
