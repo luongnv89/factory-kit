@@ -1,0 +1,191 @@
+{
+  "fixture_id": "dogfood-cohort-v1",
+  "kind": "scripted-cohort-replay",
+  "description": "Scripted rehearsal of the PRD §1.4 ten-issue two-project sequential dogfood cohort (issue #27 / task 4.3). Operator interventions and attempt usage are recorded fixture inputs replayed through the real merged services; this is not a live 30-day observation.",
+  "protocol": {
+    "recorded_before_selection": "2026-10-05",
+    "selector": "trusted maintainer (single owner)",
+    "inclusion_criteria": [
+      "bounded scope: a single PR-addressable issue, no cross-repo work",
+      "no secrets, personal data or production-credential handling in scope",
+      "acceptance criteria writable as a checklist",
+      "size class S or M — comparable to a direct-IDD fix"
+    ],
+    "task_mix": {"improvement": 4, "feature": 3, "bug": 2, "documentation": 1},
+    "cohort_size": 10,
+    "baseline_size": 10,
+    "endpoint": ["issue-accepted", "preview-verified", "human-approved", "merged"],
+    "q9_target_status": "proposed — pending owner acceptance (docs/decisions/q9-acceptance.md)",
+    "observation_window": {
+      "kind": "days-after-mvp-release",
+      "days": 30,
+      "declared_start": "2026-10-05T00:00:00Z"
+    }
+  },
+  "projects": [
+    {
+      "slot": "project-a",
+      "name": "luongnv89/money-mind",
+      "repo_id": "R_kgDOQncOdA",
+      "identity_override": null
+    },
+    {
+      "slot": "project-b",
+      "name": "luongnv89/factory-kit-selftest",
+      "repo_id": "R_kgDOFkDogfoodB",
+      "identity_override": {
+        "repo_id": "R_kgDOFkDogfoodB",
+        "owner": "luongnv89",
+        "name": "factory-kit-selftest"
+      }
+    }
+  ],
+  "overhead": {
+    "setup_minutes": {"project-a": 25.0, "project-b": 20.0},
+    "maintenance_minutes": 30.0
+  },
+  "issues": [
+    {
+      "key": "c1", "project": "project-a", "issue": 101,
+      "task_class": "improvement", "title": "Bound the retry budget table",
+      "path": "merged",
+      "interventions": [
+        {"category": "approval", "active_minutes": 8.0},
+        {"category": "monitoring", "active_minutes": 5.0}
+      ],
+      "usage": {
+        "durations": {"queue_seconds": 12.0, "model_execution_seconds": 540.0, "ci_wait_seconds": 95.0, "human_wait_seconds": 420.0},
+        "tokens": [{"count": 41000, "provider": "openai-codex", "unit": "tokens"}],
+        "billed": {"amount": 0.42, "currency": "USD"},
+        "quota": {"kind": "subscription", "used": 39, "limit": 100, "remaining": 61}
+      }
+    },
+    {
+      "key": "c2", "project": "project-a", "issue": 102,
+      "task_class": "feature", "title": "Add ledger export subcommand",
+      "path": "merged",
+      "interventions": [
+        {"category": "approval", "active_minutes": 10.0},
+        {"category": "correction", "active_minutes": 15.0}
+      ],
+      "usage": {
+        "durations": {"queue_seconds": 9.0, "model_execution_seconds": 810.0, "ci_wait_seconds": 140.0, "human_wait_seconds": 600.0},
+        "tokens": [{"count": 73500, "provider": "openai-codex", "unit": "tokens"}],
+        "billed": {"amount": 0.71, "currency": "USD"},
+        "quota": {"kind": "subscription", "used": 46, "limit": 100, "remaining": 54}
+      }
+    },
+    {
+      "key": "c3", "project": "project-a", "issue": 103,
+      "task_class": "improvement", "title": "Tighten intake dedup window",
+      "path": "merge_ready",
+      "interventions": [
+        {"category": "approval", "active_minutes": 6.0},
+        {"category": "monitoring", "active_minutes": 3.0}
+      ],
+      "usage": {
+        "durations": {"queue_seconds": 8.0, "model_execution_seconds": 430.0, "ci_wait_seconds": 70.0, "human_wait_seconds": 2400.0},
+        "tokens": [{"count": 30500, "provider": "openai-codex", "unit": "tokens"}],
+        "billed": {"amount": 0.33, "currency": "USD"},
+        "quota": {"kind": "subscription", "used": 41, "limit": 100, "remaining": 59}
+      }
+    },
+    {
+      "key": "c4", "project": "project-a", "issue": 104,
+      "task_class": "bug", "title": "Fix stale status after fence",
+      "path": "declined",
+      "interventions": [
+        {"category": "approval", "active_minutes": 12.0},
+        {"category": "investigation", "active_minutes": 9.0}
+      ],
+      "usage": {
+        "durations": {"queue_seconds": 15.0, "model_execution_seconds": 690.0, "ci_wait_seconds": 110.0, "human_wait_seconds": 900.0},
+        "tokens": [{"count": 51200, "provider": "openai-codex", "unit": "tokens"}],
+        "billed": {"amount": 0.55, "currency": "USD"},
+        "quota": {"kind": "subscription", "used": 50, "limit": 100, "remaining": 50}
+      }
+    },
+    {
+      "key": "c5", "project": "project-a", "issue": 105,
+      "task_class": "improvement", "title": "Rename confusing status label",
+      "path": "merged",
+      "interventions": [
+        {"category": "approval", "active_minutes": 6.0}
+      ],
+      "usage": {
+        "durations": {"queue_seconds": 6.0, "model_execution_seconds": 280.0, "ci_wait_seconds": 60.0, "human_wait_seconds": 300.0},
+        "tokens": [{"count": 19800, "provider": "openai-codex", "unit": "tokens"}],
+        "billed": {"amount": 0.21, "currency": "USD"},
+        "quota": {"kind": "subscription", "used": 37, "limit": 100, "remaining": 63}
+      }
+    },
+    {
+      "key": "c6", "project": "project-b", "issue": 201,
+      "task_class": "feature", "title": "Add fixture seed subcommand",
+      "path": "merged",
+      "interventions": [
+        {"category": "approval", "active_minutes": 9.0},
+        {"category": "monitoring", "active_minutes": 7.0}
+      ],
+      "usage": {
+        "durations": {"queue_seconds": 11.0, "model_execution_seconds": 620.0, "ci_wait_seconds": 100.0, "human_wait_seconds": 480.0},
+        "tokens": [{"count": 48800, "provider": "openai-codex", "unit": "tokens"}],
+        "billed": {"amount": 0.49, "currency": "USD"},
+        "quota": {"kind": "subscription", "used": 52, "limit": 100, "remaining": 48}
+      }
+    },
+    {
+      "key": "c7", "project": "project-b", "issue": 202,
+      "task_class": "bug", "title": "Fix reconcile watermark regression",
+      "path": "failed_attempt",
+      "interventions": [
+        {"category": "investigation", "active_minutes": 20.0}
+      ],
+      "usage": {
+        "durations": {"queue_seconds": 10.0, "model_execution_seconds": 720.0, "ci_wait_seconds": 0.0, "human_wait_seconds": 1500.0},
+        "tokens": [{"count": 66300, "provider": "openai-codex", "unit": "tokens"}],
+        "billed": null,
+        "quota": {"kind": "subscription", "used": 58, "limit": 100, "remaining": 42}
+      }
+    },
+    {
+      "key": "c8", "project": "project-b", "issue": 203,
+      "task_class": "improvement", "title": "Reorder diagnostics sections",
+      "path": "canceled",
+      "interventions": [
+        {"category": "monitoring", "active_minutes": 4.0},
+        {"category": "cleanup", "active_minutes": 6.0}
+      ],
+      "usage": {
+        "durations": {"queue_seconds": 4.0, "model_execution_seconds": 150.0, "ci_wait_seconds": 0.0, "human_wait_seconds": 60.0},
+        "tokens": [{"count": 9400, "provider": "openai-codex", "unit": "tokens"}],
+        "billed": {"amount": 0.09, "currency": "USD"},
+        "quota": {"kind": "subscription", "used": 55, "limit": 100, "remaining": 45}
+      }
+    },
+    {
+      "key": "c9", "project": "project-b", "issue": 204,
+      "task_class": "documentation", "title": "Document retention defaults",
+      "path": "merge_ready",
+      "interventions": [],
+      "effort_record": "missing",
+      "usage": {
+        "durations": {"queue_seconds": 7.0, "model_execution_seconds": 310.0, "ci_wait_seconds": 55.0, "human_wait_seconds": 1800.0},
+        "tokens": [{"count": 22600, "provider": "openai-codex", "unit": "tokens"}],
+        "billed": {"amount": 0.24, "currency": "USD"},
+        "quota": {"kind": "subscription", "used": 53, "limit": 100, "remaining": 47}
+      }
+    },
+    {
+      "key": "c10", "project": "project-b", "issue": 205,
+      "task_class": "feature", "title": "Add merge method toggle",
+      "path": "verification_blocked",
+      "interventions": [
+        {"category": "investigation", "active_minutes": 12.0},
+        {"category": "correction", "active_minutes": 5.0}
+      ],
+      "usage": null,
+      "review_usage": null
+    }
+  ]
+}
