@@ -449,23 +449,43 @@ def export_diagnostics(store, *, expanded=False, fixture=None,
 
 
 def pilot_export(store, *, scope=_PILOT_EXPORT_SCOPE):
-    """Aggregate pilot export (A6) — gated on recorded participant
-    agreement; it cannot silently enable external collection.
+    """Aggregate pilot export (A6 + Task 4.4/A2/A5) — gated on recorded
+    participant agreement; it cannot silently enable external
+    collection.
 
     Returns ``{"outcome": "denied", "reason":
     "participant-agreement-missing"}`` unless a durable agreement row
-    exists for ``scope``. On success, every event's properties pass
+    exists for ``scope``, and
+    ``{"outcome": "denied", "reason":
+    "participant-agreement-revoked"}`` once that agreement is withdrawn
+    — revoked consent blocks the aggregate export, not only new
+    collection (A2). On success, events bound to participants whose
+    consent is revoked or whose admission was denied are excluded via
+    their ``authority_key`` — the durable consent state, not an
+    in-memory flag, decides. Every event's properties then pass
     through :func:`aggregate_properties` — no bodies, code, usernames,
     tokens or chat text; raw numeric actor IDs remain restricted
-    references.
+    references, and participant identities never appear (the admission
+    trail carries hashes only, A5).
     """
-    agreement = store.participant_agreement(scope)
-    if agreement is None:
-        return {"outcome": "denied",
-                "reason": "participant-agreement-missing",
-                "scope": scope}
+    # Deferred: privacy.retention imports this module, so the consent
+    # gate is resolved at call time to keep the import acyclic.
+    from factory_kit.privacy import consent as _consent
+    gate = _consent.export_gate(store, scope)
+    if gate["outcome"] == "denied":
+        return gate
+    agreement = gate["agreement"]
+    excluded = set(gate["excluded_authorities"])
+    # work_key embeds the authority it was minted under —
+    # ``{authority}#{issue}:g{n}`` — so an excluded participant's
+    # collected events never reach the aggregate.
     events = []
+    dropped = 0
     for row in store.event_rows():
+        work_key = row["work_key"]
+        if work_key and work_key.split("#", 1)[0] in excluded:
+            dropped += 1
+            continue
         props = {}
         if row.get("detail"):
             parsed = _json_or_none(row["detail"])
@@ -474,7 +494,7 @@ def pilot_export(store, *, scope=_PILOT_EXPORT_SCOPE):
             # it to dict.update would crash the export.
             if isinstance(parsed, dict):
                 props = parsed
-        merged = {"work_key": row["work_key"], "reason": row["reason"],
+        merged = {"work_key": work_key, "reason": row["reason"],
                   "config_digest": row["config_digest"]}
         merged.update(props)
         events.append({"seq": row["seq"], "ts": row["ts"],
@@ -489,6 +509,8 @@ def pilot_export(store, *, scope=_PILOT_EXPORT_SCOPE):
         "agreement": {"scope": agreement["scope"],
                       "actor_ref": agreement["actor_ref"],
                       "recorded_at": agreement["recorded_at"]},
+        "consent": {"excluded_authorities": sorted(excluded),
+                    "events_excluded": dropped},
         "report": diagnostic_report(store),
         "events": events,
     }

@@ -46,7 +46,17 @@ record in `docs/decisions/v1.0-acceptance.md`. The audit reports
 **NO-GO pending owner decision**: GATE-M02 stays closed on the
 outstanding live endpoint legs (`base-unprotected` — verified live —
 `telegram-adapter-live`, `vercel-linkage`, `kanban-live-write`) and Q9
-acceptance is still pending; no gate was waived for schedule.
+acceptance is still pending; no gate was waived for schedule. The
+external-pilot consent and workload-trust admission gate (issue #28 /
+Task 4.4) ships in `factory_kit.privacy`: the durable obligations
+record that must exist before any participant consent, per-participant
+consent + supported workload/trust classification with durable
+revocation that blocks collection and aggregate export, hostile
+boundary probes (`python3 -m factory_kit.privacy.boundary`) that deny
+external code without demonstrated filesystem/network/privileged-write
+and credential-scope isolation — a worktree, prompt rule or branch
+protection is never evidence — and consent-aware aggregate exports in
+`diagnostics/report.py`, per `docs/pilot/consent-admission.md`.
 
 ## Documents
 
@@ -60,6 +70,7 @@ acceptance is still pending; no gate was waived for schedule.
 - [v1.0 acceptance record](docs/decisions/v1.0-acceptance.md) — no-go pending owner decision
 - [§5.1 measured local targets](docs/measurements/v1-targets.md)
 - [Tested support recipe](docs/recipes/) — installation, operations, backup/restore, upgrade/repair/rollback, support matrix
+- [Pilot consent and workload-trust admission](docs/pilot/consent-admission.md) — obligations record, consent gate, boundary probes, named blockers
 - [Decision records](docs/decisions/)
 - [Canonical manifest example](.factory-kit.yml)
 - [Reference diagram](assets/warp-ai-factory-reference.jpg)

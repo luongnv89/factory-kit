@@ -171,6 +171,35 @@ EVENT_SCHEMAS = {
     "participant_agreement_recorded": {
         "required": ("scope", "actor_ref", "recorded_at"),
     },
+    # Task 4.4 — external-pilot admission (§8.3 consent gate). The
+    # obligations event is the pre-collection record (A1); consent,
+    # revocation and denial bind the participant by *hash* — the raw
+    # participant_ref stays in the durable pilot_participants row, so an
+    # aggregate export can never carry identifying content (A5). A
+    # denial always names its readiness blocker (A4).
+    "pilot_obligations_recorded": {
+        "required": ("scope", "terms_digest", "actor_ref",
+                     "recorded_at"),
+        "nullable": ("process_ref",),
+    },
+    "pilot_consent_recorded": {
+        "required": ("participant_hash", "scope", "actor_ref",
+                     "recorded_at"),
+        "nullable": ("workload_class", "trust_class",
+                     "boundary_ref"),
+    },
+    "pilot_consent_revoked": {
+        "required": ("participant_hash", "actor_ref", "revoked_at"),
+        "nullable": ("scope",),
+    },
+    "pilot_admission_denied": {
+        "required": ("participant_hash", "reason", "actor_ref",
+                     "recorded_at"),
+        "nullable": ("scope", "blocker"),
+    },
+    "participant_agreement_revoked": {
+        "required": ("scope", "actor_ref", "revoked_at"),
+    },
     # §7.1 kinds reserved for Sprint-3 producers (preview/approval/
     # merge/notifications) — declared now so the vocabulary is closed.
     "notification_delivered": {
