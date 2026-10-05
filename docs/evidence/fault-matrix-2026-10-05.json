@@ -1,0 +1,5195 @@
+{
+  "schema": "factory-kit/fault-matrix@1",
+  "version": "1.0.0",
+  "run_id": "d83b8d95",
+  "started": "2026-10-05T10:43:07Z",
+  "elapsed_s": 4.44,
+  "verdict": "fault-matrix-passed",
+  "rows": {
+    "FAULT01": {
+      "row": "FAULT01",
+      "status": "pass",
+      "passed_reps": 3,
+      "required_reps": 3,
+      "reps": [
+        {
+          "rep": 1,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "webhook-accepted",
+              "pass": true,
+              "measured": {
+                "outcome": "accepted"
+              }
+            },
+            {
+              "name": "redelivery-deduplicated",
+              "pass": true,
+              "measured": {
+                "outcome": "deduplicated"
+              }
+            },
+            {
+              "name": "reordered-converges",
+              "pass": true,
+              "measured": {
+                "late": "reconciled",
+                "early": "reconciled"
+              }
+            },
+            {
+              "name": "webhook-poll-overlap-converges",
+              "pass": true,
+              "measured": {
+                "outcome": "reconciled"
+              }
+            },
+            {
+              "name": "one-logical-task",
+              "pass": true,
+              "measured": {
+                "work_rows": 1
+              }
+            },
+            {
+              "name": "at-most-one-active-attempt",
+              "pass": true,
+              "measured": {
+                "second": "denied",
+                "active": 1
+              }
+            },
+            {
+              "name": "at-most-one-pr",
+              "pass": true,
+              "measured": {
+                "first": "applied",
+                "second": "converged",
+                "remote_calls": 1
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#101:g1"
+            ],
+            "delivery_ids": [
+              "dlv-f1"
+            ],
+            "attempt_ids": [
+              "fk-task-000001-a01"
+            ],
+            "intent_ids": [
+              "pub-5e6e6f953fea"
+            ],
+            "pr_numbers": [
+              "100"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 0,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        },
+        {
+          "rep": 2,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "webhook-accepted",
+              "pass": true,
+              "measured": {
+                "outcome": "accepted"
+              }
+            },
+            {
+              "name": "redelivery-deduplicated",
+              "pass": true,
+              "measured": {
+                "outcome": "deduplicated"
+              }
+            },
+            {
+              "name": "reordered-converges",
+              "pass": true,
+              "measured": {
+                "late": "reconciled",
+                "early": "reconciled"
+              }
+            },
+            {
+              "name": "webhook-poll-overlap-converges",
+              "pass": true,
+              "measured": {
+                "outcome": "reconciled"
+              }
+            },
+            {
+              "name": "one-logical-task",
+              "pass": true,
+              "measured": {
+                "work_rows": 1
+              }
+            },
+            {
+              "name": "at-most-one-active-attempt",
+              "pass": true,
+              "measured": {
+                "second": "denied",
+                "active": 1
+              }
+            },
+            {
+              "name": "at-most-one-pr",
+              "pass": true,
+              "measured": {
+                "first": "applied",
+                "second": "converged",
+                "remote_calls": 1
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#101:g1"
+            ],
+            "delivery_ids": [
+              "dlv-f1"
+            ],
+            "attempt_ids": [
+              "fk-task-000001-a01"
+            ],
+            "intent_ids": [
+              "pub-e941bf7e7dc3"
+            ],
+            "pr_numbers": [
+              "100"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 0,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        },
+        {
+          "rep": 3,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "webhook-accepted",
+              "pass": true,
+              "measured": {
+                "outcome": "accepted"
+              }
+            },
+            {
+              "name": "redelivery-deduplicated",
+              "pass": true,
+              "measured": {
+                "outcome": "deduplicated"
+              }
+            },
+            {
+              "name": "reordered-converges",
+              "pass": true,
+              "measured": {
+                "late": "reconciled",
+                "early": "reconciled"
+              }
+            },
+            {
+              "name": "webhook-poll-overlap-converges",
+              "pass": true,
+              "measured": {
+                "outcome": "reconciled"
+              }
+            },
+            {
+              "name": "one-logical-task",
+              "pass": true,
+              "measured": {
+                "work_rows": 1
+              }
+            },
+            {
+              "name": "at-most-one-active-attempt",
+              "pass": true,
+              "measured": {
+                "second": "denied",
+                "active": 1
+              }
+            },
+            {
+              "name": "at-most-one-pr",
+              "pass": true,
+              "measured": {
+                "first": "applied",
+                "second": "converged",
+                "remote_calls": 1
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#101:g1"
+            ],
+            "delivery_ids": [
+              "dlv-f1"
+            ],
+            "attempt_ids": [
+              "fk-task-000001-a01"
+            ],
+            "intent_ids": [
+              "pub-ca9d854bb868"
+            ],
+            "pr_numbers": [
+              "100"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 0,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        }
+      ]
+    },
+    "FAULT02": {
+      "row": "FAULT02",
+      "status": "pass",
+      "passed_reps": 3,
+      "required_reps": 3,
+      "reps": [
+        {
+          "rep": 1,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "pre-commit-crash-no-ack",
+              "pass": true,
+              "measured": {
+                "error": "IntakeUnavailable"
+              }
+            },
+            {
+              "name": "pre-commit-crash-nothing-persisted",
+              "pass": true,
+              "measured": {
+                "rows": 0
+              }
+            },
+            {
+              "name": "redelivery-after-crash-accepted",
+              "pass": true,
+              "measured": {
+                "outcome": "accepted"
+              }
+            },
+            {
+              "name": "accepted-before-crash-retained",
+              "pass": true,
+              "measured": {
+                "task_state": "pending"
+              }
+            },
+            {
+              "name": "crash-window-binding-pending",
+              "pass": true,
+              "measured": {
+                "pending": 1
+              }
+            },
+            {
+              "name": "association-reconciled-after-restart",
+              "pass": true,
+              "measured": {
+                "task_state": "bound",
+                "task_id": "fk-task-000002"
+              }
+            },
+            {
+              "name": "post-restart-delivery-deduplicated",
+              "pass": true,
+              "measured": {
+                "outcome": "deduplicated"
+              }
+            },
+            {
+              "name": "no-duplicate-execution",
+              "pass": true,
+              "measured": {
+                "work_rows": 1,
+                "impl_attempts": 1,
+                "dispatched": 2
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#202:g1"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 0,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        },
+        {
+          "rep": 2,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "pre-commit-crash-no-ack",
+              "pass": true,
+              "measured": {
+                "error": "IntakeUnavailable"
+              }
+            },
+            {
+              "name": "pre-commit-crash-nothing-persisted",
+              "pass": true,
+              "measured": {
+                "rows": 0
+              }
+            },
+            {
+              "name": "redelivery-after-crash-accepted",
+              "pass": true,
+              "measured": {
+                "outcome": "accepted"
+              }
+            },
+            {
+              "name": "accepted-before-crash-retained",
+              "pass": true,
+              "measured": {
+                "task_state": "pending"
+              }
+            },
+            {
+              "name": "crash-window-binding-pending",
+              "pass": true,
+              "measured": {
+                "pending": 1
+              }
+            },
+            {
+              "name": "association-reconciled-after-restart",
+              "pass": true,
+              "measured": {
+                "task_state": "bound",
+                "task_id": "fk-task-000002"
+              }
+            },
+            {
+              "name": "post-restart-delivery-deduplicated",
+              "pass": true,
+              "measured": {
+                "outcome": "deduplicated"
+              }
+            },
+            {
+              "name": "no-duplicate-execution",
+              "pass": true,
+              "measured": {
+                "work_rows": 1,
+                "impl_attempts": 1,
+                "dispatched": 2
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#202:g1"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 0,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        },
+        {
+          "rep": 3,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "pre-commit-crash-no-ack",
+              "pass": true,
+              "measured": {
+                "error": "IntakeUnavailable"
+              }
+            },
+            {
+              "name": "pre-commit-crash-nothing-persisted",
+              "pass": true,
+              "measured": {
+                "rows": 0
+              }
+            },
+            {
+              "name": "redelivery-after-crash-accepted",
+              "pass": true,
+              "measured": {
+                "outcome": "accepted"
+              }
+            },
+            {
+              "name": "accepted-before-crash-retained",
+              "pass": true,
+              "measured": {
+                "task_state": "pending"
+              }
+            },
+            {
+              "name": "crash-window-binding-pending",
+              "pass": true,
+              "measured": {
+                "pending": 1
+              }
+            },
+            {
+              "name": "association-reconciled-after-restart",
+              "pass": true,
+              "measured": {
+                "task_state": "bound",
+                "task_id": "fk-task-000002"
+              }
+            },
+            {
+              "name": "post-restart-delivery-deduplicated",
+              "pass": true,
+              "measured": {
+                "outcome": "deduplicated"
+              }
+            },
+            {
+              "name": "no-duplicate-execution",
+              "pass": true,
+              "measured": {
+                "work_rows": 1,
+                "impl_attempts": 1,
+                "dispatched": 2
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#202:g1"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 0,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        }
+      ]
+    },
+    "FAULT03": {
+      "row": "FAULT03",
+      "status": "pass",
+      "passed_reps": 3,
+      "required_reps": 3,
+      "reps": [
+        {
+          "rep": 1,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "crash-window-reconciled-by-readback",
+              "pass": true,
+              "measured": {
+                "outcome": "applied",
+                "intent_state": "linked",
+                "prs": 1
+              }
+            },
+            {
+              "name": "ambiguous-remote-identity-parks",
+              "pass": true,
+              "measured": {
+                "outcome": "parked",
+                "intent_state": "parked",
+                "remote_pr_calls": 0
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#301:g1",
+              "gh:R_kgDOQncOdA#302:g1"
+            ],
+            "intent_ids": [
+              "pub-1ceda5eba591",
+              "pub-8c5a4e874d98"
+            ],
+            "pr_numbers": [
+              "100"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 0,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        },
+        {
+          "rep": 2,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "crash-window-reconciled-by-readback",
+              "pass": true,
+              "measured": {
+                "outcome": "applied",
+                "intent_state": "linked",
+                "prs": 1
+              }
+            },
+            {
+              "name": "ambiguous-remote-identity-parks",
+              "pass": true,
+              "measured": {
+                "outcome": "parked",
+                "intent_state": "parked",
+                "remote_pr_calls": 0
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#301:g1",
+              "gh:R_kgDOQncOdA#302:g1"
+            ],
+            "intent_ids": [
+              "pub-32411a264d56",
+              "pub-e4f36f10fb7e"
+            ],
+            "pr_numbers": [
+              "100"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 0,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        },
+        {
+          "rep": 3,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "crash-window-reconciled-by-readback",
+              "pass": true,
+              "measured": {
+                "outcome": "applied",
+                "intent_state": "linked",
+                "prs": 1
+              }
+            },
+            {
+              "name": "ambiguous-remote-identity-parks",
+              "pass": true,
+              "measured": {
+                "outcome": "parked",
+                "intent_state": "parked",
+                "remote_pr_calls": 0
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#301:g1",
+              "gh:R_kgDOQncOdA#302:g1"
+            ],
+            "intent_ids": [
+              "pub-a8618ec43be9",
+              "pub-4f76f3825e5d"
+            ],
+            "pr_numbers": [
+              "100"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 0,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        }
+      ]
+    },
+    "FAULT04": {
+      "row": "FAULT04",
+      "status": "pass",
+      "passed_reps": 3,
+      "required_reps": 3,
+      "reps": [
+        {
+          "rep": 1,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "dead-worker-fenced-before-replacement",
+              "pass": true,
+              "measured": {
+                "fenced": 1,
+                "reason": "heartbeat-lost"
+              }
+            },
+            {
+              "name": "unconfirmed-exit-quarantines",
+              "pass": true,
+              "measured": {
+                "termination": "quarantined",
+                "state": "quarantined"
+              }
+            },
+            {
+              "name": "late-result-fenced",
+              "pass": true,
+              "measured": {
+                "accepted": 0,
+                "reason": "generation-fenced"
+              }
+            },
+            {
+              "name": "fenced-result-alerted",
+              "pass": true,
+              "measured": {
+                "alerts": 1
+              }
+            },
+            {
+              "name": "replacement-denied-while-uncertain",
+              "pass": true,
+              "measured": {
+                "reason": "termination-uncertain"
+              }
+            },
+            {
+              "name": "retry-mints-fresh-generation",
+              "pass": true,
+              "measured": {
+                "outcome": "retry-authorized",
+                "new_key": "gh:R_kgDOQncOdA#401:g2"
+              }
+            },
+            {
+              "name": "old-generation-still-fenced",
+              "pass": true,
+              "measured": {
+                "reason": "generation-fenced"
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#401:g1",
+              "gh:R_kgDOQncOdA#401:g2"
+            ],
+            "attempt_ids": [
+              "fk-task-000001-a01"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 0,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        },
+        {
+          "rep": 2,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "dead-worker-fenced-before-replacement",
+              "pass": true,
+              "measured": {
+                "fenced": 1,
+                "reason": "heartbeat-lost"
+              }
+            },
+            {
+              "name": "unconfirmed-exit-quarantines",
+              "pass": true,
+              "measured": {
+                "termination": "quarantined",
+                "state": "quarantined"
+              }
+            },
+            {
+              "name": "late-result-fenced",
+              "pass": true,
+              "measured": {
+                "accepted": 0,
+                "reason": "generation-fenced"
+              }
+            },
+            {
+              "name": "fenced-result-alerted",
+              "pass": true,
+              "measured": {
+                "alerts": 1
+              }
+            },
+            {
+              "name": "replacement-denied-while-uncertain",
+              "pass": true,
+              "measured": {
+                "reason": "termination-uncertain"
+              }
+            },
+            {
+              "name": "retry-mints-fresh-generation",
+              "pass": true,
+              "measured": {
+                "outcome": "retry-authorized",
+                "new_key": "gh:R_kgDOQncOdA#401:g2"
+              }
+            },
+            {
+              "name": "old-generation-still-fenced",
+              "pass": true,
+              "measured": {
+                "reason": "generation-fenced"
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#401:g1",
+              "gh:R_kgDOQncOdA#401:g2"
+            ],
+            "attempt_ids": [
+              "fk-task-000001-a01"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 0,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        },
+        {
+          "rep": 3,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "dead-worker-fenced-before-replacement",
+              "pass": true,
+              "measured": {
+                "fenced": 1,
+                "reason": "heartbeat-lost"
+              }
+            },
+            {
+              "name": "unconfirmed-exit-quarantines",
+              "pass": true,
+              "measured": {
+                "termination": "quarantined",
+                "state": "quarantined"
+              }
+            },
+            {
+              "name": "late-result-fenced",
+              "pass": true,
+              "measured": {
+                "accepted": 0,
+                "reason": "generation-fenced"
+              }
+            },
+            {
+              "name": "fenced-result-alerted",
+              "pass": true,
+              "measured": {
+                "alerts": 1
+              }
+            },
+            {
+              "name": "replacement-denied-while-uncertain",
+              "pass": true,
+              "measured": {
+                "reason": "termination-uncertain"
+              }
+            },
+            {
+              "name": "retry-mints-fresh-generation",
+              "pass": true,
+              "measured": {
+                "outcome": "retry-authorized",
+                "new_key": "gh:R_kgDOQncOdA#401:g2"
+              }
+            },
+            {
+              "name": "old-generation-still-fenced",
+              "pass": true,
+              "measured": {
+                "reason": "generation-fenced"
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#401:g1",
+              "gh:R_kgDOQncOdA#401:g2"
+            ],
+            "attempt_ids": [
+              "fk-task-000001-a01"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 0,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        }
+      ]
+    },
+    "FAULT05": {
+      "row": "FAULT05",
+      "status": "pass",
+      "passed_reps": 3,
+      "required_reps": 3,
+      "reps": [
+        {
+          "rep": 1,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "cancel-accepted-fence-committed",
+              "pass": true,
+              "measured": {
+                "outcome": "accepted",
+                "termination": "confirmed"
+              }
+            },
+            {
+              "name": "work-canceled-terminal",
+              "pass": true,
+              "measured": {
+                "state": "canceled"
+              }
+            },
+            {
+              "name": "late-descendant-result-denied",
+              "pass": true,
+              "measured": {
+                "denied": 1
+              }
+            },
+            {
+              "name": "post-fence-effect-denied",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "fenced"
+              }
+            },
+            {
+              "name": "no-post-fence-remote-effect",
+              "pass": true,
+              "measured": {
+                "prs": 0
+              }
+            },
+            {
+              "name": "uncertain-exit-quarantine-surfaced",
+              "pass": true,
+              "measured": {
+                "termination": "quarantined"
+              }
+            },
+            {
+              "name": "quarantine-alert-visible",
+              "pass": true,
+              "measured": {
+                "alerts": 1
+              }
+            },
+            {
+              "name": "no-replacement-under-quarantine",
+              "pass": true,
+              "measured": {
+                "reason": "termination-uncertain"
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#501:g1",
+              "gh:R_kgDOQncOdA#502:g1"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 0,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        },
+        {
+          "rep": 2,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "cancel-accepted-fence-committed",
+              "pass": true,
+              "measured": {
+                "outcome": "accepted",
+                "termination": "confirmed"
+              }
+            },
+            {
+              "name": "work-canceled-terminal",
+              "pass": true,
+              "measured": {
+                "state": "canceled"
+              }
+            },
+            {
+              "name": "late-descendant-result-denied",
+              "pass": true,
+              "measured": {
+                "denied": 1
+              }
+            },
+            {
+              "name": "post-fence-effect-denied",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "fenced"
+              }
+            },
+            {
+              "name": "no-post-fence-remote-effect",
+              "pass": true,
+              "measured": {
+                "prs": 0
+              }
+            },
+            {
+              "name": "uncertain-exit-quarantine-surfaced",
+              "pass": true,
+              "measured": {
+                "termination": "quarantined"
+              }
+            },
+            {
+              "name": "quarantine-alert-visible",
+              "pass": true,
+              "measured": {
+                "alerts": 1
+              }
+            },
+            {
+              "name": "no-replacement-under-quarantine",
+              "pass": true,
+              "measured": {
+                "reason": "termination-uncertain"
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#501:g1",
+              "gh:R_kgDOQncOdA#502:g1"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 0,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        },
+        {
+          "rep": 3,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "cancel-accepted-fence-committed",
+              "pass": true,
+              "measured": {
+                "outcome": "accepted",
+                "termination": "confirmed"
+              }
+            },
+            {
+              "name": "work-canceled-terminal",
+              "pass": true,
+              "measured": {
+                "state": "canceled"
+              }
+            },
+            {
+              "name": "late-descendant-result-denied",
+              "pass": true,
+              "measured": {
+                "denied": 1
+              }
+            },
+            {
+              "name": "post-fence-effect-denied",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "fenced"
+              }
+            },
+            {
+              "name": "no-post-fence-remote-effect",
+              "pass": true,
+              "measured": {
+                "prs": 0
+              }
+            },
+            {
+              "name": "uncertain-exit-quarantine-surfaced",
+              "pass": true,
+              "measured": {
+                "termination": "quarantined"
+              }
+            },
+            {
+              "name": "quarantine-alert-visible",
+              "pass": true,
+              "measured": {
+                "alerts": 1
+              }
+            },
+            {
+              "name": "no-replacement-under-quarantine",
+              "pass": true,
+              "measured": {
+                "reason": "termination-uncertain"
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#501:g1",
+              "gh:R_kgDOQncOdA#502:g1"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 0,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        }
+      ]
+    },
+    "FAULT06": {
+      "row": "FAULT06",
+      "status": "pass",
+      "passed_reps": 3,
+      "required_reps": 3,
+      "reps": [
+        {
+          "rep": 1,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "baseline-verified",
+              "pass": true,
+              "measured": {
+                "status": "verified"
+              }
+            },
+            {
+              "name": "head-moved-old-evidence-invalidated",
+              "pass": true,
+              "measured": {
+                "status": "stale",
+                "reason": "head-moved:aaaa1111aaaa1111aaaa1111aaaa1111aaaa1111->bbbb2222bbbb2222bbbb2222bbbb2222bbbb2222"
+              }
+            },
+            {
+              "name": "new-sha-never-called-verified",
+              "pass": true,
+              "measured": {
+                "status": "failed",
+                "reason": "independent-review-missing"
+              }
+            },
+            {
+              "name": "latest-observation-not-verified",
+              "pass": true,
+              "measured": {
+                "latest": "failed",
+                "verified_head": "aaaa1111aaaa1111aaaa1111aaaa1111aaaa1111"
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#601:g1"
+            ],
+            "evidence_ids": [
+              "ev-af830864570a"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 1,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        },
+        {
+          "rep": 2,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "baseline-verified",
+              "pass": true,
+              "measured": {
+                "status": "verified"
+              }
+            },
+            {
+              "name": "head-moved-old-evidence-invalidated",
+              "pass": true,
+              "measured": {
+                "status": "stale",
+                "reason": "head-moved:aaaa1111aaaa1111aaaa1111aaaa1111aaaa1111->bbbb2222bbbb2222bbbb2222bbbb2222bbbb2222"
+              }
+            },
+            {
+              "name": "new-sha-never-called-verified",
+              "pass": true,
+              "measured": {
+                "status": "failed",
+                "reason": "independent-review-missing"
+              }
+            },
+            {
+              "name": "latest-observation-not-verified",
+              "pass": true,
+              "measured": {
+                "latest": "failed",
+                "verified_head": "aaaa1111aaaa1111aaaa1111aaaa1111aaaa1111"
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#601:g1"
+            ],
+            "evidence_ids": [
+              "ev-703edcbf7f19"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 1,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        },
+        {
+          "rep": 3,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "baseline-verified",
+              "pass": true,
+              "measured": {
+                "status": "verified"
+              }
+            },
+            {
+              "name": "head-moved-old-evidence-invalidated",
+              "pass": true,
+              "measured": {
+                "status": "stale",
+                "reason": "head-moved:aaaa1111aaaa1111aaaa1111aaaa1111aaaa1111->bbbb2222bbbb2222bbbb2222bbbb2222bbbb2222"
+              }
+            },
+            {
+              "name": "new-sha-never-called-verified",
+              "pass": true,
+              "measured": {
+                "status": "failed",
+                "reason": "independent-review-missing"
+              }
+            },
+            {
+              "name": "latest-observation-not-verified",
+              "pass": true,
+              "measured": {
+                "latest": "failed",
+                "verified_head": "aaaa1111aaaa1111aaaa1111aaaa1111aaaa1111"
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#601:g1"
+            ],
+            "evidence_ids": [
+              "ev-7e64438c2d87"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 1,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        }
+      ]
+    },
+    "FAULT07": {
+      "row": "FAULT07",
+      "status": "pass",
+      "passed_reps": 3,
+      "required_reps": 3,
+      "reps": [
+        {
+          "rep": 1,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "missing-required-check-not-verified",
+              "pass": true,
+              "measured": {
+                "status": "failed",
+                "reason": "required-check-missing:Security Scan"
+              }
+            },
+            {
+              "name": "failed-check-failed-not-verified",
+              "pass": true,
+              "measured": {
+                "status": "failed",
+                "reason": "check-conclusion:Security Scan=failure"
+              }
+            },
+            {
+              "name": "missing-contract-blocked",
+              "pass": true,
+              "measured": {
+                "status": "blocked",
+                "reason": "verification-contract-missing"
+              }
+            },
+            {
+              "name": "no-self-report-fallback",
+              "pass": true,
+              "measured": {
+                "statuses": [
+                  "failed",
+                  "failed",
+                  "blocked"
+                ]
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#701:g1",
+              "gh:R_kgDOQncOdA#702:g1",
+              "gh:R_kgDOQncOdA#703:g1"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 0,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        },
+        {
+          "rep": 2,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "missing-required-check-not-verified",
+              "pass": true,
+              "measured": {
+                "status": "failed",
+                "reason": "required-check-missing:Security Scan"
+              }
+            },
+            {
+              "name": "failed-check-failed-not-verified",
+              "pass": true,
+              "measured": {
+                "status": "failed",
+                "reason": "check-conclusion:Security Scan=failure"
+              }
+            },
+            {
+              "name": "missing-contract-blocked",
+              "pass": true,
+              "measured": {
+                "status": "blocked",
+                "reason": "verification-contract-missing"
+              }
+            },
+            {
+              "name": "no-self-report-fallback",
+              "pass": true,
+              "measured": {
+                "statuses": [
+                  "failed",
+                  "failed",
+                  "blocked"
+                ]
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#701:g1",
+              "gh:R_kgDOQncOdA#702:g1",
+              "gh:R_kgDOQncOdA#703:g1"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 0,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        },
+        {
+          "rep": 3,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "missing-required-check-not-verified",
+              "pass": true,
+              "measured": {
+                "status": "failed",
+                "reason": "required-check-missing:Security Scan"
+              }
+            },
+            {
+              "name": "failed-check-failed-not-verified",
+              "pass": true,
+              "measured": {
+                "status": "failed",
+                "reason": "check-conclusion:Security Scan=failure"
+              }
+            },
+            {
+              "name": "missing-contract-blocked",
+              "pass": true,
+              "measured": {
+                "status": "blocked",
+                "reason": "verification-contract-missing"
+              }
+            },
+            {
+              "name": "no-self-report-fallback",
+              "pass": true,
+              "measured": {
+                "statuses": [
+                  "failed",
+                  "failed",
+                  "blocked"
+                ]
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#701:g1",
+              "gh:R_kgDOQncOdA#702:g1",
+              "gh:R_kgDOQncOdA#703:g1"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 0,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        }
+      ]
+    },
+    "FAULT08": {
+      "row": "FAULT08",
+      "status": "pass",
+      "passed_reps": 3,
+      "required_reps": 3,
+      "reps": [
+        {
+          "rep": 1,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "rate-limit-pass-unobserved",
+              "pass": true,
+              "measured": {
+                "observed": false,
+                "errors": 1
+              }
+            },
+            {
+              "name": "remote-state-honestly-unknown",
+              "pass": true,
+              "measured": {
+                "remote_state": "unknown"
+              }
+            },
+            {
+              "name": "upstream-retry-guidance-honored",
+              "pass": true,
+              "measured": {
+                "next_due_delta": 400.0
+              }
+            },
+            {
+              "name": "server-directed-backoff-respected",
+              "pass": true,
+              "measured": {
+                "outcome": "not-due"
+              }
+            },
+            {
+              "name": "outage-failures-counted-durably",
+              "pass": true,
+              "measured": {
+                "failures": 2
+              }
+            },
+            {
+              "name": "notification-retained-during-outage",
+              "pass": true,
+              "measured": {
+                "outcome": "pending",
+                "state": "pending"
+              }
+            },
+            {
+              "name": "telegram-retries-bounded",
+              "pass": true,
+              "measured": {
+                "attempts": 3,
+                "state": "pending",
+                "terminal": null
+              }
+            },
+            {
+              "name": "recovery-records-retained",
+              "pass": true,
+              "measured": {
+                "alerts": 1,
+                "failed_events": 0
+              }
+            },
+            {
+              "name": "pending-notification-drains-after-recovery",
+              "pass": true,
+              "measured": {
+                "state": "delivered",
+                "flush_outcomes": [
+                  "delivered"
+                ]
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "notification_ids": [
+              "ntf-bf65151a1796"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 0,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        },
+        {
+          "rep": 2,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "rate-limit-pass-unobserved",
+              "pass": true,
+              "measured": {
+                "observed": false,
+                "errors": 1
+              }
+            },
+            {
+              "name": "remote-state-honestly-unknown",
+              "pass": true,
+              "measured": {
+                "remote_state": "unknown"
+              }
+            },
+            {
+              "name": "upstream-retry-guidance-honored",
+              "pass": true,
+              "measured": {
+                "next_due_delta": 400.0
+              }
+            },
+            {
+              "name": "server-directed-backoff-respected",
+              "pass": true,
+              "measured": {
+                "outcome": "not-due"
+              }
+            },
+            {
+              "name": "outage-failures-counted-durably",
+              "pass": true,
+              "measured": {
+                "failures": 2
+              }
+            },
+            {
+              "name": "notification-retained-during-outage",
+              "pass": true,
+              "measured": {
+                "outcome": "pending",
+                "state": "pending"
+              }
+            },
+            {
+              "name": "telegram-retries-bounded",
+              "pass": true,
+              "measured": {
+                "attempts": 3,
+                "state": "pending",
+                "terminal": null
+              }
+            },
+            {
+              "name": "recovery-records-retained",
+              "pass": true,
+              "measured": {
+                "alerts": 1,
+                "failed_events": 0
+              }
+            },
+            {
+              "name": "pending-notification-drains-after-recovery",
+              "pass": true,
+              "measured": {
+                "state": "delivered",
+                "flush_outcomes": [
+                  "delivered"
+                ]
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "notification_ids": [
+              "ntf-03626864d7fa"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 0,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        },
+        {
+          "rep": 3,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "rate-limit-pass-unobserved",
+              "pass": true,
+              "measured": {
+                "observed": false,
+                "errors": 1
+              }
+            },
+            {
+              "name": "remote-state-honestly-unknown",
+              "pass": true,
+              "measured": {
+                "remote_state": "unknown"
+              }
+            },
+            {
+              "name": "upstream-retry-guidance-honored",
+              "pass": true,
+              "measured": {
+                "next_due_delta": 400.0
+              }
+            },
+            {
+              "name": "server-directed-backoff-respected",
+              "pass": true,
+              "measured": {
+                "outcome": "not-due"
+              }
+            },
+            {
+              "name": "outage-failures-counted-durably",
+              "pass": true,
+              "measured": {
+                "failures": 2
+              }
+            },
+            {
+              "name": "notification-retained-during-outage",
+              "pass": true,
+              "measured": {
+                "outcome": "pending",
+                "state": "pending"
+              }
+            },
+            {
+              "name": "telegram-retries-bounded",
+              "pass": true,
+              "measured": {
+                "attempts": 3,
+                "state": "pending",
+                "terminal": null
+              }
+            },
+            {
+              "name": "recovery-records-retained",
+              "pass": true,
+              "measured": {
+                "alerts": 1,
+                "failed_events": 0
+              }
+            },
+            {
+              "name": "pending-notification-drains-after-recovery",
+              "pass": true,
+              "measured": {
+                "state": "delivered",
+                "flush_outcomes": [
+                  "delivered"
+                ]
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "notification_ids": [
+              "ntf-844c5e5d3c45"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 0,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        }
+      ]
+    },
+    "FAULT09": {
+      "row": "FAULT09",
+      "status": "pass",
+      "passed_reps": 3,
+      "required_reps": 3,
+      "reps": [
+        {
+          "rep": 1,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "revocation-parks-enqueued-work",
+              "pass": true,
+              "measured": {
+                "state": "parked",
+                "revoke_outcome": "revoked"
+              }
+            },
+            {
+              "name": "no-dispatch-after-revocation",
+              "pass": true,
+              "measured": {
+                "impl_attempts": 0,
+                "worker_sessions": 0
+              }
+            },
+            {
+              "name": "no-newly-authorized-effect",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "work-not-active",
+                "remote_effects": 0
+              }
+            },
+            {
+              "name": "revoked-identity-never-reopens",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "work_rows": 1
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#901:g1"
+            ],
+            "intent_ids": [
+              "pub-842e9895ab78"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 0,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        },
+        {
+          "rep": 2,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "revocation-parks-enqueued-work",
+              "pass": true,
+              "measured": {
+                "state": "parked",
+                "revoke_outcome": "revoked"
+              }
+            },
+            {
+              "name": "no-dispatch-after-revocation",
+              "pass": true,
+              "measured": {
+                "impl_attempts": 0,
+                "worker_sessions": 0
+              }
+            },
+            {
+              "name": "no-newly-authorized-effect",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "work-not-active",
+                "remote_effects": 0
+              }
+            },
+            {
+              "name": "revoked-identity-never-reopens",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "work_rows": 1
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#901:g1"
+            ],
+            "intent_ids": [
+              "pub-7880cc133b65"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 0,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        },
+        {
+          "rep": 3,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "revocation-parks-enqueued-work",
+              "pass": true,
+              "measured": {
+                "state": "parked",
+                "revoke_outcome": "revoked"
+              }
+            },
+            {
+              "name": "no-dispatch-after-revocation",
+              "pass": true,
+              "measured": {
+                "impl_attempts": 0,
+                "worker_sessions": 0
+              }
+            },
+            {
+              "name": "no-newly-authorized-effect",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "work-not-active",
+                "remote_effects": 0
+              }
+            },
+            {
+              "name": "revoked-identity-never-reopens",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "work_rows": 1
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#901:g1"
+            ],
+            "intent_ids": [
+              "pub-96a182d6c399"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 0,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        }
+      ]
+    },
+    "FAULT10": {
+      "row": "FAULT10",
+      "status": "pass",
+      "passed_reps": 3,
+      "required_reps": 3,
+      "reps": [
+        {
+          "rep": 1,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "one-active-task-at-a-time",
+              "pass": true,
+              "measured": {
+                "occupied": "gh:R_kgDOQncOdA#1002:g1"
+              }
+            },
+            {
+              "name": "fix-attempt-limit-parks",
+              "pass": true,
+              "measured": {
+                "impl_attempts": 2,
+                "state": "parked",
+                "reason": "attempts-exhausted"
+              }
+            },
+            {
+              "name": "active-worker-minutes-park-visibly",
+              "pass": true,
+              "measured": {
+                "state": "parked",
+                "reason": "budget-exhausted:active_worker_seconds"
+              }
+            },
+            {
+              "name": "budget-alert-visible",
+              "pass": true,
+              "measured": {
+                "alerts": 4
+              }
+            },
+            {
+              "name": "wall-clock-limit-parks",
+              "pass": true,
+              "measured": {
+                "state": "parked",
+                "reason": "budget-exhausted:wall_seconds"
+              }
+            },
+            {
+              "name": "usage-honestly-measured-or-unknown",
+              "pass": true,
+              "measured": {
+                "measured": 0,
+                "unknown": 1
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#1001:g1",
+              "gh:R_kgDOQncOdA#1002:g1",
+              "gh:R_kgDOQncOdA#1003:g1",
+              "gh:R_kgDOQncOdA#1004:g1",
+              "gh:R_kgDOQncOdA#1005:g1"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 0,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        },
+        {
+          "rep": 2,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "one-active-task-at-a-time",
+              "pass": true,
+              "measured": {
+                "occupied": "gh:R_kgDOQncOdA#1002:g1"
+              }
+            },
+            {
+              "name": "fix-attempt-limit-parks",
+              "pass": true,
+              "measured": {
+                "impl_attempts": 2,
+                "state": "parked",
+                "reason": "attempts-exhausted"
+              }
+            },
+            {
+              "name": "active-worker-minutes-park-visibly",
+              "pass": true,
+              "measured": {
+                "state": "parked",
+                "reason": "budget-exhausted:active_worker_seconds"
+              }
+            },
+            {
+              "name": "budget-alert-visible",
+              "pass": true,
+              "measured": {
+                "alerts": 4
+              }
+            },
+            {
+              "name": "wall-clock-limit-parks",
+              "pass": true,
+              "measured": {
+                "state": "parked",
+                "reason": "budget-exhausted:wall_seconds"
+              }
+            },
+            {
+              "name": "usage-honestly-measured-or-unknown",
+              "pass": true,
+              "measured": {
+                "measured": 0,
+                "unknown": 1
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#1001:g1",
+              "gh:R_kgDOQncOdA#1002:g1",
+              "gh:R_kgDOQncOdA#1003:g1",
+              "gh:R_kgDOQncOdA#1004:g1",
+              "gh:R_kgDOQncOdA#1005:g1"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 0,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        },
+        {
+          "rep": 3,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "one-active-task-at-a-time",
+              "pass": true,
+              "measured": {
+                "occupied": "gh:R_kgDOQncOdA#1002:g1"
+              }
+            },
+            {
+              "name": "fix-attempt-limit-parks",
+              "pass": true,
+              "measured": {
+                "impl_attempts": 2,
+                "state": "parked",
+                "reason": "attempts-exhausted"
+              }
+            },
+            {
+              "name": "active-worker-minutes-park-visibly",
+              "pass": true,
+              "measured": {
+                "state": "parked",
+                "reason": "budget-exhausted:active_worker_seconds"
+              }
+            },
+            {
+              "name": "budget-alert-visible",
+              "pass": true,
+              "measured": {
+                "alerts": 4
+              }
+            },
+            {
+              "name": "wall-clock-limit-parks",
+              "pass": true,
+              "measured": {
+                "state": "parked",
+                "reason": "budget-exhausted:wall_seconds"
+              }
+            },
+            {
+              "name": "usage-honestly-measured-or-unknown",
+              "pass": true,
+              "measured": {
+                "measured": 0,
+                "unknown": 1
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#1001:g1",
+              "gh:R_kgDOQncOdA#1002:g1",
+              "gh:R_kgDOQncOdA#1003:g1",
+              "gh:R_kgDOQncOdA#1004:g1",
+              "gh:R_kgDOQncOdA#1005:g1"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 0,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        }
+      ]
+    },
+    "FAULT11": {
+      "row": "FAULT11",
+      "status": "pass",
+      "passed_reps": 3,
+      "required_reps": 3,
+      "reps": [
+        {
+          "rep": 1,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "injection-prose-denied",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "permission-prose"
+              }
+            },
+            {
+              "name": "injection-created-no-work",
+              "pass": true,
+              "measured": {
+                "work_rows": 0
+              }
+            },
+            {
+              "name": "forged-actor-denied",
+              "pass": true,
+              "measured": {
+                "outcome": "rejected",
+                "reason": "forged-actor"
+              }
+            },
+            {
+              "name": "unsupported-action-denied",
+              "pass": true,
+              "measured": {
+                "outcome": "rejected",
+                "reason": "unsupported-action"
+              }
+            },
+            {
+              "name": "policy-digest-unchanged",
+              "pass": true,
+              "measured": {
+                "before": "a3808f62b97d",
+                "after": "a3808f62b97d"
+              }
+            },
+            {
+              "name": "canary-absent-from-expanded-export",
+              "pass": true,
+              "measured": {
+                "leaks": 0,
+                "scan": "clean"
+              }
+            },
+            {
+              "name": "canary-absent-from-messages",
+              "pass": true,
+              "measured": {
+                "sent": 1,
+                "stored_body": "leak attempt <redacted>"
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#1102:g1"
+            ],
+            "notification_ids": [
+              "ntf-b1ad95159dbe"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 0,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        },
+        {
+          "rep": 2,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "injection-prose-denied",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "permission-prose"
+              }
+            },
+            {
+              "name": "injection-created-no-work",
+              "pass": true,
+              "measured": {
+                "work_rows": 0
+              }
+            },
+            {
+              "name": "forged-actor-denied",
+              "pass": true,
+              "measured": {
+                "outcome": "rejected",
+                "reason": "forged-actor"
+              }
+            },
+            {
+              "name": "unsupported-action-denied",
+              "pass": true,
+              "measured": {
+                "outcome": "rejected",
+                "reason": "unsupported-action"
+              }
+            },
+            {
+              "name": "policy-digest-unchanged",
+              "pass": true,
+              "measured": {
+                "before": "a3808f62b97d",
+                "after": "a3808f62b97d"
+              }
+            },
+            {
+              "name": "canary-absent-from-expanded-export",
+              "pass": true,
+              "measured": {
+                "leaks": 0,
+                "scan": "clean"
+              }
+            },
+            {
+              "name": "canary-absent-from-messages",
+              "pass": true,
+              "measured": {
+                "sent": 1,
+                "stored_body": "leak attempt <redacted>"
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#1102:g1"
+            ],
+            "notification_ids": [
+              "ntf-a14befe9ebb7"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 0,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        },
+        {
+          "rep": 3,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "injection-prose-denied",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "permission-prose"
+              }
+            },
+            {
+              "name": "injection-created-no-work",
+              "pass": true,
+              "measured": {
+                "work_rows": 0
+              }
+            },
+            {
+              "name": "forged-actor-denied",
+              "pass": true,
+              "measured": {
+                "outcome": "rejected",
+                "reason": "forged-actor"
+              }
+            },
+            {
+              "name": "unsupported-action-denied",
+              "pass": true,
+              "measured": {
+                "outcome": "rejected",
+                "reason": "unsupported-action"
+              }
+            },
+            {
+              "name": "policy-digest-unchanged",
+              "pass": true,
+              "measured": {
+                "before": "a3808f62b97d",
+                "after": "a3808f62b97d"
+              }
+            },
+            {
+              "name": "canary-absent-from-expanded-export",
+              "pass": true,
+              "measured": {
+                "leaks": 0,
+                "scan": "clean"
+              }
+            },
+            {
+              "name": "canary-absent-from-messages",
+              "pass": true,
+              "measured": {
+                "sent": 1,
+                "stored_body": "leak attempt <redacted>"
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#1102:g1"
+            ],
+            "notification_ids": [
+              "ntf-004754a992cf"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 0,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        }
+      ]
+    },
+    "FAULT12": {
+      "row": "FAULT12",
+      "status": "pass",
+      "passed_reps": 3,
+      "required_reps": 3,
+      "reps": [
+        {
+          "rep": 1,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "install-preserves-bytes",
+              "pass": true,
+              "measured": {
+                "outcome": "applied",
+                "added": [
+                  ".factory-kit.yml"
+                ]
+              }
+            },
+            {
+              "name": "reinstall-idempotent",
+              "pass": true,
+              "measured": {
+                "outcome": "idempotent"
+              }
+            },
+            {
+              "name": "active-work-fenced-before-removal",
+              "pass": true,
+              "measured": {
+                "fenced_first": [
+                  true
+                ]
+              }
+            },
+            {
+              "name": "unrelated-content-preserved",
+              "pass": true,
+              "measured": {
+                "outcome": "removed",
+                "changed": []
+              }
+            },
+            {
+              "name": "user-edit-owned-file-preserved",
+              "pass": true,
+              "measured": {
+                "owned_exists": true
+              }
+            },
+            {
+              "name": "no-orphaned-execution-authority",
+              "pass": true,
+              "measured": {
+                "fenced": true,
+                "state": "canceled"
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_TEST0001:issue:42:gen1"
+            ],
+            "attempt_ids": [
+              "att-f12"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 0,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        },
+        {
+          "rep": 2,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "install-preserves-bytes",
+              "pass": true,
+              "measured": {
+                "outcome": "applied",
+                "added": [
+                  ".factory-kit.yml"
+                ]
+              }
+            },
+            {
+              "name": "reinstall-idempotent",
+              "pass": true,
+              "measured": {
+                "outcome": "idempotent"
+              }
+            },
+            {
+              "name": "active-work-fenced-before-removal",
+              "pass": true,
+              "measured": {
+                "fenced_first": [
+                  true
+                ]
+              }
+            },
+            {
+              "name": "unrelated-content-preserved",
+              "pass": true,
+              "measured": {
+                "outcome": "removed",
+                "changed": []
+              }
+            },
+            {
+              "name": "user-edit-owned-file-preserved",
+              "pass": true,
+              "measured": {
+                "owned_exists": true
+              }
+            },
+            {
+              "name": "no-orphaned-execution-authority",
+              "pass": true,
+              "measured": {
+                "fenced": true,
+                "state": "canceled"
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_TEST0001:issue:42:gen1"
+            ],
+            "attempt_ids": [
+              "att-f12"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 0,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        },
+        {
+          "rep": 3,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "install-preserves-bytes",
+              "pass": true,
+              "measured": {
+                "outcome": "applied",
+                "added": [
+                  ".factory-kit.yml"
+                ]
+              }
+            },
+            {
+              "name": "reinstall-idempotent",
+              "pass": true,
+              "measured": {
+                "outcome": "idempotent"
+              }
+            },
+            {
+              "name": "active-work-fenced-before-removal",
+              "pass": true,
+              "measured": {
+                "fenced_first": [
+                  true
+                ]
+              }
+            },
+            {
+              "name": "unrelated-content-preserved",
+              "pass": true,
+              "measured": {
+                "outcome": "removed",
+                "changed": []
+              }
+            },
+            {
+              "name": "user-edit-owned-file-preserved",
+              "pass": true,
+              "measured": {
+                "owned_exists": true
+              }
+            },
+            {
+              "name": "no-orphaned-execution-authority",
+              "pass": true,
+              "measured": {
+                "fenced": true,
+                "state": "canceled"
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_TEST0001:issue:42:gen1"
+            ],
+            "attempt_ids": [
+              "att-f12"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 0,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        }
+      ]
+    },
+    "FAULT13": {
+      "row": "FAULT13",
+      "status": "pass",
+      "passed_reps": 3,
+      "required_reps": 3,
+      "reps": [
+        {
+          "rep": 1,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "provider-outage-denies-deploy",
+              "pass": true,
+              "measured": {
+                "outcome": "failed",
+                "reason": "provider-outage"
+              }
+            },
+            {
+              "name": "outage-never-approval-ready",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "work-not-active"
+              }
+            },
+            {
+              "name": "wrong-revision-fails",
+              "pass": true,
+              "measured": {
+                "outcome": "failed",
+                "reason": "revision-mismatch"
+              }
+            },
+            {
+              "name": "deploy-verified",
+              "pass": true,
+              "measured": {
+                "outcome": "verified"
+              }
+            },
+            {
+              "name": "one-preview-limit-converges",
+              "pass": true,
+              "measured": {
+                "outcome": "converged",
+                "deployments": 1
+              }
+            },
+            {
+              "name": "preview-lifetime-24h",
+              "pass": true,
+              "measured": {
+                "ttl_hours": 24.0
+              }
+            },
+            {
+              "name": "expired-deployment-fails",
+              "pass": true,
+              "measured": {
+                "outcome": "failed",
+                "reason": "deployment-expired"
+              }
+            },
+            {
+              "name": "old-preview-never-satisfies-new-revision",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "verification-not-current"
+              }
+            },
+            {
+              "name": "outage-cleanup-visible-backlog",
+              "pass": true,
+              "measured": {
+                "state": "cleanup-pending",
+                "backlog": 2
+              }
+            },
+            {
+              "name": "cleanup-drains-after-outage",
+              "pass": true,
+              "measured": {
+                "state": "removed"
+              }
+            },
+            {
+              "name": "cleanup-deadline-within-60min",
+              "pass": true,
+              "measured": {
+                "cleanup_deadline_delta": 3600.0
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#1301:g1",
+              "gh:R_kgDOQncOdA#1305:g1",
+              "gh:R_kgDOQncOdA#1306:g1",
+              "gh:R_kgDOQncOdA#1304:g1",
+              "gh:R_kgDOQncOdA#1303:g1"
+            ],
+            "preview_ids": [
+              "prev-acdc8a520d79",
+              "prev-f6f4f3448b10"
+            ],
+            "deployment_ids": [
+              "dpl-0001-710eadcc"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 6,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        },
+        {
+          "rep": 2,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "provider-outage-denies-deploy",
+              "pass": true,
+              "measured": {
+                "outcome": "failed",
+                "reason": "provider-outage"
+              }
+            },
+            {
+              "name": "outage-never-approval-ready",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "work-not-active"
+              }
+            },
+            {
+              "name": "wrong-revision-fails",
+              "pass": true,
+              "measured": {
+                "outcome": "failed",
+                "reason": "revision-mismatch"
+              }
+            },
+            {
+              "name": "deploy-verified",
+              "pass": true,
+              "measured": {
+                "outcome": "verified"
+              }
+            },
+            {
+              "name": "one-preview-limit-converges",
+              "pass": true,
+              "measured": {
+                "outcome": "converged",
+                "deployments": 1
+              }
+            },
+            {
+              "name": "preview-lifetime-24h",
+              "pass": true,
+              "measured": {
+                "ttl_hours": 24.0
+              }
+            },
+            {
+              "name": "expired-deployment-fails",
+              "pass": true,
+              "measured": {
+                "outcome": "failed",
+                "reason": "deployment-expired"
+              }
+            },
+            {
+              "name": "old-preview-never-satisfies-new-revision",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "verification-not-current"
+              }
+            },
+            {
+              "name": "outage-cleanup-visible-backlog",
+              "pass": true,
+              "measured": {
+                "state": "cleanup-pending",
+                "backlog": 2
+              }
+            },
+            {
+              "name": "cleanup-drains-after-outage",
+              "pass": true,
+              "measured": {
+                "state": "removed"
+              }
+            },
+            {
+              "name": "cleanup-deadline-within-60min",
+              "pass": true,
+              "measured": {
+                "cleanup_deadline_delta": 3600.0
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#1301:g1",
+              "gh:R_kgDOQncOdA#1305:g1",
+              "gh:R_kgDOQncOdA#1306:g1",
+              "gh:R_kgDOQncOdA#1304:g1",
+              "gh:R_kgDOQncOdA#1303:g1"
+            ],
+            "preview_ids": [
+              "prev-172aa612f77e",
+              "prev-2ea04b168109"
+            ],
+            "deployment_ids": [
+              "dpl-0001-710eadcc"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 6,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        },
+        {
+          "rep": 3,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "provider-outage-denies-deploy",
+              "pass": true,
+              "measured": {
+                "outcome": "failed",
+                "reason": "provider-outage"
+              }
+            },
+            {
+              "name": "outage-never-approval-ready",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "work-not-active"
+              }
+            },
+            {
+              "name": "wrong-revision-fails",
+              "pass": true,
+              "measured": {
+                "outcome": "failed",
+                "reason": "revision-mismatch"
+              }
+            },
+            {
+              "name": "deploy-verified",
+              "pass": true,
+              "measured": {
+                "outcome": "verified"
+              }
+            },
+            {
+              "name": "one-preview-limit-converges",
+              "pass": true,
+              "measured": {
+                "outcome": "converged",
+                "deployments": 1
+              }
+            },
+            {
+              "name": "preview-lifetime-24h",
+              "pass": true,
+              "measured": {
+                "ttl_hours": 24.0
+              }
+            },
+            {
+              "name": "expired-deployment-fails",
+              "pass": true,
+              "measured": {
+                "outcome": "failed",
+                "reason": "deployment-expired"
+              }
+            },
+            {
+              "name": "old-preview-never-satisfies-new-revision",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "verification-not-current"
+              }
+            },
+            {
+              "name": "outage-cleanup-visible-backlog",
+              "pass": true,
+              "measured": {
+                "state": "cleanup-pending",
+                "backlog": 2
+              }
+            },
+            {
+              "name": "cleanup-drains-after-outage",
+              "pass": true,
+              "measured": {
+                "state": "removed"
+              }
+            },
+            {
+              "name": "cleanup-deadline-within-60min",
+              "pass": true,
+              "measured": {
+                "cleanup_deadline_delta": 3600.0
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#1301:g1",
+              "gh:R_kgDOQncOdA#1305:g1",
+              "gh:R_kgDOQncOdA#1306:g1",
+              "gh:R_kgDOQncOdA#1304:g1",
+              "gh:R_kgDOQncOdA#1303:g1"
+            ],
+            "preview_ids": [
+              "prev-21386307b9d1",
+              "prev-aaf9299ad395"
+            ],
+            "deployment_ids": [
+              "dpl-0001-710eadcc"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 6,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        }
+      ]
+    },
+    "FAULT14": {
+      "row": "FAULT14",
+      "status": "pass",
+      "passed_reps": 3,
+      "required_reps": 3,
+      "reps": [
+        {
+          "rep": 1,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "forged-actor-denied",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "forged-actor"
+              }
+            },
+            {
+              "name": "conversation-mismatch-denied",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "wrong-chat"
+              }
+            },
+            {
+              "name": "forged-request-denied",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "unknown-request"
+              }
+            },
+            {
+              "name": "rejection-durable-no-reprompt",
+              "pass": true,
+              "measured": {
+                "rejected": "rejected",
+                "state": "rejected",
+                "reprompt": "denied"
+              }
+            },
+            {
+              "name": "replayed-decision-denied",
+              "pass": true,
+              "measured": {
+                "first": "approved",
+                "replay": "denied",
+                "reason": "replayed"
+              }
+            },
+            {
+              "name": "revoked-approval-no-merge",
+              "pass": true,
+              "measured": {
+                "state": "invalidated",
+                "merge": "denied",
+                "reason": "no-approved-request"
+              }
+            },
+            {
+              "name": "expired-decision-denied",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "expired"
+              }
+            },
+            {
+              "name": "no-merge-on-any-denial",
+              "pass": true,
+              "measured": {
+                "merge_calls": 0
+              }
+            },
+            {
+              "name": "durable-denial-reasons-retained",
+              "pass": true,
+              "measured": {
+                "decisions": 7,
+                "reasoned": 7
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#1401:g1",
+              "gh:R_kgDOQncOdA#1402:g1",
+              "gh:R_kgDOQncOdA#1403:g1"
+            ],
+            "request_ids": [
+              "apr-9a293d67ca61",
+              "apr-48ab446562d7",
+              "apr-f36803b08e0f"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 3,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        },
+        {
+          "rep": 2,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "forged-actor-denied",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "forged-actor"
+              }
+            },
+            {
+              "name": "conversation-mismatch-denied",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "wrong-chat"
+              }
+            },
+            {
+              "name": "forged-request-denied",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "unknown-request"
+              }
+            },
+            {
+              "name": "rejection-durable-no-reprompt",
+              "pass": true,
+              "measured": {
+                "rejected": "rejected",
+                "state": "rejected",
+                "reprompt": "denied"
+              }
+            },
+            {
+              "name": "replayed-decision-denied",
+              "pass": true,
+              "measured": {
+                "first": "approved",
+                "replay": "denied",
+                "reason": "replayed"
+              }
+            },
+            {
+              "name": "revoked-approval-no-merge",
+              "pass": true,
+              "measured": {
+                "state": "invalidated",
+                "merge": "denied",
+                "reason": "no-approved-request"
+              }
+            },
+            {
+              "name": "expired-decision-denied",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "expired"
+              }
+            },
+            {
+              "name": "no-merge-on-any-denial",
+              "pass": true,
+              "measured": {
+                "merge_calls": 0
+              }
+            },
+            {
+              "name": "durable-denial-reasons-retained",
+              "pass": true,
+              "measured": {
+                "decisions": 7,
+                "reasoned": 7
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#1401:g1",
+              "gh:R_kgDOQncOdA#1402:g1",
+              "gh:R_kgDOQncOdA#1403:g1"
+            ],
+            "request_ids": [
+              "apr-49c322c2b10f",
+              "apr-a17b8e0b1e5e",
+              "apr-495c023e1b45"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 3,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        },
+        {
+          "rep": 3,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "forged-actor-denied",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "forged-actor"
+              }
+            },
+            {
+              "name": "conversation-mismatch-denied",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "wrong-chat"
+              }
+            },
+            {
+              "name": "forged-request-denied",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "unknown-request"
+              }
+            },
+            {
+              "name": "rejection-durable-no-reprompt",
+              "pass": true,
+              "measured": {
+                "rejected": "rejected",
+                "state": "rejected",
+                "reprompt": "denied"
+              }
+            },
+            {
+              "name": "replayed-decision-denied",
+              "pass": true,
+              "measured": {
+                "first": "approved",
+                "replay": "denied",
+                "reason": "replayed"
+              }
+            },
+            {
+              "name": "revoked-approval-no-merge",
+              "pass": true,
+              "measured": {
+                "state": "invalidated",
+                "merge": "denied",
+                "reason": "no-approved-request"
+              }
+            },
+            {
+              "name": "expired-decision-denied",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "expired"
+              }
+            },
+            {
+              "name": "no-merge-on-any-denial",
+              "pass": true,
+              "measured": {
+                "merge_calls": 0
+              }
+            },
+            {
+              "name": "durable-denial-reasons-retained",
+              "pass": true,
+              "measured": {
+                "decisions": 7,
+                "reasoned": 7
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#1401:g1",
+              "gh:R_kgDOQncOdA#1402:g1",
+              "gh:R_kgDOQncOdA#1403:g1"
+            ],
+            "request_ids": [
+              "apr-28ddecbb6b52",
+              "apr-3cf837345aab",
+              "apr-511d08a8801e"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 3,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        }
+      ]
+    },
+    "FAULT15": {
+      "row": "FAULT15",
+      "status": "pass",
+      "passed_reps": 3,
+      "required_reps": 3,
+      "reps": [
+        {
+          "rep": 1,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "head-moved-merge-denied",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "head-moved"
+              }
+            },
+            {
+              "name": "head-moved-invalidates-approval",
+              "pass": true,
+              "measured": {
+                "stale": "stale",
+                "state": "invalidated"
+              }
+            },
+            {
+              "name": "base-moved-merge-denied",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "base-moved"
+              }
+            },
+            {
+              "name": "policy-drift-denied-stale-config",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "stale-config"
+              }
+            },
+            {
+              "name": "policy-changed-approval-invalidated",
+              "pass": true,
+              "measured": {
+                "state": "invalidated",
+                "merge": "denied"
+              }
+            },
+            {
+              "name": "missing-check-merge-denied",
+              "pass": true,
+              "measured": {
+                "reason": "checks-failed:required-check-missing:Security Scan"
+              }
+            },
+            {
+              "name": "stale-smoke-blocks-and-revokes",
+              "pass": true,
+              "measured": {
+                "reason": "smoke-stale",
+                "state": "invalidated"
+              }
+            },
+            {
+              "name": "pause-blocks-merge",
+              "pass": true,
+              "measured": {
+                "reason": "task-paused"
+              }
+            },
+            {
+              "name": "cancel-fences-merge",
+              "pass": true,
+              "measured": {
+                "reason": "fenced"
+              }
+            },
+            {
+              "name": "no-merge-under-any-drift",
+              "pass": true,
+              "measured": {
+                "merge_calls": 0
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#1501:g1",
+              "gh:R_kgDOQncOdA#1502:g1",
+              "gh:R_kgDOQncOdA#1503:g1",
+              "gh:R_kgDOQncOdA#1504:g1",
+              "gh:R_kgDOQncOdA#1505:g1"
+            ],
+            "request_ids": [
+              "apr-a32cc4587f1e",
+              "apr-777d6a034b94",
+              "apr-02fd20480bd6",
+              "apr-6e428206694c",
+              "apr-bbc1f921d57f"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 5,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        },
+        {
+          "rep": 2,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "head-moved-merge-denied",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "head-moved"
+              }
+            },
+            {
+              "name": "head-moved-invalidates-approval",
+              "pass": true,
+              "measured": {
+                "stale": "stale",
+                "state": "invalidated"
+              }
+            },
+            {
+              "name": "base-moved-merge-denied",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "base-moved"
+              }
+            },
+            {
+              "name": "policy-drift-denied-stale-config",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "stale-config"
+              }
+            },
+            {
+              "name": "policy-changed-approval-invalidated",
+              "pass": true,
+              "measured": {
+                "state": "invalidated",
+                "merge": "denied"
+              }
+            },
+            {
+              "name": "missing-check-merge-denied",
+              "pass": true,
+              "measured": {
+                "reason": "checks-failed:required-check-missing:Security Scan"
+              }
+            },
+            {
+              "name": "stale-smoke-blocks-and-revokes",
+              "pass": true,
+              "measured": {
+                "reason": "smoke-stale",
+                "state": "invalidated"
+              }
+            },
+            {
+              "name": "pause-blocks-merge",
+              "pass": true,
+              "measured": {
+                "reason": "task-paused"
+              }
+            },
+            {
+              "name": "cancel-fences-merge",
+              "pass": true,
+              "measured": {
+                "reason": "fenced"
+              }
+            },
+            {
+              "name": "no-merge-under-any-drift",
+              "pass": true,
+              "measured": {
+                "merge_calls": 0
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#1501:g1",
+              "gh:R_kgDOQncOdA#1502:g1",
+              "gh:R_kgDOQncOdA#1503:g1",
+              "gh:R_kgDOQncOdA#1504:g1",
+              "gh:R_kgDOQncOdA#1505:g1"
+            ],
+            "request_ids": [
+              "apr-54c948131c79",
+              "apr-0ea80bcfbbf5",
+              "apr-90e8c5785d3b",
+              "apr-055443c566d5",
+              "apr-82200e287cac"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 5,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        },
+        {
+          "rep": 3,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "head-moved-merge-denied",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "head-moved"
+              }
+            },
+            {
+              "name": "head-moved-invalidates-approval",
+              "pass": true,
+              "measured": {
+                "stale": "stale",
+                "state": "invalidated"
+              }
+            },
+            {
+              "name": "base-moved-merge-denied",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "base-moved"
+              }
+            },
+            {
+              "name": "policy-drift-denied-stale-config",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "stale-config"
+              }
+            },
+            {
+              "name": "policy-changed-approval-invalidated",
+              "pass": true,
+              "measured": {
+                "state": "invalidated",
+                "merge": "denied"
+              }
+            },
+            {
+              "name": "missing-check-merge-denied",
+              "pass": true,
+              "measured": {
+                "reason": "checks-failed:required-check-missing:Security Scan"
+              }
+            },
+            {
+              "name": "stale-smoke-blocks-and-revokes",
+              "pass": true,
+              "measured": {
+                "reason": "smoke-stale",
+                "state": "invalidated"
+              }
+            },
+            {
+              "name": "pause-blocks-merge",
+              "pass": true,
+              "measured": {
+                "reason": "task-paused"
+              }
+            },
+            {
+              "name": "cancel-fences-merge",
+              "pass": true,
+              "measured": {
+                "reason": "fenced"
+              }
+            },
+            {
+              "name": "no-merge-under-any-drift",
+              "pass": true,
+              "measured": {
+                "merge_calls": 0
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#1501:g1",
+              "gh:R_kgDOQncOdA#1502:g1",
+              "gh:R_kgDOQncOdA#1503:g1",
+              "gh:R_kgDOQncOdA#1504:g1",
+              "gh:R_kgDOQncOdA#1505:g1"
+            ],
+            "request_ids": [
+              "apr-f5811c4dc323",
+              "apr-cc93962ba77c",
+              "apr-6211720d6d64",
+              "apr-9bb75a272155",
+              "apr-aced335b52fd"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 5,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        }
+      ]
+    },
+    "FAULT16": {
+      "row": "FAULT16",
+      "status": "pass",
+      "passed_reps": 3,
+      "required_reps": 3,
+      "reps": [
+        {
+          "rep": 1,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "request-survives-restart",
+              "pass": true,
+              "measured": {
+                "state": "awaiting"
+              }
+            },
+            {
+              "name": "concurrent-approvals-one-consumed",
+              "pass": true,
+              "measured": {
+                "approved": 1,
+                "errors": [],
+                "outcomes": [
+                  "approved",
+                  "denied",
+                  "denied",
+                  "denied"
+                ]
+              }
+            },
+            {
+              "name": "repeated-approve-denied",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "replayed"
+              }
+            },
+            {
+              "name": "at-most-one-merge-intent",
+              "pass": true,
+              "measured": {
+                "intents": 1,
+                "merge_calls": 1,
+                "outcomes": [
+                  "converged",
+                  "merged",
+                  "converged",
+                  "converged"
+                ],
+                "errors": []
+              }
+            },
+            {
+              "name": "exactly-one-consumed-approval",
+              "pass": true,
+              "measured": {
+                "state": "consumed",
+                "merged": true
+              }
+            },
+            {
+              "name": "no-revival-after-fence",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "fenced"
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#1601:g1",
+              "gh:R_kgDOQncOdA#1602:g1"
+            ],
+            "request_ids": [
+              "apr-5be23390d267",
+              "apr-a5309bee37c6"
+            ],
+            "intent_ids": [
+              "mrg-6a2e380ebb3f"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 2,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        },
+        {
+          "rep": 2,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "request-survives-restart",
+              "pass": true,
+              "measured": {
+                "state": "awaiting"
+              }
+            },
+            {
+              "name": "concurrent-approvals-one-consumed",
+              "pass": true,
+              "measured": {
+                "approved": 1,
+                "errors": [],
+                "outcomes": [
+                  "approved",
+                  "denied",
+                  "denied",
+                  "denied"
+                ]
+              }
+            },
+            {
+              "name": "repeated-approve-denied",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "replayed"
+              }
+            },
+            {
+              "name": "at-most-one-merge-intent",
+              "pass": true,
+              "measured": {
+                "intents": 1,
+                "merge_calls": 1,
+                "outcomes": [
+                  "converged",
+                  "merged",
+                  "converged",
+                  "converged"
+                ],
+                "errors": []
+              }
+            },
+            {
+              "name": "exactly-one-consumed-approval",
+              "pass": true,
+              "measured": {
+                "state": "consumed",
+                "merged": true
+              }
+            },
+            {
+              "name": "no-revival-after-fence",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "fenced"
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#1601:g1",
+              "gh:R_kgDOQncOdA#1602:g1"
+            ],
+            "request_ids": [
+              "apr-635e81ce4fe2",
+              "apr-b73dc1ffa6b1"
+            ],
+            "intent_ids": [
+              "mrg-8878a63936c7"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 2,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        },
+        {
+          "rep": 3,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "request-survives-restart",
+              "pass": true,
+              "measured": {
+                "state": "awaiting"
+              }
+            },
+            {
+              "name": "concurrent-approvals-one-consumed",
+              "pass": true,
+              "measured": {
+                "approved": 1,
+                "errors": [],
+                "outcomes": [
+                  "approved",
+                  "denied",
+                  "denied",
+                  "denied"
+                ]
+              }
+            },
+            {
+              "name": "repeated-approve-denied",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "replayed"
+              }
+            },
+            {
+              "name": "at-most-one-merge-intent",
+              "pass": true,
+              "measured": {
+                "intents": 1,
+                "merge_calls": 1,
+                "outcomes": [
+                  "converged",
+                  "converged",
+                  "converged",
+                  "merged"
+                ],
+                "errors": []
+              }
+            },
+            {
+              "name": "exactly-one-consumed-approval",
+              "pass": true,
+              "measured": {
+                "state": "consumed",
+                "merged": true
+              }
+            },
+            {
+              "name": "no-revival-after-fence",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "fenced"
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#1601:g1",
+              "gh:R_kgDOQncOdA#1602:g1"
+            ],
+            "request_ids": [
+              "apr-09af6618db13",
+              "apr-d82f61ef409d"
+            ],
+            "intent_ids": [
+              "mrg-50ea597792df"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 2,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        }
+      ]
+    },
+    "FAULT17": {
+      "row": "FAULT17",
+      "status": "pass",
+      "passed_reps": 3,
+      "required_reps": 3,
+      "reps": [
+        {
+          "rep": 1,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "lost-response-reconciles-actual-sha",
+              "pass": true,
+              "measured": {
+                "outcome": "merged",
+                "intent_state": "merged",
+                "merge_sha": "merge-100-aaaa1111",
+                "remote_sha": "merge-100-aaaa1111"
+              }
+            },
+            {
+              "name": "no-blind-repeat",
+              "pass": true,
+              "measured": {
+                "merge_calls": 1
+              }
+            },
+            {
+              "name": "unreadable-outcome-parks-honestly",
+              "pass": true,
+              "measured": {
+                "outcome": "parked",
+                "state": "parked",
+                "merged": null
+              }
+            },
+            {
+              "name": "parked-emits-unknown-observation",
+              "pass": true,
+              "measured": {
+                "observed": 1
+              }
+            },
+            {
+              "name": "readback-resolves-before-retry",
+              "pass": true,
+              "measured": {
+                "resolved": "merged",
+                "state": "merged",
+                "merge_calls": 2
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#1701:g1",
+              "gh:R_kgDOQncOdA#1702:g1"
+            ],
+            "request_ids": [
+              "apr-75c16a11dd35",
+              "apr-573d66cd0b2a"
+            ],
+            "intent_ids": [
+              "mrg-622ed3a78142",
+              "mrg-25996f4b24cd"
+            ],
+            "merge_shas": [
+              "merge-100-aaaa1111",
+              "merge-101-aaaa1111"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 2,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        },
+        {
+          "rep": 2,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "lost-response-reconciles-actual-sha",
+              "pass": true,
+              "measured": {
+                "outcome": "merged",
+                "intent_state": "merged",
+                "merge_sha": "merge-100-aaaa1111",
+                "remote_sha": "merge-100-aaaa1111"
+              }
+            },
+            {
+              "name": "no-blind-repeat",
+              "pass": true,
+              "measured": {
+                "merge_calls": 1
+              }
+            },
+            {
+              "name": "unreadable-outcome-parks-honestly",
+              "pass": true,
+              "measured": {
+                "outcome": "parked",
+                "state": "parked",
+                "merged": null
+              }
+            },
+            {
+              "name": "parked-emits-unknown-observation",
+              "pass": true,
+              "measured": {
+                "observed": 1
+              }
+            },
+            {
+              "name": "readback-resolves-before-retry",
+              "pass": true,
+              "measured": {
+                "resolved": "merged",
+                "state": "merged",
+                "merge_calls": 2
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#1701:g1",
+              "gh:R_kgDOQncOdA#1702:g1"
+            ],
+            "request_ids": [
+              "apr-eb441b4bc2c1",
+              "apr-32e9c95edc28"
+            ],
+            "intent_ids": [
+              "mrg-fe5e6cf6a30a",
+              "mrg-b144da04b1c3"
+            ],
+            "merge_shas": [
+              "merge-100-aaaa1111",
+              "merge-101-aaaa1111"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 2,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        },
+        {
+          "rep": 3,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "lost-response-reconciles-actual-sha",
+              "pass": true,
+              "measured": {
+                "outcome": "merged",
+                "intent_state": "merged",
+                "merge_sha": "merge-100-aaaa1111",
+                "remote_sha": "merge-100-aaaa1111"
+              }
+            },
+            {
+              "name": "no-blind-repeat",
+              "pass": true,
+              "measured": {
+                "merge_calls": 1
+              }
+            },
+            {
+              "name": "unreadable-outcome-parks-honestly",
+              "pass": true,
+              "measured": {
+                "outcome": "parked",
+                "state": "parked",
+                "merged": null
+              }
+            },
+            {
+              "name": "parked-emits-unknown-observation",
+              "pass": true,
+              "measured": {
+                "observed": 1
+              }
+            },
+            {
+              "name": "readback-resolves-before-retry",
+              "pass": true,
+              "measured": {
+                "resolved": "merged",
+                "state": "merged",
+                "merge_calls": 2
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#1701:g1",
+              "gh:R_kgDOQncOdA#1702:g1"
+            ],
+            "request_ids": [
+              "apr-2b60fcf46d2b",
+              "apr-3ac239f3a252"
+            ],
+            "intent_ids": [
+              "mrg-5b4bbb405f34",
+              "mrg-3413dc1b0e0f"
+            ],
+            "merge_shas": [
+              "merge-100-aaaa1111",
+              "merge-101-aaaa1111"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 2,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        }
+      ]
+    },
+    "FAULT18": {
+      "row": "FAULT18",
+      "status": "pass",
+      "passed_reps": 3,
+      "required_reps": 3,
+      "reps": [
+        {
+          "rep": 1,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "fence-before-boundary-no-effect",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "fenced",
+                "merge_calls": 0
+              }
+            },
+            {
+              "name": "denied-merge-does-not-spend-grant",
+              "pass": true,
+              "measured": {
+                "state": "approved"
+              }
+            },
+            {
+              "name": "in-flight-effect-reconciled-accurately",
+              "pass": true,
+              "measured": {
+                "outcome": "merged",
+                "reason": "cancellation-race"
+              }
+            },
+            {
+              "name": "no-automatic-destructive-reversal",
+              "pass": true,
+              "measured": {
+                "merged": true
+              }
+            },
+            {
+              "name": "late-preview-callback-denied",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "fenced"
+              }
+            },
+            {
+              "name": "human-merge-records-actual-actor",
+              "pass": true,
+              "measured": {
+                "kind": "external",
+                "by": "human-dev"
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#1801:g1",
+              "gh:R_kgDOQncOdA#1802:g1",
+              "gh:R_kgDOQncOdA#1804:g1"
+            ],
+            "request_ids": [
+              "apr-a51fa7e9b572",
+              "apr-df8d2d7cdae1",
+              "apr-af7ec3e9511c"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 4,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        },
+        {
+          "rep": 2,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "fence-before-boundary-no-effect",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "fenced",
+                "merge_calls": 0
+              }
+            },
+            {
+              "name": "denied-merge-does-not-spend-grant",
+              "pass": true,
+              "measured": {
+                "state": "approved"
+              }
+            },
+            {
+              "name": "in-flight-effect-reconciled-accurately",
+              "pass": true,
+              "measured": {
+                "outcome": "merged",
+                "reason": "cancellation-race"
+              }
+            },
+            {
+              "name": "no-automatic-destructive-reversal",
+              "pass": true,
+              "measured": {
+                "merged": true
+              }
+            },
+            {
+              "name": "late-preview-callback-denied",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "fenced"
+              }
+            },
+            {
+              "name": "human-merge-records-actual-actor",
+              "pass": true,
+              "measured": {
+                "kind": "external",
+                "by": "human-dev"
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#1801:g1",
+              "gh:R_kgDOQncOdA#1802:g1",
+              "gh:R_kgDOQncOdA#1804:g1"
+            ],
+            "request_ids": [
+              "apr-da70428e7333",
+              "apr-ca62f639d022",
+              "apr-30822efbf312"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 4,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        },
+        {
+          "rep": 3,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "fence-before-boundary-no-effect",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "fenced",
+                "merge_calls": 0
+              }
+            },
+            {
+              "name": "denied-merge-does-not-spend-grant",
+              "pass": true,
+              "measured": {
+                "state": "approved"
+              }
+            },
+            {
+              "name": "in-flight-effect-reconciled-accurately",
+              "pass": true,
+              "measured": {
+                "outcome": "merged",
+                "reason": "cancellation-race"
+              }
+            },
+            {
+              "name": "no-automatic-destructive-reversal",
+              "pass": true,
+              "measured": {
+                "merged": true
+              }
+            },
+            {
+              "name": "late-preview-callback-denied",
+              "pass": true,
+              "measured": {
+                "outcome": "denied",
+                "reason": "fenced"
+              }
+            },
+            {
+              "name": "human-merge-records-actual-actor",
+              "pass": true,
+              "measured": {
+                "kind": "external",
+                "by": "human-dev"
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#1801:g1",
+              "gh:R_kgDOQncOdA#1802:g1",
+              "gh:R_kgDOQncOdA#1804:g1"
+            ],
+            "request_ids": [
+              "apr-377d7a54f3ad",
+              "apr-cc0b3792f944",
+              "apr-4e19abbd3a8b"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 4,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        }
+      ]
+    },
+    "FAULT19": {
+      "row": "FAULT19",
+      "status": "pass",
+      "passed_reps": 3,
+      "required_reps": 3,
+      "reps": [
+        {
+          "rep": 1,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "dirty-base-denied-before-send",
+              "pass": true,
+              "measured": {
+                "reason": "base-moved"
+              }
+            },
+            {
+              "name": "base-race-closed-by-enforcement",
+              "pass": true,
+              "measured": {
+                "outcome": "not-merged",
+                "reason": "merge-refused",
+                "pr_merged": false
+              }
+            },
+            {
+              "name": "draft-pr-blocked",
+              "pass": true,
+              "measured": {
+                "reason": "pr-draft"
+              }
+            },
+            {
+              "name": "closed-pr-blocked",
+              "pass": true,
+              "measured": {
+                "reason": "pr-not-open:closed"
+              }
+            },
+            {
+              "name": "armed-auto-merge-blocked",
+              "pass": true,
+              "measured": {
+                "reason": "auto-merge-armed"
+              }
+            },
+            {
+              "name": "repo-auto-merge-capability-blocked",
+              "pass": true,
+              "measured": {
+                "reason": "auto-merge-enabled"
+              }
+            },
+            {
+              "name": "unprotected-base-fails-gate",
+              "pass": true,
+              "measured": {
+                "reason": "protection-missing"
+              }
+            },
+            {
+              "name": "bypassable-admins-fails-gate",
+              "pass": true,
+              "measured": {
+                "reason": "bypassable-protection"
+              }
+            },
+            {
+              "name": "unsupported-method-fails-gate",
+              "pass": true,
+              "measured": {
+                "reason": "method-unsupported"
+              }
+            },
+            {
+              "name": "auto-merge-never-enabled",
+              "pass": true,
+              "measured": {
+                "auto_merge": null
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#1901:g1",
+              "gh:R_kgDOQncOdA#1902:g1",
+              "gh:R_kgDOQncOdA#1903:g1",
+              "gh:R_kgDOQncOdA#1904:g1",
+              "gh:R_kgDOQncOdA#1905:g1",
+              "gh:R_kgDOQncOdA#1906:g1",
+              "gh:R_kgDOQncOdA#1907:g1",
+              "gh:R_kgDOQncOdA#1908:g1",
+              "gh:R_kgDOQncOdA#1909:g1"
+            ],
+            "request_ids": [
+              "apr-2a680af56407",
+              "apr-d3c6b7c16937",
+              "apr-5733c564966b",
+              "apr-764716a317f9",
+              "apr-aecaee4ef0bd",
+              "apr-60e5aebf189b",
+              "apr-deab5877d60d",
+              "apr-1a0e30262151",
+              "apr-83cf0b4e7393"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 9,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        },
+        {
+          "rep": 2,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "dirty-base-denied-before-send",
+              "pass": true,
+              "measured": {
+                "reason": "base-moved"
+              }
+            },
+            {
+              "name": "base-race-closed-by-enforcement",
+              "pass": true,
+              "measured": {
+                "outcome": "not-merged",
+                "reason": "merge-refused",
+                "pr_merged": false
+              }
+            },
+            {
+              "name": "draft-pr-blocked",
+              "pass": true,
+              "measured": {
+                "reason": "pr-draft"
+              }
+            },
+            {
+              "name": "closed-pr-blocked",
+              "pass": true,
+              "measured": {
+                "reason": "pr-not-open:closed"
+              }
+            },
+            {
+              "name": "armed-auto-merge-blocked",
+              "pass": true,
+              "measured": {
+                "reason": "auto-merge-armed"
+              }
+            },
+            {
+              "name": "repo-auto-merge-capability-blocked",
+              "pass": true,
+              "measured": {
+                "reason": "auto-merge-enabled"
+              }
+            },
+            {
+              "name": "unprotected-base-fails-gate",
+              "pass": true,
+              "measured": {
+                "reason": "protection-missing"
+              }
+            },
+            {
+              "name": "bypassable-admins-fails-gate",
+              "pass": true,
+              "measured": {
+                "reason": "bypassable-protection"
+              }
+            },
+            {
+              "name": "unsupported-method-fails-gate",
+              "pass": true,
+              "measured": {
+                "reason": "method-unsupported"
+              }
+            },
+            {
+              "name": "auto-merge-never-enabled",
+              "pass": true,
+              "measured": {
+                "auto_merge": null
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#1901:g1",
+              "gh:R_kgDOQncOdA#1902:g1",
+              "gh:R_kgDOQncOdA#1903:g1",
+              "gh:R_kgDOQncOdA#1904:g1",
+              "gh:R_kgDOQncOdA#1905:g1",
+              "gh:R_kgDOQncOdA#1906:g1",
+              "gh:R_kgDOQncOdA#1907:g1",
+              "gh:R_kgDOQncOdA#1908:g1",
+              "gh:R_kgDOQncOdA#1909:g1"
+            ],
+            "request_ids": [
+              "apr-90b175f8d082",
+              "apr-cfebfe945a10",
+              "apr-27703fe67ae2",
+              "apr-866ab178d790",
+              "apr-4caf21edf084",
+              "apr-f9d674ca009d",
+              "apr-c08e62681038",
+              "apr-b3aeb124e734",
+              "apr-072b3e95eb1f"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 9,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        },
+        {
+          "rep": 3,
+          "pass": true,
+          "assertions": [
+            {
+              "name": "dirty-base-denied-before-send",
+              "pass": true,
+              "measured": {
+                "reason": "base-moved"
+              }
+            },
+            {
+              "name": "base-race-closed-by-enforcement",
+              "pass": true,
+              "measured": {
+                "outcome": "not-merged",
+                "reason": "merge-refused",
+                "pr_merged": false
+              }
+            },
+            {
+              "name": "draft-pr-blocked",
+              "pass": true,
+              "measured": {
+                "reason": "pr-draft"
+              }
+            },
+            {
+              "name": "closed-pr-blocked",
+              "pass": true,
+              "measured": {
+                "reason": "pr-not-open:closed"
+              }
+            },
+            {
+              "name": "armed-auto-merge-blocked",
+              "pass": true,
+              "measured": {
+                "reason": "auto-merge-armed"
+              }
+            },
+            {
+              "name": "repo-auto-merge-capability-blocked",
+              "pass": true,
+              "measured": {
+                "reason": "auto-merge-enabled"
+              }
+            },
+            {
+              "name": "unprotected-base-fails-gate",
+              "pass": true,
+              "measured": {
+                "reason": "protection-missing"
+              }
+            },
+            {
+              "name": "bypassable-admins-fails-gate",
+              "pass": true,
+              "measured": {
+                "reason": "bypassable-protection"
+              }
+            },
+            {
+              "name": "unsupported-method-fails-gate",
+              "pass": true,
+              "measured": {
+                "reason": "method-unsupported"
+              }
+            },
+            {
+              "name": "auto-merge-never-enabled",
+              "pass": true,
+              "measured": {
+                "auto_merge": null
+              }
+            }
+          ],
+          "failed_assertions": [],
+          "identities": {
+            "work_keys": [
+              "gh:R_kgDOQncOdA#1901:g1",
+              "gh:R_kgDOQncOdA#1902:g1",
+              "gh:R_kgDOQncOdA#1903:g1",
+              "gh:R_kgDOQncOdA#1904:g1",
+              "gh:R_kgDOQncOdA#1905:g1",
+              "gh:R_kgDOQncOdA#1906:g1",
+              "gh:R_kgDOQncOdA#1907:g1",
+              "gh:R_kgDOQncOdA#1908:g1",
+              "gh:R_kgDOQncOdA#1909:g1"
+            ],
+            "request_ids": [
+              "apr-b10d210c3042",
+              "apr-6a67173f82af",
+              "apr-709de41d90ba",
+              "apr-7996e4b56ab5",
+              "apr-b976bb07d1a3",
+              "apr-496b5ea9033d",
+              "apr-73497c6560b2",
+              "apr-bcd76d3e18ad",
+              "apr-caf5f195f232"
+            ]
+          },
+          "audit": {
+            "counters": {
+              "duplicate_prs": 0,
+              "unauthorized_merges": 0,
+              "accepted_fenced_results": 0,
+              "lost_acknowledged_tasks": 0,
+              "stale_counted_passing": 0
+            },
+            "violations": [],
+            "evidence_audit": {
+              "verified_rows": 9,
+              "defective_rows": 0
+            }
+          },
+          "error": null,
+          "notes": []
+        }
+      ]
+    }
+  },
+  "failed_rows": [],
+  "totals": {
+    "rows": 19,
+    "repetitions": 57,
+    "passed_repetitions": 57
+  },
+  "environment": {
+    "python": "3.14.7",
+    "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+    "harness_version": "1.0.0",
+    "manifest": "/Users/montimage/buildspace/luongnv89/factory-kit/.factory-kit.yml",
+    "manifest_digest": "471800e23c5595c818afde9d59d627dc6800fba44ca6444430d072303433a372",
+    "policy_digest": "a3808f62b97d652152c437a250e8ef5f71159c3de1d4ee4244e23922395ba410",
+    "supported_versions": [
+      "factory-kit/0.1.0",
+      "manifest/1",
+      "hermes/0.21.5"
+    ],
+    "fixture_identity": {
+      "remote": "ScriptedRemote (deterministic remote.json)",
+      "preview": "ScriptedPreview",
+      "worker": "ScriptedWorker",
+      "issue_source": "ScriptedIssueSource",
+      "stores": "IntakeStore SQLite \u2014 BEGIN IMMEDIATE + synchronous=FULL",
+      "repository": "luongnv89/money-mind",
+      "repo_id": "R_kgDOQncOdA"
+    },
+    "reproduce": "python3 tools/probes/fault_matrix.py [--row FAULTNN] [--write out.json]"
+  }
+}
