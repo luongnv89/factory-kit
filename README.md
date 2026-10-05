@@ -34,6 +34,8 @@ not implemented yet.
 - [Product requirements and acceptance criteria](prd.md)
 - [Development task plan](tasks.md)
 - [Spike evidence and boundary map](docs/spike/)
+- [Fault-matrix evidence](docs/evidence/fault-matrix.md)
+- [§5.1 measured local targets](docs/measurements/v1-targets.md)
 - [Decision records](docs/decisions/)
 - [Canonical manifest example](.factory-kit.yml)
 - [Reference diagram](assets/warp-ai-factory-reference.jpg)
