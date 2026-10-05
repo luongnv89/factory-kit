@@ -97,6 +97,16 @@ Tables:
   export scope (Task 2.9 / A6). An aggregate pilot export exists only
   against a durable row here; it can never silently enable external
   collection.
+- ``merge_intents`` — the §6.4 Merge outcome record (Task 3.3 / F12):
+  the single merge owner's serialized intent. One row commits inside
+  the same transaction that consumes the one-use approval — request/
+  decision identities, expected head/base, method, granting actor —
+  *before* the conditional merge is sent; the outcome side carries the
+  remote's authoritative merged flag, merge commit SHA, actual merge
+  actor and read-back time. One intent per request is index-enforced
+  and one *live* intent per work (recorded/parked) serializes
+  concurrent merges; unknown outcomes park until reconciliation
+  resolves them.
 
 The ``events`` table also carries ``supersedes`` (Task 2.9 / A1): a
 correction appends a new event pointing at the earlier row's seq —
@@ -541,7 +551,96 @@ CREATE INDEX IF NOT EXISTS decisions_by_request
     ON approval_decisions(request_id, decided_at);
 CREATE INDEX IF NOT EXISTS decisions_by_command
     ON approval_decisions(command_id);
+
+-- Guarded merge intents (Task 3.3 / F12, §6.4 Merge outcome): one durable
+-- row per consumed approval — the atomic approval→intent spend commits in a
+-- single ``transact`` before any remote merge call. The row binds the
+-- request/decision identities, the exact expected head/base revision the
+-- conditional merge carries, the selected method, the granting actor and
+-- the authoritative outcome: ``merged`` flag, actual merge commit SHA, the
+-- remote-recorded merge actor and the read-back time. States: ``recorded``
+-- (committed; the remote effect may or may not have been sent — the crash
+-- window recovery reconciles), ``merged`` (read-back confirmed the merge),
+-- ``not-merged`` (the remote refused or the preconditions lapsed before
+-- send), ``parked`` (the outcome is unknown — a lost response with an
+-- unreadable remote; reconciled, never retried blindly) and
+-- ``invalidated`` (fence/cancel/expiry won before the effect).
+CREATE TABLE IF NOT EXISTS merge_intents(
+    intent_id TEXT PRIMARY KEY,
+    work_key TEXT NOT NULL,
+    seq INTEGER,
+    task_id TEXT,
+    generation INTEGER,
+    authority_key TEXT,
+    repo_id TEXT,
+    request_id TEXT NOT NULL,
+    decision_id TEXT,
+    pr_number TEXT,
+    expected_head TEXT,
+    expected_base_name TEXT,
+    expected_base_sha TEXT,
+    merge_method TEXT,
+    actor_ref TEXT,
+    state TEXT NOT NULL,
+    reason TEXT,
+    merged INTEGER,
+    merge_sha TEXT,
+    merged_by TEXT,
+    merge_actor_kind TEXT,
+    expires_epoch REAL,
+    sent_at TEXT,
+    read_back_at TEXT,
+    detail TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL);
+-- One merge intent per consumed approval — the one-use grant can never
+-- mint two effects (A3).
+CREATE UNIQUE INDEX IF NOT EXISTS one_merge_intent_per_request
+    ON merge_intents(request_id);
+-- One *live* (recorded/parked) merge intent per work — concurrent merge
+-- invocations converge on the single committed row, and a parked unknown
+-- holds the slot until reconciliation resolves it (A3/A6).
+CREATE UNIQUE INDEX IF NOT EXISTS one_live_merge_intent_per_work
+    ON merge_intents(work_key)
+    WHERE state IN ('recorded','parked');
+CREATE INDEX IF NOT EXISTS merge_intents_by_work
+    ON merge_intents(work_key, created_at);
 """
+
+
+class _EagerCursor:
+    """A ``sqlite3.Cursor`` stand-in whose rows are already materialized.
+
+    :meth:`IntakeStore._q` executes *and* fetches under the store's
+    ``RLock``, so the single shared connection is never stepped by two
+    threads mid-read — a bare ``execute`` returning a lazy cursor would
+    let a second thread's query interleave between the first cursor's
+    steps and corrupt both ("bad parameter or other API misuse").
+    """
+
+    def __init__(self, rows, *, rowcount=-1, lastrowid=None):
+        self._rows = list(rows)
+        self._pos = 0
+        self.rowcount = rowcount
+        self.lastrowid = lastrowid
+
+    def fetchone(self):
+        if self._pos >= len(self._rows):
+            return None
+        row = self._rows[self._pos]
+        self._pos += 1
+        return row
+
+    def fetchall(self):
+        rows = self._rows[self._pos:]
+        self._pos = len(self._rows)
+        return list(rows)
+
+    def __iter__(self):
+        while self._pos < len(self._rows):
+            row = self._rows[self._pos]
+            self._pos += 1
+            yield row
 
 
 class IntakeStore:
@@ -634,8 +733,14 @@ class IntakeStore:
                     f"durable intake commit failed: {exc}") from exc
 
     def _q(self, sql, params=()):
+        """Execute + materialize under the store lock — the shared
+        connection never carries a lazy cursor across threads."""
         try:
-            return self.db.execute(sql, params)
+            with self._lock:
+                cur = self.db.execute(sql, params)
+                return _EagerCursor(cur.fetchall(),
+                                    rowcount=cur.rowcount,
+                                    lastrowid=cur.lastrowid)
         except sqlite3.Error as exc:
             raise IntakeStoreError(f"intake store query failed: {exc}") \
                 from exc
@@ -2334,6 +2439,138 @@ class IntakeStore:
         if row is None:
             return None
         return dict(zip(cls._APPROVAL_DECISION_COLS, row))
+
+    # -- guarded merge intents (Task 3.3 / F12, §6.4 Merge outcome) --------
+    #
+    # ``merge_intents`` is the single merge owner's serialized identity: the
+    # durable row commits inside the same ``transact`` that consumes the
+    # one-use approval, *before* any remote merge call. The partial unique
+    # index on live states makes concurrent invocations un-raceable — a
+    # second merge call converges on the committed row instead of minting a
+    # second intent (A3). Terminal outcome rows carry the authoritative
+    # merged flag, actual merge commit SHA, the remote-recorded merge actor
+    # and the read-back time (A6).
+
+    _MERGE_INTENT_COLS = (
+        "intent_id", "work_key", "seq", "task_id", "generation",
+        "authority_key", "repo_id", "request_id", "decision_id",
+        "pr_number", "expected_head", "expected_base_name",
+        "expected_base_sha", "merge_method", "actor_ref", "state",
+        "reason", "merged", "merge_sha", "merged_by",
+        "merge_actor_kind", "expires_epoch", "sent_at", "read_back_at",
+        "detail", "created_at", "updated_at")
+
+    #: Intent states that still hold the work's one live merge slot —
+    #: ``recorded`` (pre-effect or crash window) and ``parked`` (unknown
+    #: outcome awaiting reconciliation). Terminal states never block a
+    #: fresh approval's intent.
+    MERGE_LIVE_STATES = ("recorded", "parked")
+
+    def insert_merge_intent(self, intent_id, *, work_key, seq=None,
+                            task_id=None, generation=None,
+                            authority_key=None, repo_id=None,
+                            request_id, decision_id=None, pr_number=None,
+                            expected_head=None, expected_base_name=None,
+                            expected_base_sha=None, merge_method=None,
+                            actor_ref=None, state, reason=None,
+                            merged=None, merge_sha=None, merged_by=None,
+                            merge_actor_kind=None, expires_epoch=None,
+                            sent_at=None, read_back_at=None, detail=None):
+        """Write one merge intent row (inside ``transact``). The row must
+        commit in the same transaction that consumes the approval — an
+        intent without its spent grant, or a spent grant without its
+        intent, is the torn state the atomic spend exists to prevent
+        (A3)."""
+        now = _utcnow()
+        self._q(
+            "INSERT INTO merge_intents"
+            "(intent_id,work_key,seq,task_id,generation,authority_key,"
+            "repo_id,request_id,decision_id,pr_number,expected_head,"
+            "expected_base_name,expected_base_sha,merge_method,actor_ref,"
+            "state,reason,merged,merge_sha,merged_by,merge_actor_kind,"
+            "expires_epoch,sent_at,read_back_at,detail,created_at,"
+            "updated_at)"
+            " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,"
+            "?)",
+            (intent_id, work_key, seq, task_id, generation,
+             authority_key, repo_id, request_id, decision_id,
+             str(pr_number) if pr_number is not None else None,
+             expected_head, expected_base_name, expected_base_sha,
+             merge_method, actor_ref, state, reason, merged, merge_sha,
+             merged_by, merge_actor_kind, expires_epoch, sent_at,
+             read_back_at, detail, now, now))
+
+    def update_merge_intent(self, intent_id, **fields):
+        """Advance a merge intent's outcome (inside ``transact``). Only
+        named columns may be written — the bound identity (request,
+        decision, expected head/base, method) is fixed at creation so an
+        outcome can never rebind the intent to a different grant or
+        revision (A6)."""
+        allowed = {"seq", "state", "reason", "merged", "merge_sha",
+                   "merged_by", "merge_actor_kind", "sent_at",
+                   "read_back_at", "detail"}
+        unknown = set(fields) - allowed
+        if unknown:
+            raise IntakeStoreError(
+                f"unknown merge-intent fields {sorted(unknown)}")
+        sets, params = ["updated_at=?"], [_utcnow()]
+        for col in sorted(fields):
+            sets.append(f"{col}=?")
+            params.append(fields[col])
+        params.append(intent_id)
+        self._q(
+            f"UPDATE merge_intents SET {', '.join(sets)}"
+            " WHERE intent_id=?", params)
+
+    def get_merge_intent(self, intent_id):
+        row = self._q(
+            "SELECT * FROM merge_intents WHERE intent_id=?",
+            (intent_id,)).fetchone()
+        return self._merge_intent_row(row)
+
+    def merge_intent_for_request(self, request_id):
+        """The intent a consumed approval minted, or ``None`` — the
+        one-use grant's single spend (A3)."""
+        if not request_id:
+            return None
+        row = self._q(
+            "SELECT * FROM merge_intents WHERE request_id=?",
+            (request_id,)).fetchone()
+        return self._merge_intent_row(row)
+
+    def live_merge_intent(self, work_key):
+        """The intent currently holding the work's one live merge slot
+        (``recorded``/``parked``), or ``None`` — enforced by the partial
+        unique index so a racing second merge can never mint a second
+        live intent."""
+        row = self._q(
+            "SELECT * FROM merge_intents WHERE work_key=?"
+            " AND state IN ('recorded','parked')"
+            " ORDER BY rowid DESC LIMIT 1", (work_key,)).fetchone()
+        return self._merge_intent_row(row)
+
+    def merge_intent_rows(self, work_key=None):
+        rows = self._rows("merge_intents")
+        if work_key is not None:
+            rows = [r for r in rows if r["work_key"] == work_key]
+        return rows
+
+    def pending_merge_intents(self):
+        """Intents between committed spend and authoritative outcome —
+        ``recorded`` (the crash window) and ``parked`` (unknown
+        outcome): the set recovery/reconciliation resolves by remote
+        read-back, never by blind resend (A6/A7)."""
+        rows = self._q(
+            "SELECT * FROM merge_intents"
+            " WHERE state IN ('recorded','parked')"
+            " ORDER BY created_at").fetchall()
+        return [self._merge_intent_row(r) for r in rows]
+
+    @classmethod
+    def _merge_intent_row(cls, row):
+        if row is None:
+            return None
+        return dict(zip(cls._MERGE_INTENT_COLS, row))
 
     # -- read accessors (inspectability + tests) --------------------------------
 

@@ -95,7 +95,11 @@ class RemotePort:
         ``{"number", "url", "state", "draft", "head", "head_branch",
         "base"}`` for PR ``number``, or ``None`` when it does not
         exist. ``head`` is the head *SHA* — the revision verification
-        binds evidence to."""
+        binds evidence to. Merge-guard fields (Task 3.3 / F12):
+        ``mergeable``, ``merge_state``, ``auto_merge`` (an armed
+        auto-merge request = a competing merge owner), ``merged``,
+        ``merge_sha`` (the actual merge commit — the authoritative
+        outcome) and ``merged_by`` (the remote-recorded actor)."""
         raise NotImplementedError
 
     def check_runs(self, sha):
@@ -103,6 +107,41 @@ class RemotePort:
         ``[{"id", "name", "status", "conclusion", "app",
         "details_url"}]`` — provider identity included so the evidence
         names *which* system reported each conclusion (F04 A2)."""
+        raise NotImplementedError
+
+    def read_branch_protection(self, branch):
+        """Authoritative protection read for ``branch`` (Task 3.3 /
+        F12): ``{"protected", "strict", "enforce_admins",
+        "required_checks"}`` — ``strict`` is the up-to-date-base
+        enforcement and ``enforce_admins`` the no-bypass rule the
+        guarded merge requires; ``{"protected": False}`` when the
+        branch carries no protection."""
+        raise NotImplementedError
+
+    def repository_capabilities(self):
+        """Authoritative repository merge capability read (Task 3.3):
+        ``{"allow_auto_merge", "allow_squash_merge",
+        "allow_merge_commit", "allow_rebase_merge"}`` — the merge
+        owner requires ``allow_auto_merge`` off (a queued auto-merge
+        can outlive approval expiry) and the selected method enabled."""
+        raise NotImplementedError
+
+    def actor_identity(self):
+        """The remote-recorded login of the scoped credential —
+        ``{"login": str}``. A merged PR's ``merged_by`` equal to this
+        login is a factory merge; anything else is external activity
+        attributed to its actual actor, never to a factory approval
+        (F12 A7)."""
+        raise NotImplementedError
+
+    def merge_pr(self, number, *, method, expected_head, identity) -> dict:
+        """The one supported merge effect (Task 3.3 / F12): a
+        conditional merge that applies only when the remote head still
+        equals ``expected_head`` — the expected-head precondition —
+        under the repository-enforced protections the guard verified
+        (required checks on an up-to-date base, admins not bypassed).
+        Returns the remote's answer; the authoritative outcome is
+        *always* the read-back, never this response (A6)."""
         raise NotImplementedError
 
 
@@ -220,20 +259,34 @@ class GhCliRemote(RemotePort):
         # the caller cannot tell "PR does not exist" from "GitHub
         # unreachable", and verification must answer ``unknown`` for
         # the latter — never mistake an outage for a closed PR (A3).
+        # The merge fields (Task 3.3) ride the same authoritative read:
+        # mergeable/mergeStateStatus for the guard, autoMergeRequest for
+        # the competing-owner check, and mergeCommit/mergedBy for the
+        # authoritative outcome read-back.
         out = self._run([self.gh_bin, "pr", "view", str(number),
                          "--repo", self._identity["full_name"],
                          "--json",
                          "number,url,state,isDraft,headRefOid,"
-                         "headRefName,baseRefName"])
+                         "headRefName,baseRefName,mergeable,"
+                         "mergeStateStatus,autoMergeRequest,"
+                         "mergeCommit,mergedBy"])
         if not out or out.get("number") is None:
             return None
+        merge_commit = out.get("mergeCommit") or {}
+        merged_by = out.get("mergedBy") or {}
         return {"number": str(out.get("number")),
                 "url": out.get("url"),
                 "state": out.get("state"),
                 "draft": bool(out.get("isDraft")),
                 "head": out.get("headRefOid"),
                 "head_branch": out.get("headRefName"),
-                "base": out.get("baseRefName")}
+                "base": out.get("baseRefName"),
+                "mergeable": out.get("mergeable"),
+                "merge_state": out.get("mergeStateStatus"),
+                "auto_merge": out.get("autoMergeRequest") is not None,
+                "merged": str(out.get("state") or "").upper() == "MERGED",
+                "merge_sha": merge_commit.get("oid"),
+                "merged_by": merged_by.get("login")}
 
     def check_runs(self, sha):
         out = self._run([self.gh_bin, "api",
@@ -248,6 +301,63 @@ class GhCliRemote(RemotePort):
                  "details_url": c.get("details_url") or
                  c.get("html_url")}
                 for c in (runs or [])]
+
+    def read_branch_protection(self, branch):
+        # The protected-branch API answers 404 when the branch carries
+        # no protection — that is a real answer (unprotected), not an
+        # outage. Any other failure propagates so the guard can defer
+        # rather than decide on an unreadable contract.
+        try:
+            out = self._run([self.gh_bin, "api",
+                             f"repos/{self._identity['full_name']}"
+                             f"/branches/{branch}/protection"])
+        except RemoteError as exc:
+            if "404" in str(exc) or "not protected" in str(exc).lower():
+                return {"protected": False}
+            raise
+        rsc = out.get("required_status_checks") or {}
+        contexts = [c if isinstance(c, str) else c.get("context")
+                    for c in (rsc.get("contexts") or [])]
+        contexts += [c.get("context") for c in (rsc.get("checks") or [])
+                     if isinstance(c, dict)]
+        return {"protected": True,
+                "strict": bool(rsc.get("strict")),
+                "enforce_admins": bool(
+                    (out.get("enforce_admins") or {}).get("enabled")),
+                "required_checks": sorted(c for c in contexts if c)}
+
+    def repository_capabilities(self):
+        out = self._run([self.gh_bin, "api",
+                         f"repos/{self._identity['full_name']}"])
+        return {"allow_auto_merge": bool(out.get("allow_auto_merge")),
+                "allow_squash_merge":
+                    bool(out.get("allow_squash_merge")),
+                "allow_merge_commit":
+                    bool(out.get("allow_merge_commit")),
+                "allow_rebase_merge":
+                    bool(out.get("allow_rebase_merge"))}
+
+    def actor_identity(self):
+        out = self._run([self.gh_bin, "api", "user"])
+        return {"login": out.get("login")}
+
+    def merge_pr(self, number, *, method, expected_head, identity) -> dict:
+        # The supported expected-head merge operation: the REST merge
+        # endpoint's ``sha`` precondition makes the merge conditional on
+        # the remote head still equalling the approved revision — and
+        # the repository's own protection (required checks + strict
+        # up-to-date base + enforce-admins) is what refuses the call
+        # atomically when base/checks moved between the guard's read
+        # and this write (A4). Auto-merge is never enabled.
+        out = self._run([self.gh_bin, "api",
+                         f"repos/{self._identity['full_name']}"
+                         f"/pulls/{number}/merge",
+                         "-X", "PUT",
+                         "-f", f"merge_method={method}",
+                         "-f", f"sha={expected_head}"])
+        return {"merged": bool(out.get("merged")),
+                "sha": out.get("sha"),
+                "message": out.get("message")}
 
 
 class ScriptedRemote(RemotePort):
@@ -280,6 +390,26 @@ class ScriptedRemote(RemotePort):
         self.checks = {}                   # sha -> [check-run dicts]
         self.pr_drafts = set()             # PR numbers reported draft
         self.pr_states = {}                # PR number -> state override
+        # Task 3.3 seams — the guarded merge's remote contract:
+        # ``mergeable``/``merge_state`` ride ``read_pr`` for the guard's
+        # mergeability check; ``auto_merge`` arms a competing-owner
+        # read; ``mergers`` records the remote's merge outcome
+        # {number: {"sha", "by"}} — set directly to simulate a
+        # human-originated merge; ``protection``/``capabilities``/
+        # ``actor_login`` are the protection/capability/identity reads.
+        self.mergeable = "MERGEABLE"
+        self.merge_state = "CLEAN"
+        self.auto_merge = None             # armed auto-merge request
+        self.mergers = {}                  # str(number) -> {sha, by}
+        self.protection = {"protected": True, "strict": True,
+                           "enforce_admins": True,
+                           "required_checks": ["Code Quality & Build",
+                                               "Security Scan"]}
+        self.capabilities = {"allow_auto_merge": False,
+                             "allow_squash_merge": True,
+                             "allow_merge_commit": False,
+                             "allow_rebase_merge": False}
+        self.actor_login = "factory-bot"
         self.faults = dict(faults or {})
         self.calls = []                    # ordered (op, kwargs) log
         self._next_pr = 100
@@ -329,6 +459,11 @@ class ScriptedRemote(RemotePort):
             self._next_pr += 1
             self.pulls[number] = {
                 "number": number, "head": head, "base": base,
+                # The PR's base snapshot — strict up-to-date protection
+                # refuses a merge once the live base branch moved past
+                # it; that is the base/check race enforcement the
+                # guarded merge relies on (Task 3.3 A4).
+                "base_sha": self.branches.get(base),
                 "title": title, "state": "open",
                 "url": f"https://example.test/{self._identity['full_name']}"
                        f"/pull/{number}",
@@ -338,7 +473,9 @@ class ScriptedRemote(RemotePort):
                           title=title, identity=identity)
 
     def read_branch(self, branch):
-        return self.branches.get(branch)
+        def apply(**kw):
+            return self.branches.get(kw["branch"])
+        return self._call("branch-read", apply, branch=branch)
 
     def find_pull_requests(self, *, head=None, identity=None) -> list:
         rows = [p for p in self.pulls.values()
@@ -353,19 +490,80 @@ class ScriptedRemote(RemotePort):
 
     def read_pr(self, number):
         def apply(**kw):
-            pull = self.pulls.get(str(number))
+            num = str(kw["number"])
+            pull = self.pulls.get(num)
             if pull is None:
                 return None
+            state = self.pr_states.get(num, pull["state"])
+            merger = self.mergers.get(num)
+            merged = merger is not None or state.upper() == "MERGED"
             return {"number": str(pull["number"]), "url": pull["url"],
-                    "state": self.pr_states.get(str(number),
-                                                pull["state"]),
-                    "draft": str(number) in self.pr_drafts,
+                    "state": state,
+                    "draft": num in self.pr_drafts,
                     "head": self.branches.get(pull["head"]),
                     "head_branch": pull["head"],
-                    "base": pull["base"]}
+                    "base": pull["base"],
+                    "mergeable": self.mergeable,
+                    "merge_state": self.merge_state,
+                    "auto_merge": self.auto_merge is not None,
+                    "merged": merged,
+                    "merge_sha": (merger or {}).get("sha"),
+                    "merged_by": (merger or {}).get("by")}
         return self._call("pr-read", apply, number=number)
 
     def check_runs(self, sha):
         def apply(**kw):
             return [dict(c) for c in self.checks.get(sha, [])]
         return self._call("check-runs", apply, sha=sha)
+
+    def read_branch_protection(self, branch):
+        def apply(**kw):
+            return dict(self.protection)
+        return self._call("protection-read", apply, branch=branch)
+
+    def repository_capabilities(self):
+        def apply(**kw):
+            return dict(self.capabilities)
+        return self._call("capabilities-read", apply)
+
+    def actor_identity(self):
+        def apply(**kw):
+            return {"login": self.actor_login}
+        return self._call("actor-read", apply)
+
+    def merge_pr(self, number, *, method, expected_head, identity) -> dict:
+        def apply(**kw):
+            num = str(kw["number"])
+            pull = self.pulls.get(num)
+            if pull is None:
+                raise RemoteError(f"merge: PR {num} not found")
+            state = self.pr_states.get(num, pull["state"])
+            if str(state).lower() != "open":
+                raise RemoteError("merge refused: PR not open")
+            head = self.branches.get(pull["head"])
+            # The conditional merge's expected-head precondition — the
+            # effect applies only while the remote head still equals the
+            # approved revision (A4).
+            if head != expected_head:
+                raise RemoteError(
+                    "merge refused: sha precondition failed")
+            # Repository-enforced strict up-to-date protection: when
+            # the base branch moved since the PR's snapshot the merge
+            # is refused — the base/check race the remote itself closes
+            # (A4). Tests move ``branches[base]`` to exercise it.
+            if self.protection.get("protected") and \
+                    self.protection.get("strict") and \
+                    pull.get("base_sha") is not None and \
+                    self.branches.get(pull["base"]) != \
+                    pull.get("base_sha"):
+                raise RemoteError(
+                    "merge refused: base branch is not up to date "
+                    "(strict protection)")
+            merge_sha = f"merge-{num}-{str(head)[:8]}"
+            self.pr_states[num] = "MERGED"
+            self.mergers[num] = {"sha": merge_sha,
+                                 "by": self.actor_login}
+            return {"merged": True, "sha": merge_sha}
+        return self._call("pr-merge", apply, number=number,
+                          method=method, expected_head=expected_head,
+                          identity=identity)
