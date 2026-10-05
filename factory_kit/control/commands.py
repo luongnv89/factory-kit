@@ -33,6 +33,9 @@ import re
 __all__ = [
     "ACTIONS",
     "MUTATING_ACTIONS",
+    "COMMAND_REFERENCE",
+    "command_reference",
+    "reference_text",
     "validate",
     "propose",
 ]
@@ -44,6 +47,76 @@ ACTIONS = ("status", "pause", "resume", "cancel", "retry",
 #: Commands that change execution state — they require the full
 #: explicit target: repository + task + generation (A1).
 MUTATING_ACTIONS = ("pause", "resume", "cancel", "approve", "reject")
+
+#: A3 — the documented text equivalent of every interactive affordance.
+#: Each entry names the button/action, the exact text command that does
+#: the same thing, the target scope the command binds, and what it does
+#: — the table the Telegram footer, the help surface and the docs all
+#: render verbatim, so a screen-reader user and a button user get the
+#: same capabilities with the same identifiers.
+COMMAND_REFERENCE = (
+    {"action": "status",
+     "command": "status <repo> <issue>",
+     "scope": "repository + issue (latest generation)",
+     "mutates": False,
+     "effect": "read the task's committed state, blocker, revision, "
+               "committed-effect links, heartbeat and limits"},
+    {"action": "pause",
+     "command": "pause <repo> <issue> <generation>",
+     "scope": "repository + issue + live generation",
+     "mutates": True,
+     "effect": "hold work at the next stage boundary"},
+    {"action": "resume",
+     "command": "resume <repo> <issue> <generation>",
+     "scope": "repository + issue + live generation",
+     "mutates": True,
+     "effect": "release the pause boundary; work re-enters the lane"},
+    {"action": "cancel",
+     "command": "cancel <repo> <issue> <generation>",
+     "scope": "repository + issue + live generation",
+     "mutates": True,
+     "effect": "fence the generation and terminate the worker; "
+               "terminal for that generation"},
+    {"action": "retry",
+     "command": "retry <repo> <issue>",
+     "scope": "repository + issue",
+     "mutates": True,
+     "effect": "mint a fresh authorized generation (audited)"},
+    {"action": "approve",
+     "command": "approve <repo> <issue> <generation>",
+     "scope": "repository + issue + live generation",
+     "mutates": True,
+     "effect": "record the one-use human approval on the durable "
+               "request (bound action/revision)"},
+    {"action": "reject",
+     "command": "reject <repo> <issue> <generation>",
+     "scope": "repository + issue + live generation",
+     "mutates": True,
+     "effect": "record the human rejection; work blocks for a human "
+               "decision"},
+)
+
+
+def command_reference():
+    """A3 — the action → text-command mapping as data: one entry per
+    recognized verb, each with its exact syntax, the target scope it
+    binds and whether it mutates. Every Telegram button has a row here —
+    the documented text alternative is never a separate invention."""
+    return list(COMMAND_REFERENCE)
+
+
+def reference_text():
+    """Render :data:`COMMAND_REFERENCE` as plain text — stable command
+    words, explicit scope, no color or emoji (A3)."""
+    lines = ["TEXT COMMANDS - every button has this equivalent:"]
+    for entry in COMMAND_REFERENCE:
+        lines.append(
+            f"  {entry['command']} - {entry['effect']} "
+            f"(scope: {entry['scope']}).")
+    lines.append(
+        "An ambiguous or missing target is rejected with a request for "
+        "the concrete one - nothing executes on a guess.")
+    return "\n".join(lines)
 
 #: Per-action required target fields. Everything else about the
 #: request shape is common: command_id, actor, chat.
