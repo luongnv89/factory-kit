@@ -446,6 +446,34 @@ class TestA2SmokeAndExpiry(MergeFixture):
         req = self.store.get_approval_request(request_id)
         self.assertEqual(req["state"], "invalidated")
 
+    def test_denied_unreadable_smoke_stamp_is_stale(self):
+        """A verified preview whose observation stamp cannot be parsed
+        has *infinite* smoke age — the freshness gate fails closed
+        (A2), never open."""
+        work_key, request_id = self._approved()
+        preview = self.store.active_preview(work_key)
+        with self.store.transact() as tx:
+            tx.update_preview(preview["preview_id"], observed_at=None)
+        out = self.merge_svc.merge(work_key)
+        self.assertEqual(out["reason"], "smoke-stale")
+        self.assertEqual(self._merges(), [])
+        req = self.store.get_approval_request(request_id)
+        self.assertEqual(req["state"], "invalidated")
+
+    def test_denied_malformed_smoke_blob(self):
+        """A ``smoke_observed`` blob that cannot parse is *unobserved*
+        smoke — an explicit blocker, never a guard crash (A2/A5)."""
+        work_key, request_id = self._approved()
+        preview = self.store.active_preview(work_key)
+        with self.store.transact() as tx:
+            tx.update_preview(preview["preview_id"],
+                              smoke_observed="{not-json")
+        out = self.merge_svc.merge(work_key)
+        self.assertEqual(out["reason"], "smoke-unobserved")
+        self.assertEqual(self._merges(), [])
+        req = self.store.get_approval_request(request_id)
+        self.assertEqual(req["state"], "invalidated")
+
 
 # ---------------------------------------------------------------------------
 # A3 — one approval → one intent; concurrency converges
@@ -484,6 +512,54 @@ class TestA3Atomicity(MergeFixture):
         self.assertEqual(len(self._merges()), 1)
         outcomes = {r["outcome"] for r in results}
         self.assertTrue(outcomes <= {"merged", "converged", "parked"})
+
+    def test_fresh_approval_converges_on_parked_intent(self):
+        """A parked intent still owns the work's live merge slot: a
+        fresh approved request converges on it — resolved by read-back,
+        never a second spend crashing into the live-slot index (A3/A6).
+        """
+        work_key, request_id = self._approved()
+        # Park I1 with no effect landed: request lost + blind read-back.
+        self.remote.faults["pr-merge"] = "crash-before-create"
+        real_merge = self.remote.merge_pr
+
+        def merge_then_blind(number, *, method, expected_head,
+                             identity):
+            try:
+                return real_merge(number, method=method,
+                                  expected_head=expected_head,
+                                  identity=identity)
+            finally:
+                self.remote.faults["pr-read"] = "raise"
+
+        self.remote.merge_pr = merge_then_blind
+        out = self.merge_svc.merge(work_key)
+        self.assertEqual(out["outcome"], "parked")
+        self.remote.faults.clear()
+        self.remote.merge_pr = real_merge
+        # Fresh approval while the parked intent holds the live slot.
+        ask = self.approval.request_approval(work_key)
+        self.assertEqual(ask["outcome"], "requested")
+        dec = self.approval.decide(
+            request_id=ask["request_id"],
+            actor_ref=f"telegram:{USER}", chat_ref=f"telegram:{CHAT}",
+            verdict="approve")
+        self.assertEqual(dec["outcome"], "approved")
+        # Converges on the live intent and resolves it by read-back —
+        # nothing ever landed → not-merged; no crash, no second send,
+        # and the fresh grant stays spendable (approved, not consumed).
+        out = self.merge_svc.merge(work_key)
+        self.assertEqual(out["outcome"], "not-merged")
+        self.assertTrue(out.get("converged"))
+        self.assertEqual(len(self._merges()), 1)
+        self.assertEqual(len(self._intents(work_key)), 1)
+        fresh = self.store.get_approval_request(ask["request_id"])
+        self.assertEqual(fresh["state"], "approved")
+        # With the slot freed the fresh approval spends normally.
+        out = self.merge_svc.merge(work_key)
+        self.assertEqual(out["outcome"], "merged")
+        self.assertEqual(len(self._merges()), 2)
+        self.assertEqual(len(self._intents(work_key)), 2)
 
     def test_intent_carries_bound_identity(self):
         work_key, request_id = self._approved()

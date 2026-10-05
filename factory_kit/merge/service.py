@@ -201,15 +201,21 @@ class MergeService:
         if request is not None:
             intent = self.store.merge_intent_for_request(
                 request["request_id"])
+        if intent is None:
+            # The work's one live merge slot converges *every* caller —
+            # a fresh approved request included: while a recorded or
+            # parked intent stands (even one a different request
+            # minted), its owner resolves by read-back, and a second
+            # spend must never land on the live-slot unique index.
+            intent = self.store.live_merge_intent(work_key)
         if intent is None and request is None and request_id is None:
             # No spendable grant stands — a committed intent may still
-            # own the merge: the work's live slot first, then the last
-            # terminal outcome. A *fresh* approved request never takes
-            # this path, so retry after ``not-merged`` still spends.
-            intent = self.store.live_merge_intent(work_key)
-            if intent is None:
-                rows = self.store.merge_intent_rows(work_key)
-                intent = rows[-1] if rows else None
+            # own the merge: the last terminal outcome is the work's
+            # merge position to report. A *fresh* approved request
+            # never takes this path, so retry after ``not-merged``
+            # still spends.
+            rows = self.store.merge_intent_rows(work_key)
+            intent = rows[-1] if rows else None
         if intent is not None:
             if intent["state"] in self.store.MERGE_LIVE_STATES:
                 if intent["state"] == "recorded":

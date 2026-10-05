@@ -67,7 +67,7 @@ def _iso_to_epoch(ts) -> float:
     try:
         return datetime.fromisoformat(str(ts)).timestamp()
     except (ValueError, TypeError):
-        return float("inf")
+        return float("-inf")
 
 
 def evaluate_merge_guard(*, request, work, effective, fence, pause,
@@ -122,7 +122,12 @@ def evaluate_merge_guard(*, request, work, effective, fence, pause,
         blockers.append("preview-not-verified")
     else:
         smoke = preview.get("smoke_observed")
-        smoke = _json.loads(smoke) if smoke else None
+        try:
+            smoke = _json.loads(smoke) if smoke else None
+        except ValueError:
+            # A blob that cannot parse is *unobserved* smoke — the
+            # freshness/health gate fails closed, never crashes (A2).
+            smoke = None
         if smoke is None:
             blockers.append("smoke-unobserved")
         elif not smoke.get("ok"):
