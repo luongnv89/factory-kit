@@ -238,6 +238,22 @@ class TestRunAndEvaluate(unittest.TestCase):
         self.assertEqual(again["verdict"], "targets-failed")
         self.assertIn("intake_p95", again["failed_targets"])
 
+    def test_evaluate_binds_real_wall_quantities(self):
+        """The real perf_counter quantities are bound-checked, not only
+        the service's own (fixture-clock) verdicts: an over-bound wall
+        or discovery latency must fail the target."""
+        report = lt.run(quick=True)
+        report["measurements"]["recovery"]["wall_s"] = 999.0
+        again = lt.reevaluate(report)
+        self.assertEqual(again["verdict"], "targets-failed")
+        self.assertIn("restart_recovery", again["failed_targets"])
+
+        report = lt.run(quick=True)
+        report["measurements"]["reconcile"]["discovery_latency_s"] = 999.0
+        again = lt.reevaluate(report)
+        self.assertEqual(again["verdict"], "targets-failed")
+        self.assertIn("reconcile_discovery", again["failed_targets"])
+
     def test_cli_quick(self):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / "r.json"

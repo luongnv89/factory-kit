@@ -26,7 +26,7 @@ magnitude inside every proposed bound — see
 |---|---|---|---|
 | Durable intake accept/reject p95, sustained 1 ev/s 5 min | ≤ 2 s | p95 11.73 ms (n=300, paced 302.0 s wall) | **pass**, ~171× headroom |
 | Duplicate burst: 100 repeats in 10 s incl. restart | 1 task, ≤ 1 PR | 52.3 ms burst → 1 task, 0 PRs | **pass** |
-| Local status p95 (100 persisted queries) | ≤ 1 s | p95 0.20 ms | **pass** |
+| Local status p95 (100 persisted queries) | ≤ 1 s | p95 0.24 ms | **pass** |
 | Control pause/cancel + fence persist | ≤ 5 s of receipt | handler p95 4.0 ms; record commit p95 1.5 ms | **pass** |
 | Worker exit/quarantine + local notify on cancel | ≤ 30 s | 2.9 ms confirmed / 3.4 ms quarantined | **pass** |
 | Reconciliation nominal interval / dropped-webhook discovery | ≤ 60 s / ≤ 120 s | interval clamped at 60 s; discovery ≈1.0 s | **pass** |

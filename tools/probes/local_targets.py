@@ -921,6 +921,7 @@ def evaluate(report):
         r["interval_s"] <= RECONCILE_INTERVAL_S
         and r["clamped_interval_s"] <= RECONCILE_INTERVAL_S
         and (r["self_backoff_s"] or 0) <= DISCOVERY_BOUND_S
+        and (r["discovery_latency_s"] or 9e9) <= DISCOVERY_BOUND_S
         and r["accepted"],
         interval_s=r["interval_s"],
         self_backoff_s=r["self_backoff_s"],
@@ -934,6 +935,7 @@ def evaluate(report):
         "restart_recovery",
         rc["within_deadline"]
         and rc["reported_duration_s"] <= RECOVERY_DEADLINE_S
+        and rc["wall_s"] <= RECOVERY_DEADLINE_S
         and not rc["errors"]
         and not rc["unsettled"],
         wall_s=rc["wall_s"],

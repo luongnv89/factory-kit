@@ -46,7 +46,7 @@ behavior is validated independently in
 |---|---|---|---|---|---|
 | T1 | Durable intake accept/reject p95, 1 ev/s × 5 min (A1/A2) | ≤ 2 s | **p95 11.73 ms** (n=300; p50 5.34 ms, p99 21.74 ms, max 35.80 ms, mean 5.96 ms ±4.12 ms) | ~171× | **pass** |
 | T2 | 100 duplicate deliveries ≤ 10 s incl. restart → 1 task, ≤ 1 PR (A2) | 10 s window | **52.3 ms** burst with mid-burst store rebuild → 1 work row, 0 remote PRs | ~191× | **pass** |
-| T3 | Local status p95 over persisted rows (A3) | ≤ 1 s | **p95 0.20 ms** (n=100) | ~5000× | **pass** |
+| T3 | Local status p95 over persisted rows (A3) | ≤ 1 s | **p95 0.24 ms** (n=100) | ~4200× | **pass** |
 | T4 | Auth'd pause/cancel + fence persist ≤ 5 s, Telegram-independent (A3) | ≤ 5 s | **handler p95 4.0 ms**; durable record received→committed p95 1.5 ms (n=30: pause/resume/cancel) | ~1250× | **pass** |
 | T5 | Worker/descendant exit or quarantine + local notify ≤ 30 s (A4) | ≤ 30 s | confirmed exit **2.9 ms**; quarantine + durable `termination-uncertain` alert **3.4 ms**; replacement denied while uncertain | ~8800× | **pass** |
 | T6 | Reconcile interval ≤ 60 s; dropped work found ≤ 120 s after GitHub returns (A4) | ≤ 60 s / ≤ 120 s | interval clamped 60.0 s (a 600 s config was clamped, not honored); failed pass self-backoff **1.0 s**; discovery = backoff + one **2.5 ms** pass ≈ **1.0 s** | ~120× | **pass** |
