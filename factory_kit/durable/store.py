@@ -340,6 +340,45 @@ CREATE TABLE IF NOT EXISTS work_control(
     detail TEXT,
     updated_at TEXT NOT NULL);
 
+-- Checkpointed scope steering (Task 4.1 / F09, §6.4): one immutable row
+-- per authorized operator scope change. The row persists — *before* any
+-- acknowledgement — the target generation, the revised acceptance
+-- criteria (bounded text + fingerprint), the allowlisted operator's
+-- restricted actor reference (authorization) and the command/steer
+-- identities (audit). ``command_id`` is UNIQUE so duplicate commands and
+-- controller-restart replays converge on one accepted change (A1).
+-- States: ``pending`` (recorded; the fence/apply has not committed) →
+-- ``applied`` (the checkpoint committed the revision and recorded the
+-- remaining budgets it granted the replacement) or ``parked`` (the
+-- checkpoint could not be safely fenced or the budget was exhausted —
+-- the reason is durable and no replacement authority issued, A5).
+CREATE TABLE IF NOT EXISTS scope_revisions(
+    steer_id TEXT PRIMARY KEY,
+    command_id TEXT NOT NULL,
+    work_key TEXT NOT NULL,
+    authority_key TEXT,
+    repo_id TEXT,
+    issue INTEGER,
+    generation INTEGER NOT NULL,
+    revision INTEGER NOT NULL,
+    criteria TEXT,
+    criteria_fingerprint TEXT NOT NULL,
+    actor_ref TEXT NOT NULL,
+    chat_ref TEXT,
+    state TEXT NOT NULL,
+    reason TEXT,
+    applied_stage TEXT,
+    budgets TEXT,
+    seq INTEGER NOT NULL,
+    received_at TEXT NOT NULL,
+    applied_at TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL);
+CREATE UNIQUE INDEX IF NOT EXISTS one_steer_per_command
+    ON scope_revisions(command_id);
+CREATE INDEX IF NOT EXISTS steer_by_work
+    ON scope_revisions(work_key, revision);
+
 CREATE TABLE IF NOT EXISTS review_records(
     review_id TEXT PRIMARY KEY,
     work_key TEXT NOT NULL,
@@ -1219,6 +1258,83 @@ class IntakeStore:
             return {"outcome": outcome, "attempt_id": attempt_id,
                     "work_key": work_key, "role": role}
 
+    def end_attempt_record(self, attempt_id, *, outcome, verdict=None,
+                           duration_s=None, active_seconds=None,
+                           usage=None):
+        """Close the §6.4 record for an attempt whose ledger row
+        already ended — the path ``finish_execution_attempt`` denies
+        by design (it only closes ``active`` attempts).
+
+        A steered attempt ends without a result commit in two places:
+        ``steer_terminate`` once the runtime confirms the process exit,
+        and the fenced-result intake when ``collect`` already returned
+        — both prove the worker is dead. Writing the durable ``ended``
+        marker keeps later termination scans honest: an un-ended record
+        reads as *still possibly running*, so it parks every subsequent
+        checkpoint as uncertain (A5). The attempt's usage lands too —
+        consumed seconds are retained on the work key, never reset
+        (A2): measured when the worker reported them, a ``NULL``
+        active_seconds row honestly counted as unknown otherwise.
+
+        Idempotent — the first close wins ``ended``/``outcome``; a
+        later call carrying measured usage upgrades only the usage row,
+        never rewrites the recorded end.
+        """
+        usage = _events_schema.normalize_usage(usage) \
+            if usage is not None else None
+        measured = active_seconds is not None or usage is not None
+        now = _utcnow()
+        with self.transact() as tx:
+            rec = tx._q(
+                "SELECT work_key, task_id, generation, role, ended"
+                " FROM attempt_records WHERE attempt_id=?",
+                (attempt_id,)).fetchone()
+            if rec is None:
+                return {"outcome": "denied",
+                        "reason": "unknown-attempt"}
+            work_key, task_id, generation, role, ended = rec
+            if ended is None:
+                tx._q(
+                    "UPDATE attempt_records SET ended=?, outcome=?,"
+                    " verdict=COALESCE(?,verdict), duration_s=?,"
+                    " usage_state=? WHERE attempt_id=?",
+                    (now, outcome, verdict, duration_s,
+                     "measured" if measured else "unknown",
+                     attempt_id))
+            if measured:
+                # Measured truth upgrades an earlier unknown
+                # placeholder — REPLACE never the reverse (a missing
+                # report must not clobber seconds already recorded).
+                tx._q(
+                    "INSERT OR REPLACE INTO attempt_usage"
+                    "(attempt_id,work_key,role,active_seconds,usage,"
+                    "recorded_at) VALUES(?,?,?,?,?,?)",
+                    (attempt_id, work_key, role, active_seconds,
+                     _json.dumps(usage, sort_keys=True)
+                     if usage is not None else None, now))
+                tx._q(
+                    "UPDATE attempt_records SET usage_state='measured'"
+                    " WHERE attempt_id=?", (attempt_id,))
+            else:
+                tx._q(
+                    "INSERT OR IGNORE INTO attempt_usage"
+                    "(attempt_id,work_key,role,active_seconds,usage,"
+                    "recorded_at) VALUES(?,?,?,?,?,?)",
+                    (attempt_id, work_key, role, None, None, now))
+            if ended is None:
+                tx.record_event(
+                    "attempt_finished", work_key=work_key,
+                    detail=_json.dumps({
+                        "task_id": task_id, "attempt_id": attempt_id,
+                        "generation": generation, "role": role,
+                        "duration_s": duration_s,
+                        "verdict": verdict or outcome,
+                        "outcome": outcome,
+                        "usage": usage if usage is not None
+                        else "unknown"}, sort_keys=True))
+            return {"outcome": "closed" if ended is None
+                    else "already-closed", "attempt_id": attempt_id}
+
     # -- result intake (worker candidates commit nothing) ----------------------
 
     def accept_result(self, result_id, attempt_id, detail=None):
@@ -1750,6 +1866,162 @@ class IntakeStore:
         if state is None:
             return rows
         return [r for r in rows if r["pause_state"] == state]
+
+    # -- checkpointed scope steering (Task 4.1 / F09) -----------------------------
+    #
+    # ``scope_revisions`` is the immutable, audited record of authorized
+    # operator scope changes: each row binds the target generation, the
+    # revised acceptance criteria, the allowlisted operator reference and
+    # the command/steer identities *before* any acknowledgement (A1).
+    # Application is a separate durable transition — ``pending`` →
+    # ``applied`` commits the checkpoint (old attempts fenced, remaining
+    # budgets recorded, revised context bound) or ``parked`` when the
+    # checkpoint cannot be safely fenced or the budget is exhausted (A5).
+
+    _STEER_COLS = (
+        "steer_id", "command_id", "work_key", "authority_key",
+        "repo_id", "issue", "generation", "revision", "criteria",
+        "criteria_fingerprint", "actor_ref", "chat_ref", "state",
+        "reason", "applied_stage", "budgets", "seq", "received_at",
+        "applied_at", "created_at", "updated_at")
+
+    STEER_STATES = ("pending", "applied", "parked")
+
+    def record_steer(self, steer_id, *, command_id, work_key,
+                     authority_key=None, repo_id=None, issue=None,
+                     generation, revision, criteria=None,
+                     criteria_fingerprint, actor_ref, chat_ref=None,
+                     seq=None, received_at):
+        """Persist one pending scope change (inside ``transact``).
+
+        ``command_id`` is unique: a duplicate delivery or a replay after
+        restart can never mint a second revision — the caller's dedup
+        reads converge on this one row (A1)."""
+        now = _utcnow()
+        self._q(
+            "INSERT INTO scope_revisions"
+            "(steer_id,command_id,work_key,authority_key,repo_id,issue,"
+            "generation,revision,criteria,criteria_fingerprint,"
+            "actor_ref,chat_ref,state,seq,received_at,created_at,"
+            "updated_at)"
+            " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,'pending',?,?,?,?)",
+            (steer_id, command_id, work_key, authority_key, repo_id,
+             int(issue) if issue is not None else None, int(generation),
+             int(revision), criteria, criteria_fingerprint, actor_ref,
+             chat_ref, seq if seq is not None else self.next_seq(),
+             received_at, now, now))
+        return self.get_steer(steer_id)
+
+    def get_steer(self, steer_id):
+        row = self._q(
+            "SELECT {} FROM scope_revisions WHERE steer_id=?".format(
+                ",".join(self._STEER_COLS)),
+            (steer_id,)).fetchone()
+        return self._steer_row(row)
+
+    def find_steer_by_command(self, command_id):
+        """Dedup lookup — the command that already minted a revision."""
+        if not command_id:
+            return None
+        row = self._q(
+            "SELECT {} FROM scope_revisions WHERE command_id=?".format(
+                ",".join(self._STEER_COLS)),
+            (command_id,)).fetchone()
+        return self._steer_row(row)
+
+    def steer_rows(self, work_key=None, state=None):
+        rows = [dict(zip(self._STEER_COLS, r)) for r in self._q(
+            "SELECT {} FROM scope_revisions"
+            " ORDER BY work_key, revision".format(
+                ",".join(self._STEER_COLS))).fetchall()]
+        if work_key is not None:
+            rows = [r for r in rows if r["work_key"] == work_key]
+        if state is not None:
+            rows = [r for r in rows if r["state"] == state]
+        return rows
+
+    def latest_steer(self, work_key, state=None):
+        """Highest-revision steer row for the work (optionally one
+        state) — the current immutable context revision."""
+        rows = self.steer_rows(work_key, state=state)
+        return rows[-1] if rows else None
+
+    def pending_steer(self, work_key):
+        """The work's un-applied scope change, or ``None`` — at most
+        one pending revision per work is admitted (``steer-pending``)."""
+        pending = self.steer_rows(work_key, state="pending")
+        return pending[-1] if pending else None
+
+    def next_steer_revision(self, work_key):
+        """Next monotonic context-revision ordinal for the work."""
+        row = self._q(
+            "SELECT COALESCE(MAX(revision),0)+1 FROM scope_revisions"
+            " WHERE work_key=?", (work_key,)).fetchone()
+        return int(row[0])
+
+    def update_steer(self, steer_id, **fields):
+        """Advance a steer row's lifecycle (inside ``transact``). Only
+        outcome columns may move — target generation, criteria,
+        revision and the actor identity are immutable once recorded
+        (A1)."""
+        allowed = {"state", "reason", "applied_stage", "budgets",
+                   "applied_at", "seq"}
+        unknown = set(fields) - allowed
+        if unknown:
+            raise IntakeStoreError(
+                f"immutable scope_revision fields {sorted(unknown)}")
+        if "state" in fields and \
+                fields["state"] not in self.STEER_STATES:
+            raise IntakeStoreError(
+                f"unknown steer state {fields['state']!r}")
+        sets, params = [], []
+        for key, value in fields.items():
+            sets.append(f"{key}=?")
+            params.append(value)
+        sets.append("updated_at=?")
+        params.append(_utcnow())
+        params.append(steer_id)
+        self._q(
+            f"UPDATE scope_revisions SET {','.join(sets)}"
+            " WHERE steer_id=?", params)
+
+    def fence_attempts_tx(self, work_key, reason):
+        """Attempt-level fence (inside ``transact``): end every live
+        attempt-ledger row ``fenced`` *without* touching the
+        generation's ``execution_fence``. Steering's checkpoint fence —
+        the fenced attempt's late result is denied by ``accept_result``
+        (``attempt-fenced``) while the work stays live for the
+        replacement under revised criteria (A2/A4)."""
+        now = _utcnow()
+        cur = self._q(
+            "UPDATE attempt_ledger SET state='fenced', ended=?"
+            " WHERE work_key=? AND state='active'", (now, work_key))
+        self.record_event("attempts_fenced", work_key=work_key,
+                          reason=reason,
+                          detail=f"count={cur.rowcount}")
+        return {"outcome": "fenced", "work_key": work_key,
+                "fenced_attempts": cur.rowcount}
+
+    def has_active_attempt(self, work_key):
+        """True while an attempt-ledger row is live for the work — the
+        steer checkpoint's 'stage in flight' probe."""
+        row = self._q(
+            "SELECT attempt_id FROM attempt_ledger WHERE work_key=?"
+            " AND state='active' LIMIT 1", (work_key,)).fetchone()
+        return row is not None
+
+    def active_attempt_ids(self, work_key):
+        """Live attempt ids for the work — the steer termination set."""
+        rows = self._q(
+            "SELECT attempt_id FROM attempt_ledger WHERE work_key=?"
+            " AND state='active'", (work_key,)).fetchall()
+        return [r[0] for r in rows]
+
+    @classmethod
+    def _steer_row(cls, row):
+        if row is None:
+            return None
+        return dict(zip(cls._STEER_COLS, row))
 
     # -- independent review records (Task 2.6 / F04 A1) -------------------------
     #
