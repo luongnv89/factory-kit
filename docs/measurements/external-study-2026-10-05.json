@@ -1,0 +1,768 @@
+{
+ "run_id": "external-pilot-1791219415",
+ "version": "1.0.0",
+ "kind": "external-pilot",
+ "mode": "scripted-replay",
+ "generated_at": "2026-10-05T16:56:55Z",
+ "environment": {
+  "python": "3.14.7",
+  "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+  "machine": "arm64",
+  "walkthrough": "python3 -m factory_kit.setup \u2014 docs/recipes/installation.md pinned legs",
+  "fixture_identity": {
+   "participants": "external-pilot-v1",
+   "store": "IntakeStore SQLite \u2014 real consent gate",
+   "installs": "disposable repos + recorded readings \u2014 simulated distinct hosts"
+  },
+  "reproduce": "python3 tools/probes/external_pilot.py --write docs/measurements/external-study-$(date +%F).json"
+ },
+ "protocol": {
+  "recorded_before_recruitment": "2026-10-05",
+  "study_scope": "pilot-collection",
+  "walkthrough": "docs/recipes/installation.md \u2014 plan, apply, readiness, status, then uninstall + remove --history retain",
+  "minimized_fields": [
+   "environment_ref",
+   "install.elapsed_minutes",
+   "install.author_assistance",
+   "install.author_takeover",
+   "install.blocker",
+   "first_run.outcome",
+   "removal.outcome",
+   "weekly_reports[].outcome"
+  ],
+  "observation_window": {
+   "kind": "days-after-pilot-opening",
+   "onboarding_days": 60,
+   "repeat_use_days": 90,
+   "declared_start": "2026-10-05T00:00:00Z",
+   "fixture_note": "declared_start is the scripted pilot opening; live windows are named live_prerequisites"
+  },
+  "proposed_targets": {
+   "onboarding_completed": {
+    "count": 3,
+    "within_days": 60
+   },
+   "independent_setup": {
+    "count": 2,
+    "within_minutes": 45
+   },
+   "repeat_use": {
+    "participants": 2,
+    "consecutive_weeks": 4,
+    "within_days": 90
+   }
+  },
+  "q9_target_status": "proposed \u2014 pending owner acceptance (docs/decisions/q9-acceptance.md)",
+  "assistance_classes": {
+   "none": "no author contact during setup",
+   "clarification": "participant asked; author answered a documentation question \u2014 recorded, not takeover",
+   "takeover": "author performed or drove setup steps \u2014 explicitly recorded, excluded from the independence threshold"
+  },
+  "run_classification": {
+   "completed": "participant report records the run completed",
+   "failed": "participant report records the run failed \u2014 retained, counts as an attempt, never a completed run",
+   "missing": "no participant report received for the week \u2014 labeled missing, never counted"
+  },
+  "vanity_exclusion": "download/star counts are not run outcomes and are never collected or counted",
+  "denominator_rule": "every recruited participant stays in the denominator \u2014 denied, blocked, install-failed and dropped-out rows are labeled, never dropped"
+ },
+ "q9_target_status": "proposed \u2014 pending owner acceptance (docs/decisions/q9-acceptance.md)",
+ "obligations": {
+  "scope": "pilot-collection",
+  "outcome": "recorded",
+  "terms_digest": "sha256:a75f42c1e1729a9c6b5a7671"
+ },
+ "fixture_participants": [
+  {
+   "key": "obs-alpha",
+   "admission_expected": "admitted"
+  },
+  {
+   "key": "obs-beta",
+   "admission_expected": "admitted"
+  },
+  {
+   "key": "obs-gamma",
+   "admission_expected": "admitted"
+  },
+  {
+   "key": "obs-delta",
+   "admission_expected": "admitted"
+  },
+  {
+   "key": "denied-wl",
+   "admission_expected": "denied"
+  },
+  {
+   "key": "nonconsent",
+   "admission_expected": "never-presented"
+  }
+ ],
+ "admissions": {
+  "obs-alpha": {
+   "outcome": "admitted",
+   "scope": "pilot-collection",
+   "workload_class": "observation",
+   "trust_class": "external-reviewed",
+   "boundary_evidence": null,
+   "participant_hash": "7cd2887f1dd8b924"
+  },
+  "obs-beta": {
+   "outcome": "admitted",
+   "scope": "pilot-collection",
+   "workload_class": "observation",
+   "trust_class": "external-reviewed",
+   "boundary_evidence": null,
+   "participant_hash": "bceae7914fd2076b"
+  },
+  "obs-gamma": {
+   "outcome": "admitted",
+   "scope": "pilot-collection",
+   "workload_class": "observation",
+   "trust_class": "external-reviewed",
+   "boundary_evidence": null,
+   "participant_hash": "886ba017d22c5928"
+  },
+  "obs-delta": {
+   "outcome": "admitted",
+   "scope": "pilot-collection",
+   "workload_class": "observation",
+   "trust_class": "external-reviewed",
+   "boundary_evidence": null,
+   "participant_hash": "df3897f5e8d24d3f"
+  },
+  "denied-wl": {
+   "outcome": "denied",
+   "scope": "pilot-collection",
+   "workload_class": "runtime-mirror",
+   "trust_class": "external-untrusted",
+   "boundary_evidence": null,
+   "blocker": "unsupported-workload:runtime-mirror",
+   "participant_hash": "3f218bf51df00ecc"
+  },
+  "nonconsent": {
+   "outcome": "never-presented"
+  }
+ },
+ "participants": [
+  {
+   "key": "obs-alpha",
+   "environment_ref": "env-alpha",
+   "host_label": "macOS 25.1 arm64 \u00b7 py3.14.7",
+   "legs": [
+    {
+     "leg": "plan",
+     "command": "python3 -m factory_kit.setup plan",
+     "exit": 0,
+     "expected_exit": 0,
+     "ok": true,
+     "verdict": null,
+     "blocker_codes": null
+    },
+    {
+     "leg": "apply",
+     "command": "python3 -m factory_kit.setup apply",
+     "exit": 0,
+     "expected_exit": 0,
+     "ok": true,
+     "verdict": null,
+     "blocker_codes": null
+    },
+    {
+     "leg": "readiness",
+     "command": "python3 -m factory_kit.setup readiness",
+     "exit": 0,
+     "expected_exit": 0,
+     "ok": true,
+     "verdict": "ready",
+     "blocker_codes": []
+    },
+    {
+     "leg": "status",
+     "command": "python3 -m factory_kit.setup status",
+     "exit": 0,
+     "expected_exit": 0,
+     "ok": true,
+     "verdict": null,
+     "blocker_codes": null
+    },
+    {
+     "leg": "uninstall",
+     "command": "python3 -m factory_kit.setup uninstall",
+     "exit": 0,
+     "expected_exit": 0,
+     "ok": true,
+     "verdict": null,
+     "blocker_codes": null
+    },
+    {
+     "leg": "remove",
+     "command": "python3 -m factory_kit.setup remove",
+     "exit": 0,
+     "expected_exit": 0,
+     "ok": true,
+     "verdict": null,
+     "blocker_codes": null
+    }
+   ],
+   "install": {
+    "outcome": "completed",
+    "elapsed_minutes": 38.0,
+    "completed_day": 12,
+    "author_assistance": "none",
+    "author_takeover": false,
+    "builder_active_minutes": 9.0,
+    "blocker": null
+   },
+   "first_run": {
+    "outcome": "completed",
+    "day": 13
+   },
+   "weekly_reports": [
+    {
+     "week": 1,
+     "day": 20,
+     "outcome": "completed"
+    },
+    {
+     "week": 2,
+     "day": 27,
+     "outcome": "completed"
+    },
+    {
+     "week": 3,
+     "day": 34,
+     "outcome": "completed"
+    },
+    {
+     "week": 4,
+     "day": 41,
+     "outcome": "completed"
+    }
+   ],
+   "dropout": null,
+   "removal": {
+    "outcome": "completed",
+    "day": 44
+   },
+   "study_waits": {
+    "recruitment_wait_days": 8.0,
+    "participant_wait_days": 30.0
+   },
+   "weekly_classification": {
+    "counts": {
+     "completed": 4,
+     "failed": 0,
+     "missing": 0
+    },
+    "longest_completed_streak": 4,
+    "weeks_reported": 4
+   },
+   "repeat_use": {
+    "weeks_in_window": 4,
+    "longest_completed_streak": 4,
+    "qualified": true
+   }
+  },
+  {
+   "key": "obs-beta",
+   "environment_ref": "env-beta",
+   "host_label": "Linux 6.8 x86_64 \u00b7 py3.13.4",
+   "legs": [
+    {
+     "leg": "plan",
+     "command": "python3 -m factory_kit.setup plan",
+     "exit": 0,
+     "expected_exit": 0,
+     "ok": true,
+     "verdict": null,
+     "blocker_codes": null
+    },
+    {
+     "leg": "apply",
+     "command": "python3 -m factory_kit.setup apply",
+     "exit": 0,
+     "expected_exit": 0,
+     "ok": true,
+     "verdict": null,
+     "blocker_codes": null
+    },
+    {
+     "leg": "readiness",
+     "command": "python3 -m factory_kit.setup readiness",
+     "exit": 0,
+     "expected_exit": 0,
+     "ok": true,
+     "verdict": "ready",
+     "blocker_codes": []
+    },
+    {
+     "leg": "status",
+     "command": "python3 -m factory_kit.setup status",
+     "exit": 0,
+     "expected_exit": 0,
+     "ok": true,
+     "verdict": null,
+     "blocker_codes": null
+    },
+    {
+     "leg": "uninstall",
+     "command": "python3 -m factory_kit.setup uninstall",
+     "exit": 0,
+     "expected_exit": 0,
+     "ok": true,
+     "verdict": null,
+     "blocker_codes": null
+    },
+    {
+     "leg": "remove",
+     "command": "python3 -m factory_kit.setup remove",
+     "exit": 0,
+     "expected_exit": 0,
+     "ok": true,
+     "verdict": null,
+     "blocker_codes": null
+    }
+   ],
+   "install": {
+    "outcome": "completed",
+    "elapsed_minutes": 44.0,
+    "completed_day": 19,
+    "author_assistance": "clarification",
+    "author_takeover": false,
+    "builder_active_minutes": 7.0,
+    "blocker": null
+   },
+   "first_run": {
+    "outcome": "completed",
+    "day": 20
+   },
+   "weekly_reports": [
+    {
+     "week": 1,
+     "day": 26,
+     "outcome": "completed"
+    },
+    {
+     "week": 2,
+     "day": 33,
+     "outcome": "completed"
+    },
+    {
+     "week": 3,
+     "day": 40,
+     "outcome": "failed"
+    },
+    {
+     "week": 4,
+     "day": 47,
+     "outcome": "completed"
+    }
+   ],
+   "dropout": null,
+   "removal": {
+    "outcome": "completed",
+    "day": 50
+   },
+   "study_waits": {
+    "recruitment_wait_days": 11.0,
+    "participant_wait_days": 28.0
+   },
+   "weekly_classification": {
+    "counts": {
+     "completed": 3,
+     "failed": 1,
+     "missing": 0
+    },
+    "longest_completed_streak": 2,
+    "weeks_reported": 4
+   },
+   "repeat_use": {
+    "weeks_in_window": 4,
+    "longest_completed_streak": 2,
+    "qualified": false
+   }
+  },
+  {
+   "key": "obs-gamma",
+   "environment_ref": "env-gamma",
+   "host_label": "macOS 24.6 x86_64 \u00b7 py3.14.0",
+   "legs": [
+    {
+     "leg": "plan",
+     "command": "python3 -m factory_kit.setup plan",
+     "exit": 0,
+     "expected_exit": 0,
+     "ok": true,
+     "verdict": null,
+     "blocker_codes": null
+    },
+    {
+     "leg": "apply",
+     "command": "python3 -m factory_kit.setup apply",
+     "exit": 0,
+     "expected_exit": 0,
+     "ok": true,
+     "verdict": null,
+     "blocker_codes": null
+    },
+    {
+     "leg": "readiness",
+     "command": "python3 -m factory_kit.setup readiness",
+     "exit": 0,
+     "expected_exit": 0,
+     "ok": true,
+     "verdict": "ready",
+     "blocker_codes": []
+    },
+    {
+     "leg": "status",
+     "command": "python3 -m factory_kit.setup status",
+     "exit": 0,
+     "expected_exit": 0,
+     "ok": true,
+     "verdict": null,
+     "blocker_codes": null
+    }
+   ],
+   "install": {
+    "outcome": "completed",
+    "elapsed_minutes": 55.0,
+    "completed_day": 27,
+    "author_assistance": "takeover",
+    "author_takeover": true,
+    "builder_active_minutes": 31.0,
+    "blocker": null
+   },
+   "first_run": {
+    "outcome": "completed",
+    "day": 28
+   },
+   "weekly_reports": [
+    {
+     "week": 1,
+     "day": 34,
+     "outcome": "completed"
+    },
+    {
+     "week": 2,
+     "day": 41,
+     "outcome": "completed"
+    },
+    {
+     "week": 3,
+     "day": 48,
+     "outcome": "missing"
+    },
+    {
+     "week": 4,
+     "day": 55,
+     "outcome": "missing"
+    }
+   ],
+   "dropout": {
+    "after_week": 2,
+    "reason": "participant stopped reporting \u2014 labeled dropout, retained in denominators"
+   },
+   "removal": {
+    "outcome": "not-attempted",
+    "day": null
+   },
+   "study_waits": {
+    "recruitment_wait_days": 14.0,
+    "participant_wait_days": 24.0
+   },
+   "weekly_classification": {
+    "counts": {
+     "completed": 2,
+     "failed": 0,
+     "missing": 2
+    },
+    "longest_completed_streak": 2,
+    "weeks_reported": 4
+   },
+   "repeat_use": {
+    "weeks_in_window": 4,
+    "longest_completed_streak": 2,
+    "qualified": false
+   }
+  },
+  {
+   "key": "obs-delta",
+   "environment_ref": "env-delta",
+   "host_label": "Linux 5.15 aarch64 \u00b7 py3.11.8 \u00b7 hermes 0.20.0",
+   "legs": [
+    {
+     "leg": "plan",
+     "command": "python3 -m factory_kit.setup plan",
+     "exit": 0,
+     "expected_exit": 0,
+     "ok": true,
+     "verdict": null,
+     "blocker_codes": null
+    },
+    {
+     "leg": "apply",
+     "command": "python3 -m factory_kit.setup apply",
+     "exit": 0,
+     "expected_exit": 0,
+     "ok": true,
+     "verdict": null,
+     "blocker_codes": null
+    },
+    {
+     "leg": "readiness",
+     "command": "python3 -m factory_kit.setup readiness",
+     "exit": 1,
+     "expected_exit": 1,
+     "ok": true,
+     "verdict": "not-ready",
+     "blocker_codes": [
+      "unsupported-version"
+     ]
+    }
+   ],
+   "install": {
+    "outcome": "blocked",
+    "elapsed_minutes": null,
+    "completed_day": null,
+    "author_assistance": "none",
+    "author_takeover": false,
+    "builder_active_minutes": 4.0,
+    "blocker": "unsupported-version",
+    "blocker_codes": [
+     "unsupported-version"
+    ]
+   },
+   "first_run": {
+    "outcome": "not-attempted",
+    "day": null
+   },
+   "weekly_reports": [
+    {
+     "week": 1,
+     "day": 40,
+     "outcome": "missing"
+    },
+    {
+     "week": 2,
+     "day": 47,
+     "outcome": "missing"
+    },
+    {
+     "week": 3,
+     "day": 54,
+     "outcome": "missing"
+    },
+    {
+     "week": 4,
+     "day": 61,
+     "outcome": "missing"
+    }
+   ],
+   "dropout": null,
+   "removal": {
+    "outcome": "not-applicable",
+    "day": null
+   },
+   "study_waits": {
+    "recruitment_wait_days": 9.0,
+    "participant_wait_days": 6.0
+   },
+   "weekly_classification": {
+    "counts": {
+     "completed": 0,
+     "failed": 0,
+     "missing": 4
+    },
+    "longest_completed_streak": 0,
+    "weeks_reported": 4
+   },
+   "repeat_use": {
+    "weeks_in_window": 4,
+    "longest_completed_streak": 0,
+    "qualified": false
+   }
+  }
+ ],
+ "blocked": [
+  {
+   "key": "denied-wl",
+   "participant_hash": "3f218bf51df00ecc",
+   "attempted_phase": "install",
+   "reason": "admission-denied:unsupported-workload:runtime-mirror"
+  },
+  {
+   "key": "nonconsent",
+   "participant_hash": "6049752ae30d00a7",
+   "attempted_phase": "install",
+   "reason": "consent-missing"
+  }
+ ],
+ "weekly_totals": {
+  "completed": 9,
+  "failed": 1,
+  "missing": 6
+ },
+ "study_effort": {
+  "builder_active_minutes": 51.0,
+  "waits": {
+   "recruitment_wait_days": {
+    "obs-alpha": 8.0,
+    "obs-beta": 11.0,
+    "obs-gamma": 14.0,
+    "obs-delta": 9.0
+   },
+   "participant_wait_days": {
+    "obs-alpha": 30.0,
+    "obs-beta": 28.0,
+    "obs-gamma": 24.0,
+    "obs-delta": 6.0
+   }
+  },
+  "note": "active builder minutes are separated from calendar observation/recruitment and participant waits \u2014 waits never count as builder effort (A5)"
+ },
+ "export": {
+  "outcome": "exported",
+  "scope": "pilot-export",
+  "consent": {
+   "excluded_authorities": [
+    "ext-denied-wl"
+   ],
+   "events_excluded": 0
+  },
+  "events": 35
+ },
+ "audits": {
+  "admission_gate": {
+   "mismatches": []
+  },
+  "consent_ordering": {
+   "violations": [],
+   "consent_seqs": {
+    "7cd2887f1dd8b924": 3,
+    "bceae7914fd2076b": 4,
+    "886ba017d22c5928": 5,
+    "df3897f5e8d24d3f": 6
+   },
+   "observation_participants": [
+    "7cd2887f1dd8b924",
+    "886ba017d22c5928",
+    "bceae7914fd2076b",
+    "df3897f5e8d24d3f"
+   ],
+   "blocked_hashes_checked": [
+    "3f218bf51df00ecc",
+    "6049752ae30d00a7"
+   ]
+  },
+  "observation_minimization": {
+   "events": 28,
+   "violations": []
+  },
+  "secret_scan": {
+   "outcome": "clean"
+  },
+  "denominator_integrity": {
+   "recruited": 6,
+   "accounted": 6,
+   "unaccounted": [],
+   "classes": {
+    "obs-alpha": "install-completed",
+    "obs-beta": "install-completed",
+    "obs-gamma": "install-completed",
+    "obs-delta": "install-blocked",
+    "denied-wl": "blocked:admission-denied:unsupported-workload:runtime-mirror",
+    "nonconsent": "blocked:consent-missing"
+   }
+  }
+ },
+ "live_prerequisites": [
+  {
+   "id": "q9-adoption",
+   "blocker": "Q9 numerical targets are still proposed \u2014 owner acceptance pending (docs/decisions/q9-acceptance.md)"
+  },
+  {
+   "id": "external-participants",
+   "blocker": "no real external maintainers were recruited \u2014 the cohort is scripted fixtures on simulated environments, so independence is fixture-recorded, not observed"
+  },
+  {
+   "id": "pilot-windows",
+   "blocker": "the 60-day onboarding and 90-day repeat-use windows have not elapsed \u2014 days are fixture-declared, not calendar-observed"
+  },
+  {
+   "id": "independent-timing",
+   "blocker": "elapsed setup minutes are fixture-recorded observations, not independently measured wall-clock on a participant host"
+  },
+  {
+   "id": "simulated-environments",
+   "blocker": "installations ran on disposable repositories with recorded readiness readings \u2014 distinct simulated hosts, never participant production environments with live Hermes"
+  },
+  {
+   "id": "live-repeat-use",
+   "blocker": "weekly run reports are scripted fixture inputs \u2014 four consecutive live reporting weeks remain unobserved"
+  }
+ ],
+ "targets": {
+  "order": [
+   "onboarding_completed_60d",
+   "independent_setup_2_in_45min",
+   "repeat_use_2x4wk_90d"
+  ],
+  "results": [
+   {
+    "id": "onboarding_completed_60d",
+    "proposed": "at least 3 external maintainers complete installation and a first run within 60 days of pilot opening",
+    "measured": 3,
+    "verdict": "pass",
+    "basis": "scripted-pilot-fixture",
+    "live_status": "pending-live-study",
+    "threshold": 3,
+    "denominator": 4,
+    "qualified": [
+     "obs-alpha",
+     "obs-beta",
+     "obs-gamma"
+    ],
+    "window_days": 60
+   },
+   {
+    "id": "independent_setup_2_in_45min",
+    "proposed": "at least 2 external maintainers complete setup in 45 minutes without author takeover",
+    "measured": 2,
+    "verdict": "pass",
+    "basis": "scripted-pilot-fixture",
+    "live_status": "pending-live-study",
+    "threshold": 2,
+    "denominator": 4,
+    "qualified": [
+     "obs-alpha",
+     "obs-beta"
+    ],
+    "takeover_excluded": [
+     "obs-gamma"
+    ],
+    "within_minutes": 45
+   },
+   {
+    "id": "repeat_use_2x4wk_90d",
+    "proposed": "at least 2 external maintainers complete one run per week for 4 consecutive weeks within 90 days of pilot opening",
+    "measured": 1,
+    "verdict": "fail",
+    "basis": "scripted-pilot-fixture",
+    "live_status": "pending-live-study",
+    "threshold": 2,
+    "denominator": 4,
+    "qualified": [
+     "obs-alpha"
+    ],
+    "window_days": 90,
+    "failed_runs_retained": 1
+   }
+  ]
+ },
+ "instrumentation": "clean",
+ "breaches": [],
+ "verdict": "external-pilot-run-complete",
+ "study_outcome": "scripted rehearsal recorded \u2014 the live external study stays open on the named live_prerequisites; fixture verdicts are not live-target claims"
+}
