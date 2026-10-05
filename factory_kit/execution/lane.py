@@ -849,11 +849,11 @@ class ExecutionLane:
                 # of a live-looking unfinished row (A5). The ledger row
                 # already ended ``fenced``, so
                 # ``finish_execution_attempt`` can never close it.
-                started = records[attempt_id].get("started")
+                started = _iso_to_epoch(
+                    records[attempt_id].get("started"))
                 self.store.end_attempt_record(
                     attempt_id, outcome="terminated",
-                    duration_s=max(0.0, self._now()
-                                   - _iso_to_epoch(started))
+                    duration_s=max(0.0, self._now() - started)
                     if started else None)
             outcomes.append({"attempt_id": attempt_id,
                              "termination": outcome})
