@@ -42,8 +42,8 @@ read-back ──▶ merged ONLY from authoritative merge-SHA read-back
 | AC | Leg(s) | Executable proof |
 |---|---|---|
 | **A1** | `intake` | HMAC-signed event for the registered repo commits work `wk-*`/`task-*`/generation in one transaction; `invalid-signature`, `wrong-repository`, `unauthorized-optin` each commit a denied event row and **zero** work rows (`work_rows=1`). Implementation (`att-implementation-*`) and a *separate* reviewer session (`att-review-*`) execute sequentially with own attempt/session ids, verdict and exact head |
-| **A2** | `verify` | `evaluate_verify` passes on approved review + nonempty green checks + head/base agreement; denies on `impl-self-report-substituted`, `head-moved-since-review`, `required-checks-missing`, `check-failed`. **Live:** real PR `money-mind#89` read-back — real head `9a7ee080`, base `main`, 4 real check runs; the gate correctly **blocked** on the real `Security Scan` failure |
-| **A3** | `preview` | PreviewRegistry deploy returns id+URL immutably bound to the reviewed head + revision digest; smoke records URL/200/marker/time; owned cleanup removes the deployment. Denied: `wrong-revision`, `unknown-deployment`, `stale-smoke` (>10 min), `expired`, `provider-outage` (blocks + visible cleanup backlog, never false removal). **Live:** real Vercel deploy `dpl_6vTdXTEh…` → `fk-spike-money-mind-*.vercel.app` target=preview, real `vercel inspect`, real smoke, `vercel rm` + `project rm` — nothing left behind |
+| **A2** | `verify` | `evaluate_verify` passes on approved review + nonempty green checks + head/base agreement; denies on `impl-self-report-substituted`, `head-moved-since-review`, `required-checks-missing`, `check-failed`. **Live:** real PR `money-mind#90` read-back — real head `d1f7a99d`, base `main`, 4 real check runs; the gate correctly **blocked** on the real `Security Scan` failure |
+| **A3** | `preview` | PreviewRegistry deploy returns id+URL immutably bound to the reviewed head + revision digest; smoke records URL/200/marker/time; owned cleanup removes the deployment. Denied: `wrong-revision`, `unknown-deployment`, `stale-smoke` (>10 min), `expired`, `provider-outage` (blocks + visible cleanup backlog, never false removal). **Live:** real Vercel deploy `dpl_5EA6bM6s…` → `fk-spike-money-mind-*.vercel.app` target=preview, real `vercel inspect`, real smoke, `vercel rm` + `project rm` — nothing left behind |
 | **A4** | `approval` | `request_approval` binds actor/target/action + revision/evidence/policy digests, 60 min expiry; presentation payload carries repo/PR/head/base/preview/method/expiry. Store close+reopen → awaiting-approval still attributable (`restart_survival`). **Two separate sessions race `approve` → exactly one `consumed`, exactly one `merge_intents` row**; replay → `replayed`, wrong actor → `wrong-actor`, unknown → `unknown-request` |
 | **A5** | `merge-guard` | `evaluate_merge_guard` passes on full revalidation; 13-case deny matrix all deny (head/base change, stale preview, revoked actor, fenced/paused task, expired/rejected/replayed approval, missing checks, unprotected/non-strict base, auto-merge). Denies invalidate the affected authority (intent canceled) |
 | **A6** | `merge-guard` live | **Real read-back on `money-mind:main` → `protected:false`** → the merge owner **refuses** the live merge (`live_merge_owner.decision=refused`, blockers `required-checks-not-green`+`base-unprotected`) — exactly the guarded behavior the recipe demands when the base cannot enforce the contract. `allow_auto_merge:false` confirmed live |
@@ -52,14 +52,15 @@ read-back ──▶ merged ONLY from authoritative merge-SHA read-back
 
 Reproduce: `python3 tools/probes/endpoint_walkthrough.py --write <out>.json`
 (fixture legs) · `--live-pr --live-preview` (live legs) · `--fixture run.json`
-re-evaluates a recording · `--self-test` · `--scenario <stage>` for one stage.
+re-evaluates a recording · `--self-test` · `--scenario <stage>` runs the
+pipeline up to and including that stage.
 
 ## Live-interface findings (why they're valuable)
 
 | Finding | Evidence | Consequence |
 |---|---|---|
 | `money-mind:main` unprotected | `repo_facts.protection.protected=false` | **Gate A6 no-go: `base-unprotected`** — owner Luong must enable required checks (`Code Quality & Build`, `Security Scan`) + strict up-to-date + `enforce_admins`; until then the live merge is correctly refused |
-| Real `Security Scan` job fails on a real head | live PR #89 check-runs | The verify gate's `check-failed` deny is proven on **real CI**, not only on fixtures — a red required check genuinely blocks verified status |
+| Real `Security Scan` job fails on a real head | live PR #90 check-runs | The verify gate's `check-failed` deny is proven on **real CI**, not only on fixtures — a red required check genuinely blocks verified status |
 | Vercel smoke 200 without shell marker | live preview `smoke.marker=false` | New-project preview sits behind **deployment protection**: unauthenticated smoke gets the interstitial, not the SPA. Contract needs the documented bypass or protection off for previews — named for the recipe owner |
 | Telegram adapter + numeric allowlist keys present | `adapter_present=true`, `TELEGRAM_*` keys | Transport configured; the live message round-trip stays **no-go `telegram-adapter-live`** (needs the real chat; store/payload semantics proven at fixture level) |
 
