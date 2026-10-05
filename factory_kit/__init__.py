@@ -14,7 +14,9 @@ record ``docs/decisions/package-config-contract.md``):
   persisted as per-profile JSON that can never dispatch by itself.
   ``factory_kit.durable`` carries the SQLite intake store (work identity,
   delivery dedup, intake events); ``factory_kit.intake`` carries the
-  authorized webhook/reconciliation pipeline that converges on it (F02).
+  authorized webhook/reconciliation pipeline that converges on it (F02);
+  ``factory_kit.recovery`` carries restart recovery and periodic GitHub
+  reconciliation through Hermes ownership (F06).
 """
 
 VERSION = "0.1.0"
