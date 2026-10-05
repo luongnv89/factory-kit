@@ -1,0 +1,203 @@
+{
+  "fixture_id": "external-pilot-v1",
+  "kind": "scripted-external-pilot-replay",
+  "description": "Scripted rehearsal of the issue #29 / task 4.5 external pilot: three independent external installations of the pinned install/first-run/removal walkthrough plus repeat-use weekly reports, driven under the Task 4.4 consent/admission gate. Participant hosts are simulated distinct environments (readings fixtures + disposable repos); elapsed setup minutes, author-assistance records, first-run outcomes and weekly run reports are fixture-recorded observations replayed through the real admission gate, the real setup CLI and the real minimized observation event trail. This is not a live 60/90-day study.",
+  "protocol": {
+    "recorded_before_recruitment": "2026-10-05",
+    "study_scope": "pilot-collection",
+    "walkthrough": "docs/recipes/installation.md — plan, apply, readiness, status, then uninstall + remove --history retain",
+    "minimized_fields": [
+      "environment_ref",
+      "install.elapsed_minutes",
+      "install.author_assistance",
+      "install.author_takeover",
+      "install.blocker",
+      "first_run.outcome",
+      "removal.outcome",
+      "weekly_reports[].outcome"
+    ],
+    "observation_window": {
+      "kind": "days-after-pilot-opening",
+      "onboarding_days": 60,
+      "repeat_use_days": 90,
+      "declared_start": "2026-10-05T00:00:00Z",
+      "fixture_note": "declared_start is the scripted pilot opening; live windows are named live_prerequisites"
+    },
+    "proposed_targets": {
+      "onboarding_completed": {"count": 3, "within_days": 60},
+      "independent_setup": {"count": 2, "within_minutes": 45},
+      "repeat_use": {"participants": 2, "consecutive_weeks": 4, "within_days": 90}
+    },
+    "q9_target_status": "proposed — pending owner acceptance (docs/decisions/q9-acceptance.md)",
+    "assistance_classes": {
+      "none": "no author contact during setup",
+      "clarification": "participant asked; author answered a documentation question — recorded, not takeover",
+      "takeover": "author performed or drove setup steps — explicitly recorded, excluded from the independence threshold"
+    },
+    "run_classification": {
+      "completed": "participant report records the run completed",
+      "failed": "participant report records the run failed — retained, counts as an attempt, never a completed run",
+      "missing": "no participant report received for the week — labeled missing, never counted"
+    },
+    "vanity_exclusion": "download/star counts are not run outcomes and are never collected or counted",
+    "denominator_rule": "every recruited participant stays in the denominator — denied, blocked, install-failed and dropped-out rows are labeled, never dropped"
+  },
+  "terms": {
+    "obligations": "external-pilot obligations per docs/pilot/consent-admission.md",
+    "controller_ref": "repo-owner",
+    "processor_ref": "factory-kit local pipeline",
+    "provider_handling": "codex via scoped runtime credential; no participant content outside the contracted provider path",
+    "minimization_terms": "agreed minimized observation fields only; participant identity rides as hash",
+    "retention_terms": "observation rows retained for the study window; tombstones survive removal",
+    "export_terms": "minimized aggregate fields only, consent-gated",
+    "delete_terms": "explicit removal keeps consent tombstone rows",
+    "process_ref": "docs/pilot/consent-admission.md"
+  },
+  "participants": [
+    {
+      "key": "obs-alpha",
+      "participant_ref": "gh-ext/obs-alpha",
+      "authority_key": "ext-obs-alpha",
+      "workload_class": "observation",
+      "trust_class": "external-reviewed",
+      "admission_expected": "admitted",
+      "environment": {
+        "readings": "env-alpha.json",
+        "repo_owner": "obs-alpha",
+        "repo_name": "field-app",
+        "repo_id": "R_EXT_OBS_ALPHA",
+        "host_label": "macOS 25.1 arm64 · py3.14.7"
+      },
+      "install": {
+        "completed_day": 12,
+        "elapsed_minutes": 38.0,
+        "author_assistance": "none",
+        "author_takeover": false,
+        "builder_active_minutes": 9.0
+      },
+      "first_run": {"outcome": "completed", "day": 13},
+      "weekly_reports": [
+        {"week": 1, "day": 20, "outcome": "completed"},
+        {"week": 2, "day": 27, "outcome": "completed"},
+        {"week": 3, "day": 34, "outcome": "completed"},
+        {"week": 4, "day": 41, "outcome": "completed"}
+      ],
+      "removal": {"outcome": "completed", "day": 44},
+      "study_waits": {"recruitment_wait_days": 8.0, "participant_wait_days": 30.0}
+    },
+    {
+      "key": "obs-beta",
+      "participant_ref": "gh-ext/obs-beta",
+      "authority_key": "ext-obs-beta",
+      "workload_class": "observation",
+      "trust_class": "external-reviewed",
+      "admission_expected": "admitted",
+      "environment": {
+        "readings": "env-beta.json",
+        "repo_owner": "obs-beta",
+        "repo_name": "ops-tools",
+        "repo_id": "R_EXT_OBS_BETA",
+        "host_label": "Linux 6.8 x86_64 · py3.13.4"
+      },
+      "install": {
+        "completed_day": 19,
+        "elapsed_minutes": 44.0,
+        "author_assistance": "clarification",
+        "author_takeover": false,
+        "builder_active_minutes": 7.0
+      },
+      "first_run": {"outcome": "completed", "day": 20},
+      "weekly_reports": [
+        {"week": 1, "day": 26, "outcome": "completed"},
+        {"week": 2, "day": 33, "outcome": "completed"},
+        {"week": 3, "day": 40, "outcome": "failed"},
+        {"week": 4, "day": 47, "outcome": "completed"}
+      ],
+      "removal": {"outcome": "completed", "day": 50},
+      "study_waits": {"recruitment_wait_days": 11.0, "participant_wait_days": 28.0}
+    },
+    {
+      "key": "obs-gamma",
+      "participant_ref": "gh-ext/obs-gamma",
+      "authority_key": "ext-obs-gamma",
+      "workload_class": "observation",
+      "trust_class": "external-reviewed",
+      "admission_expected": "admitted",
+      "environment": {
+        "readings": "env-gamma.json",
+        "repo_owner": "obs-gamma",
+        "repo_name": "notes-hub",
+        "repo_id": "R_EXT_OBS_GAMMA",
+        "host_label": "macOS 24.6 x86_64 · py3.14.0"
+      },
+      "install": {
+        "completed_day": 27,
+        "elapsed_minutes": 55.0,
+        "author_assistance": "takeover",
+        "author_takeover": true,
+        "builder_active_minutes": 31.0
+      },
+      "first_run": {"outcome": "completed", "day": 28},
+      "weekly_reports": [
+        {"week": 1, "day": 34, "outcome": "completed"},
+        {"week": 2, "day": 41, "outcome": "completed"},
+        {"week": 3, "day": 48, "outcome": "missing"},
+        {"week": 4, "day": 55, "outcome": "missing"}
+      ],
+      "dropout": {"after_week": 2, "reason": "participant stopped reporting — labeled dropout, retained in denominators"},
+      "removal": {"outcome": "not-attempted", "day": null},
+      "study_waits": {"recruitment_wait_days": 14.0, "participant_wait_days": 24.0}
+    },
+    {
+      "key": "obs-delta",
+      "participant_ref": "gh-ext/obs-delta",
+      "authority_key": "ext-obs-delta",
+      "workload_class": "observation",
+      "trust_class": "external-reviewed",
+      "admission_expected": "admitted",
+      "environment": {
+        "readings": "env-delta.json",
+        "repo_owner": "obs-delta",
+        "repo_name": "legacy-svc",
+        "repo_id": "R_EXT_OBS_DELTA",
+        "host_label": "Linux 5.15 aarch64 · py3.11.8 · hermes 0.20.0"
+      },
+      "install": {
+        "completed_day": null,
+        "elapsed_minutes": null,
+        "author_assistance": "none",
+        "author_takeover": false,
+        "builder_active_minutes": 4.0,
+        "expected_blocker": "unsupported-version"
+      },
+      "first_run": {"outcome": "not-attempted", "day": null},
+      "weekly_reports": [
+        {"week": 1, "day": 40, "outcome": "missing"},
+        {"week": 2, "day": 47, "outcome": "missing"},
+        {"week": 3, "day": 54, "outcome": "missing"},
+        {"week": 4, "day": 61, "outcome": "missing"}
+      ],
+      "removal": {"outcome": "not-applicable", "day": null},
+      "study_waits": {"recruitment_wait_days": 9.0, "participant_wait_days": 6.0}
+    },
+    {
+      "key": "denied-wl",
+      "participant_ref": "gh-ext/denied-wl",
+      "authority_key": "ext-denied-wl",
+      "workload_class": "runtime-mirror",
+      "trust_class": "external-untrusted",
+      "admission_expected": "denied",
+      "expected_blocker": "unsupported-workload:runtime-mirror",
+      "collection_attempt": {"phase": "install"}
+    },
+    {
+      "key": "nonconsent",
+      "participant_ref": "gh-ext/nonconsent",
+      "authority_key": "ext-nonconsent",
+      "workload_class": "observation",
+      "trust_class": "external-reviewed",
+      "admission_expected": "never-presented",
+      "collection_attempt": {"phase": "install"}
+    }
+  ]
+}
