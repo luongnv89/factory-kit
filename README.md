@@ -89,7 +89,14 @@ the candidate's unproven/no-go lifecycle integration each independently
 gate expansion — task 5.2 stays deferred with no adapter code
 executed until the owner explicitly adopts; see
 `docs/adapters/admission-assessment.md` and
-`docs/decisions/f13-admission.md`.
+`docs/decisions/f13-admission.md`. The task-5.2 admission
+precondition itself (issue #33) is executable:
+`tools/probes/adapter_precondition.py` re-derives the gate fail-closed
+— adoption recorded in the F13 record naming the assessed singleton,
+confirmed continue, proven candidate-lane hooks and a grounded ≤3-day
+bound — and records **precondition `unmet`, authorization
+`blocked`**: no adapter code is built or authorized until the owner
+acts; see `docs/adapters/adapter-precondition.md`.
 
 ## Documents
 
@@ -112,6 +119,7 @@ executed until the owner explicitly adopts; see
 - [v1.1 release package](docs/releases/v1.1/) — conditional evidence + onboarding + release checklist; `release-withheld`, recipe-scoped
 - [F13 harness admission assessment](docs/adapters/admission-assessment.md) — GATE-E04 audit over pilot evidence + the single documented candidate; `admission-deferred`
 - [F13 admission record](docs/decisions/f13-admission.md) — deferred pending owner act; task 5.2 stays gated
+- [Task-5.2 admission precondition](docs/adapters/adapter-precondition.md) — fail-closed gate on the recorded adoption; `unmet`, implementation `blocked`
 - [Decision records](docs/decisions/)
 - [Canonical manifest example](.factory-kit.yml)
 - [Reference diagram](assets/warp-ai-factory-reference.jpg)

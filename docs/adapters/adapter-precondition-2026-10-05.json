@@ -1,0 +1,365 @@
+{
+ "run_id": "adapter-precondition-1791228737",
+ "version": "1.0.0",
+ "kind": "adapter-precondition",
+ "mode": "precondition-check",
+ "issue": 33,
+ "task": "5.2",
+ "generated_at": "2026-10-05T19:32:17Z",
+ "environment": {
+  "python": "3.14.7",
+  "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+  "machine": "arm64",
+  "manifest": "/Users/montimage/buildspace/luongnv89/factory-kit/.factory-kit.yml",
+  "manifest_effective_digest": "471800e23c5595c818afde9d59d627dc6800fba44ca6444430d072303433a372",
+  "reproduce": "python3 tools/probes/adapter_precondition.py --write docs/adapters/adapter-precondition-$(date +%F).json"
+ },
+ "sources": {
+  "assessment": {
+   "path": "docs/adapters/admission-assessment-2026-10-05.json",
+   "sha256": "eaa5dd468dd7",
+   "status": "ok",
+   "role": "recorded GATE-E04 admission assessment (task 5.1) \u2014 the singleton candidate, derived capability/probe states and the effort bound are read from it",
+   "kind": "harness-admission-assessment",
+   "verdict": "assessment-complete"
+  },
+  "f13_record": {
+   "path": "docs/decisions/f13-admission.md",
+   "sha256": "f751e362ea82",
+   "status": "ok",
+   "role": "F13 operator admission record \u2014 the adoption act this check verifies; never written by this probe"
+  },
+  "decision_cns": {
+   "path": "docs/decisions/continue-narrow-stop.md",
+   "sha256": "476bbf88ed22",
+   "status": "ok",
+   "role": "continue/narrow/stop decision record (task 4.6) \u2014 owner-confirmed continue is part of the standing gate"
+  },
+  "evaluation": {
+   "path": "docs/measurements/pilot-evaluation-2026-10-05.json",
+   "sha256": "32d0eaac1927",
+   "status": "ok",
+   "role": "aggregated usefulness evaluation \u2014 the recorded continue/narrow/stop disposition",
+   "kind": "pilot-evaluation",
+   "verdict": "evaluation-complete"
+  },
+  "candidate": {
+   "path": "tests/fixtures/adapters/candidate-codex-cli.json",
+   "sha256": "2c8ea4ccbbcd",
+   "status": "ok",
+   "role": "the single documented candidate under assessment \u2014 identity cross-check, never evidence of support",
+   "kind": "factory-kit/harness-candidate@1",
+   "verdict": null
+  }
+ },
+ "assessment": {
+  "archive": "docs/adapters/admission-assessment-2026-10-05.json",
+  "verdict": "assessment-complete",
+  "disposition": "admission-deferred",
+  "candidates_count": 1
+ },
+ "assessed_candidate": {
+  "harness": "codex-cli",
+  "harness_version": "0.160.0",
+  "integration_path": "hermes codex-runtime app-server migration"
+ },
+ "adoption": {
+  "checked": false,
+  "disposition": "pending",
+  "candidate": null,
+  "candidate_version": null,
+  "fields": {
+   "adopted_candidate": null,
+   "support_trust_recipe": null,
+   "bounded_test_scope": null,
+   "cost_capacity": null,
+   "acceptance_gates": null
+  },
+  "operator_decision": "_pending \u2014 the assessment recorded"
+ },
+ "adapter_dirs_present": [],
+ "scope": {
+  "one_active_task_per_project": true,
+  "additional_adapters": 0,
+  "preview_provider": "selected-provider-only",
+  "dates_promised": false,
+  "broader_abstraction": false
+ },
+ "gates": {
+  "assessment_recorded": {
+   "state": "passed",
+   "summary": "GATE-E04 admission assessment recorded complete and clean",
+   "evidence": [
+    "docs/adapters/admission-assessment-2026-10-05.json"
+   ],
+   "recorded_disposition": "admission-deferred",
+   "sources": {
+    "assessment": "ok"
+   },
+   "blockers": []
+  },
+  "pilot_continue_confirmed": {
+   "state": "blocked",
+   "summary": "owner-confirmed continue pilot decision",
+   "evidence": [
+    "docs/decisions/continue-narrow-stop.md",
+    "docs/measurements/pilot-evaluation-2026-10-05.json"
+   ],
+   "recorded_disposition": "narrow-consolidate",
+   "owner_confirmed": false,
+   "sources": {
+    "decision_cns": "ok",
+    "evaluation": "ok"
+   },
+   "blockers": [
+    "recorded disposition 'narrow-consolidate' \u2014 a narrow/stop outcome never authorizes \u00a78.4 expansion",
+    "owner confirmation pending \u2014 a recommendation is not a verdict"
+   ]
+  },
+  "operator_adoption": {
+   "state": "pending",
+   "summary": "operator adoption recorded",
+   "evidence": [
+    "docs/decisions/f13-admission.md"
+   ],
+   "sources": {
+    "f13_record": "ok"
+   },
+   "adopted": false,
+   "blockers": [
+    "no operator adoption recorded \u2014 task 5.2 stays deferred"
+   ]
+  },
+  "adoption_scope": {
+   "state": "pending",
+   "summary": "adoption record carries candidate/version, recipe, bounded scope, cost/capacity and acceptance gates",
+   "evidence": [
+    "docs/decisions/f13-admission.md"
+   ],
+   "sources": {
+    "f13_record": "ok"
+   },
+   "blockers": [
+    "no recorded adoption to evaluate"
+   ]
+  },
+  "adopted_candidate_match": {
+   "state": "pending",
+   "summary": "adopted candidate/version is the assessed singleton",
+   "evidence": [
+    "docs/decisions/f13-admission.md",
+    "docs/adapters/admission-assessment-2026-10-05.json",
+    "tests/fixtures/adapters/candidate-codex-cli.json"
+   ],
+   "sources": {
+    "f13_record": "ok",
+    "assessment": "ok",
+    "candidate": "ok"
+   },
+   "assessed": {
+    "harness": "codex-cli",
+    "harness_version": "0.160.0",
+    "integration_path": "hermes codex-runtime app-server migration"
+   },
+   "blockers": [
+    "no recorded adoption to compare"
+   ]
+  },
+  "supported_hooks": {
+   "state": "blocked",
+   "summary": "supported hooks proven on the candidate lane (capability matrix + compatibility probes)",
+   "evidence": [
+    "docs/adapters/admission-assessment-2026-10-05.json"
+   ],
+   "unproven_rows": [
+    "cancel_descendants",
+    "independent_role_sessions",
+    "liveness",
+    "probe:credential_separation",
+    "probe:current_generation_authorization",
+    "probe:endpoint_compatibility",
+    "readiness_auth",
+    "start",
+    "structured_results"
+   ],
+   "no_go_rows": [
+    "probe:hermes_lifecycle_integration"
+   ],
+   "sources": {
+    "assessment": "ok"
+   },
+   "blockers": [
+    "assessment gate probe_authorization blocked",
+    "assessment gate probe_credential_separation blocked",
+    "assessment gate probe_hermes_lifecycle blocked",
+    "assessment gate probe_endpoint_compat blocked",
+    "unproven on the candidate lane: cancel_descendants, independent_role_sessions, liveness, probe:credential_separation, probe:current_generation_authorization, probe:endpoint_compatibility, readiness_auth, start, structured_results",
+    "recorded no-go: probe:hermes_lifecycle_integration"
+   ]
+  },
+  "effort_bound": {
+   "state": "blocked",
+   "summary": "grounded effort bound \u2264 3 developer-days recorded",
+   "evidence": [
+    "docs/adapters/admission-assessment-2026-10-05.json",
+    "tests/fixtures/adapters/candidate-codex-cli.json"
+   ],
+   "effort_class": "task-5.2 bound: \u2264 3 developer-days \u2014 hooks unproven, so the estimate cannot be grounded today",
+   "estimated_days": 3.0,
+   "sources": {
+    "assessment": "ok",
+    "candidate": "ok"
+   },
+   "blockers": [
+    "recorded estimate flagged ungrounded (hooks unproven) \u2014 the estimate cannot be grounded today"
+   ]
+  },
+  "adapter_code_fence": {
+   "state": "passed",
+   "summary": "no adapter code on disk ahead of authorization",
+   "evidence": [
+    "factory_kit/adapters/",
+    "factory_kit/harnesses/"
+   ],
+   "sources": {},
+   "blockers": []
+  }
+ },
+ "checklist": [
+  "assessment_recorded",
+  "pilot_continue_confirmed",
+  "operator_adoption",
+  "adoption_scope",
+  "adopted_candidate_match",
+  "supported_hooks",
+  "effort_bound",
+  "adapter_code_fence"
+ ],
+ "precondition": "unmet",
+ "authorization": "blocked",
+ "unmet_reasons": [
+  {
+   "gate": "pilot_continue_confirmed",
+   "state": "blocked",
+   "detail": "recorded disposition 'narrow-consolidate' \u2014 a narrow/stop outcome never authorizes \u00a78.4 expansion; owner confirmation pending \u2014 a recommendation is not a verdict"
+  },
+  {
+   "gate": "operator_adoption",
+   "state": "pending",
+   "detail": "no operator adoption recorded \u2014 task 5.2 stays deferred"
+  },
+  {
+   "gate": "adoption_scope",
+   "state": "pending",
+   "detail": "no recorded adoption to evaluate"
+  },
+  {
+   "gate": "adopted_candidate_match",
+   "state": "pending",
+   "detail": "no recorded adoption to compare"
+  },
+  {
+   "gate": "supported_hooks",
+   "state": "blocked",
+   "detail": "assessment gate probe_authorization blocked; assessment gate probe_credential_separation blocked; assessment gate probe_hermes_lifecycle blocked; assessment gate probe_endpoint_compat blocked; unproven on the candidate lane: cancel_descendants, independent_role_sessions, liveness, probe:credential_separation, probe:current_generation_authorization, probe:endpoint_compatibility, readiness_auth, start, structured_results; recorded no-go: probe:hermes_lifecycle_integration"
+  },
+  {
+   "gate": "effort_bound",
+   "state": "blocked",
+   "detail": "recorded estimate flagged ungrounded (hooks unproven) \u2014 the estimate cannot be grounded today"
+  }
+ ],
+ "task_5_2": "blocked \u2014 adapter implementation not authorized",
+ "adapter_execution": "none",
+ "audits": {
+  "gate_denominator": {
+   "declared": 8,
+   "evaluated": 8,
+   "unevaluated": [],
+   "bad_states": {}
+  },
+  "source_coverage": {
+   "gaps": {},
+   "sources": 5
+  },
+  "unmet_reason_coverage": {
+   "non_passed": [
+    "adopted_candidate_match",
+    "adoption_scope",
+    "effort_bound",
+    "operator_adoption",
+    "pilot_continue_confirmed",
+    "supported_hooks"
+   ],
+   "named": [
+    "adopted_candidate_match",
+    "adoption_scope",
+    "effort_bound",
+    "operator_adoption",
+    "pilot_continue_confirmed",
+    "supported_hooks"
+   ],
+   "uncovered": [],
+   "phantom": []
+  },
+  "no_authorization_on_unmet": {
+   "recomputed_precondition": "unmet",
+   "recorded_precondition": "unmet",
+   "precondition_consistent": true,
+   "recomputed_authorization": "blocked",
+   "recorded_authorization": "blocked",
+   "authorization_consistent": true,
+   "valid_vocabulary": true
+  },
+  "adoption_consistency": {
+   "gate_state": "pending",
+   "candidate": null,
+   "candidate_version": null,
+   "ok": true
+  },
+  "singleton_reference": {
+   "candidates_count": 1,
+   "assessed": {
+    "harness": "codex-cli",
+    "harness_version": "0.160.0",
+    "integration_path": "hermes codex-runtime app-server migration"
+   },
+   "ok": true
+  },
+  "no_adapter_execution": {
+   "adapter_execution": "none",
+   "ok": true
+  },
+  "unauthorized_execution": {
+   "adapter_dirs_present": [],
+   "authorization": "blocked",
+   "ok": true
+  },
+  "aggregate_only": {
+   "bad_keys": []
+  },
+  "secret_scan": {
+   "outcome": "clean"
+  }
+ },
+ "breaches": [],
+ "instrumentation": "clean",
+ "verdict": "precondition-check-complete",
+ "never_authorized": [
+  "adapter code execution or F13 delivery claims before the precondition reads met \u2014 an unmet check blocks execution pending scoped replan (A1)",
+  "a second scheduler or transition engine (\u00a76.1/boundary map)",
+  "concurrency beyond one active task/project, additional preview providers, or broader harness/provider abstraction",
+  "treating a recorded check \u2014 met or unmet \u2014 as the operator's adoption act itself (\u00a78.4)",
+  "dates promised for expansion"
+ ],
+ "re_entry": [
+  "owner records a confirmed `continue` verdict in docs/decisions/continue-narrow-stop.md",
+  "a live (not fixture) repeat-use observation meeting the proposed bound, or an adjusted target the owner accepts",
+  "documented demand: \u22652 favorable measured signals for the candidate runtime lane",
+  "the candidate's capability/authority matrix proven row-by-row on its own lane \u2014 supported-for-the-selected-lane never transfers",
+  "the hermes codex-runtime path demonstrated against the kanban contract, or a documented supported primitive replacing it",
+  "operator adoption recorded in docs/decisions/f13-admission.md naming the assessed candidate/version with support/trust recipe, bounded test scope, cost/capacity and acceptance gates",
+  "a grounded effort estimate within the \u22643-developer-day bound \u2014 an estimate beyond three days or flagged ungrounded re-plans before execution (A1)"
+ ],
+ "study_outcome": "task-5.2 admission precondition audited \u2014 the gate is fail-closed: only a recorded operator adoption of the assessed singleton plus proven hooks and a grounded bound authorizes implementation; this check executes nothing"
+}
