@@ -1,9 +1,10 @@
 {
   "schema": "factory-kit/endpoint-walkthrough@1",
   "version": "1.0.0",
-  "run_id": "0bf8667d",
-  "started": "2026-10-05T00:13:33.666+00:00",
+  "run_id": "3bd52690",
+  "started": "2026-10-05T00:17:25.765+00:00",
   "elapsed_s": 0.03,
+  "elapsed_note": "fixture pipeline only \u2014 live leg durations are inside live.pr/live.preview timestamps",
   "verdict": "endpoint-demonstrated",
   "gates": {
     "intake": "pass",
@@ -25,13 +26,13 @@
     "work_id": "wk-0004",
     "task_id": "task-0004",
     "generation": 1,
-    "impl_attempt": "att-implementation-383a2c30",
-    "review_attempt": "att-review-735ce9f3",
-    "pr_head_reviewed": "e5e5e5c9d5ccfb6079147e5c14e2bde82b40ea32",
-    "live_pr": 88,
-    "deployment_id": "dpl-0001-2089a678",
-    "preview_url": "https://preview-dpl-0001-2089a678.example.test",
-    "approval_request": "apr-afcfae74b3ff",
+    "impl_attempt": "att-implementation-3598d667",
+    "review_attempt": "att-review-3fe4bac4",
+    "pr_head_reviewed": "e5e5e575f90217a69fb1ff19f6ff503d9cb5cffc6",
+    "live_pr": 89,
+    "deployment_id": "dpl-0001-ed455442",
+    "preview_url": "https://preview-dpl-0001-ed455442.example.test",
+    "approval_request": "apr-604ed450e6db",
     "merge_intent": "mi-0005"
   },
   "legs": [
@@ -69,16 +70,16 @@
         },
         "sessions": {
           "implementation": {
-            "attempt_id": "att-implementation-383a2c30",
-            "session_id": "sess-cab6726c",
+            "attempt_id": "att-implementation-3598d667",
+            "session_id": "sess-d0aec8aa",
             "verdict": "completed",
-            "pr_head": "e5e5e5c9d5ccfb6079147e5c14e2bde82b40ea32"
+            "pr_head": "e5e5e575f90217a69fb1ff19f6ff503d9cb5cffc6"
           },
           "reviewer": {
-            "attempt_id": "att-review-735ce9f3",
-            "session_id": "sess-95466c6c",
+            "attempt_id": "att-review-3fe4bac4",
+            "session_id": "sess-e9d70438",
             "verdict": "approved",
-            "pr_head": "e5e5e5c9d5ccfb6079147e5c14e2bde82b40ea32"
+            "pr_head": "e5e5e575f90217a69fb1ff19f6ff503d9cb5cffc6"
           },
           "sequential": true
         },
@@ -94,7 +95,7 @@
         "observed": {
           "state": "open",
           "draft": false,
-          "head": "e5e5e5c9d5ccfb6079147e5c14e2bde82b40ea32",
+          "head": "e5e5e575f90217a69fb1ff19f6ff503d9cb5cffc6",
           "base": "main"
         },
         "checks": [
@@ -150,11 +151,10 @@
           }
         ],
         "live": {
-          "pr": 88,
+          "pr": 89,
           "gate": "verified",
           "pass": false,
           "reasons": [
-            "pr-not-open-non-draft",
             "check-failed:Security Scan"
           ]
         }
@@ -166,18 +166,18 @@
       "status": "pass",
       "evidence": {
         "deployment": {
-          "deployment_id": "dpl-0001-2089a678",
-          "url": "https://preview-dpl-0001-2089a678.example.test",
-          "head_sha": "e5e5e5c9d5ccfb6079147e5c14e2bde82b40ea32"
+          "deployment_id": "dpl-0001-ed455442",
+          "url": "https://preview-dpl-0001-ed455442.example.test",
+          "head_sha": "e5e5e575f90217a69fb1ff19f6ff503d9cb5cffc6"
         },
         "smoke": {
-          "deployment_id": "dpl-0001-2089a678",
-          "url": "https://preview-dpl-0001-2089a678.example.test",
+          "deployment_id": "dpl-0001-ed455442",
+          "url": "https://preview-dpl-0001-ed455442.example.test",
           "http": 200,
           "marker": true,
           "state": "READY",
           "ok": true,
-          "observed_at": 1791159213.656321
+          "observed_at": 1791159445.754465
         },
         "legs": [
           {
@@ -215,41 +215,41 @@
             "name": "provider-outage",
             "blocked": true,
             "cleanup": {
-              "deployment_id": "dpl-0001-2089a678",
+              "deployment_id": "dpl-0001-ed455442",
               "removed": false,
               "backlogged": true
             }
           }
         ],
         "owned_cleanup": {
-          "deployment_id": "dpl-0001-2089a678",
+          "deployment_id": "dpl-0001-ed455442",
           "removed": true
         },
         "live": {
           "provider": "vercel",
           "repo": "luongnv89/money-mind",
-          "project": "fk-spike-money-mind-1a2fe07f",
+          "project": "fk-spike-money-mind-8dac5f95",
           "head": "4198fafc346dec05fef2be01859bb2ecde876c67",
           "prime_deploy_ok": true,
-          "url": "https://fk-spike-money-mind-1a2fe07f-3h51fge1t-luongnv89s-projects.vercel.app",
+          "url": "https://fk-spike-money-mind-8dac5f95-72c8x982v-luongnv89s-projects.vercel.app",
           "environment": "preview",
           "inspect_ok": true,
-          "inspect_head": "Vercel CLI 55.0.0 (Node.js 26.7.0)\nFetching deployment \"fk-spike-money-mind-1a2fe07f-3h51fge1t-luongnv89s-projects.vercel.app\" in luongnv89s-projects\n> Fetched deployment \"fk-spike-money-mind-1a2fe07f-3h51fge1t-luongnv89s-projects.vercel.app\" in luongnv89s-projects [500ms]\n\n  General\n\n    id\t\tdpl_AtecLFtpFXfQdGioXyC56UuSJhbG\n    name\tfk-spike-money-mind-1a2fe07f\n    target\tpreview\n    status\t\u25cf Ready\n    url\t\thttps://fk-spike-money-mind-1a2fe07f-3h51fge1t-luongnv89s-projects.vercel.app\n    created\tMon Oct 05 2026 02:13:09 GMT+0200 (Central European Summer Time) [19s ago]\n\n\n  Builds",
+          "inspect_head": "Vercel CLI 55.0.0 (Node.js 26.7.0)\nFetching deployment \"fk-spike-money-mind-8dac5f95-72c8x982v-luongnv89s-projects.vercel.app\" in luongnv89s-projects\n> Fetched deployment \"fk-spike-money-mind-8dac5f95-72c8x982v-luongnv89s-projects.vercel.app\" in luongnv89s-projects [499ms]\n\n  General\n\n    id\t\tdpl_6vTdXTEhKUYidzjcmibw5gFy9rGS\n    name\tfk-spike-money-mind-8dac5f95\n    target\tpreview\n    status\t\u25cf Ready\n    url\t\thttps://fk-spike-money-mind-8dac5f95-72c8x982v-luongnv89s-projects.vercel.app\n    created\tMon Oct 05 2026 02:17:02 GMT+0200 (Central European Summer Time) [19s ago]\n\n\n  Builds",
           "smoke": {
             "http": 200,
             "marker": false,
             "ok": false,
             "note": "200 without shell marker \u2014 possible deployment-protection interstitial",
-            "observed_at": "2026-10-05T00:13:29.171+00:00"
+            "observed_at": "2026-10-05T00:17:21.706+00:00"
           },
           "cleanup": {
             "deployment_removed": true,
-            "raw": "Vercel CLI 55.0.0 (Node.js 26.7.0)\nFetching deployment(s) \"https://fk-spike-money-mind-1a2fe07f-3h51fge1t-luongnv89s-pro"
+            "raw": "Vercel CLI 55.0.0 (Node.js 26.7.0)\nFetching deployment(s) \"https://fk-spike-money-mind-8dac5f95-72c8x982v-luongnv89s-pro"
           },
           "project_cleanup": {
             "attempted": true,
             "ok": true,
-            "raw": "Vercel CLI 55.0.0 (Node.js 26.7.0)\nThe project fk-spike-money-mind-1a2fe07f will be removed permanently.\nIt will also delete everything under the proj"
+            "raw": "Vercel CLI 55.0.0 (Node.js 26.7.0)\nThe project fk-spike-money-mind-8dac5f95 will be removed permanently.\nIt will also delete everything under the proj"
           }
         }
       },
@@ -260,21 +260,21 @@
       "status": "pass",
       "evidence": {
         "request": {
-          "request_id": "apr-afcfae74b3ff",
+          "request_id": "apr-604ed450e6db",
           "state": "awaiting",
-          "expiry": 1791162813.657593
+          "expiry": 1791163045.7557561
         },
         "presentation": {
           "repository": "spike/disposable",
           "pr": 7,
-          "head": "e5e5e5c9d5ccfb6079147e5c14e2bde82b40ea32",
+          "head": "e5e5e575f90217a69fb1ff19f6ff503d9cb5cffc6",
           "base": "main",
-          "preview_url": "https://preview-dpl-0001-2089a678.example.test",
+          "preview_url": "https://preview-dpl-0001-ed455442.example.test",
           "smoke": "ok",
           "method": "squash",
           "expiry_s": 3600,
           "digests": {
-            "revision": "afb1ad653d635fd3",
+            "revision": "73079b5310fb3646",
             "evidence": "854e87287833e8e1",
             "policy": "4a177236a1adc966"
           }
@@ -485,13 +485,13 @@
           {
             "name": "happy-readback",
             "authoritative": true,
-            "merge_sha": "e5e5e5c9d5ccfb6079147e5c14e2bde82b40ea32",
+            "merge_sha": "e5e5e575f90217a69fb1ff19f6ff503d9cb5cffc6",
             "source": "remote-snapshot"
           },
           {
             "name": "lost-response-reconcile",
             "response_received": false,
-            "reconciled_sha": "e5e5e5c9d5ccfb6079147e5c14e2bde82b40ea32",
+            "reconciled_sha": "e5e5e575f90217a69fb1ff19f6ff503d9cb5cffc6",
             "retried": false,
             "verdict": "reconciled-before-retry"
           },
@@ -535,28 +535,28 @@
     "preview": {
       "provider": "vercel",
       "repo": "luongnv89/money-mind",
-      "project": "fk-spike-money-mind-1a2fe07f",
+      "project": "fk-spike-money-mind-8dac5f95",
       "head": "4198fafc346dec05fef2be01859bb2ecde876c67",
       "prime_deploy_ok": true,
-      "url": "https://fk-spike-money-mind-1a2fe07f-3h51fge1t-luongnv89s-projects.vercel.app",
+      "url": "https://fk-spike-money-mind-8dac5f95-72c8x982v-luongnv89s-projects.vercel.app",
       "environment": "preview",
       "inspect_ok": true,
-      "inspect_head": "Vercel CLI 55.0.0 (Node.js 26.7.0)\nFetching deployment \"fk-spike-money-mind-1a2fe07f-3h51fge1t-luongnv89s-projects.vercel.app\" in luongnv89s-projects\n> Fetched deployment \"fk-spike-money-mind-1a2fe07f-3h51fge1t-luongnv89s-projects.vercel.app\" in luongnv89s-projects [500ms]\n\n  General\n\n    id\t\tdpl_AtecLFtpFXfQdGioXyC56UuSJhbG\n    name\tfk-spike-money-mind-1a2fe07f\n    target\tpreview\n    status\t\u25cf Ready\n    url\t\thttps://fk-spike-money-mind-1a2fe07f-3h51fge1t-luongnv89s-projects.vercel.app\n    created\tMon Oct 05 2026 02:13:09 GMT+0200 (Central European Summer Time) [19s ago]\n\n\n  Builds",
+      "inspect_head": "Vercel CLI 55.0.0 (Node.js 26.7.0)\nFetching deployment \"fk-spike-money-mind-8dac5f95-72c8x982v-luongnv89s-projects.vercel.app\" in luongnv89s-projects\n> Fetched deployment \"fk-spike-money-mind-8dac5f95-72c8x982v-luongnv89s-projects.vercel.app\" in luongnv89s-projects [499ms]\n\n  General\n\n    id\t\tdpl_6vTdXTEhKUYidzjcmibw5gFy9rGS\n    name\tfk-spike-money-mind-8dac5f95\n    target\tpreview\n    status\t\u25cf Ready\n    url\t\thttps://fk-spike-money-mind-8dac5f95-72c8x982v-luongnv89s-projects.vercel.app\n    created\tMon Oct 05 2026 02:17:02 GMT+0200 (Central European Summer Time) [19s ago]\n\n\n  Builds",
       "smoke": {
         "http": 200,
         "marker": false,
         "ok": false,
         "note": "200 without shell marker \u2014 possible deployment-protection interstitial",
-        "observed_at": "2026-10-05T00:13:29.171+00:00"
+        "observed_at": "2026-10-05T00:17:21.706+00:00"
       },
       "cleanup": {
         "deployment_removed": true,
-        "raw": "Vercel CLI 55.0.0 (Node.js 26.7.0)\nFetching deployment(s) \"https://fk-spike-money-mind-1a2fe07f-3h51fge1t-luongnv89s-pro"
+        "raw": "Vercel CLI 55.0.0 (Node.js 26.7.0)\nFetching deployment(s) \"https://fk-spike-money-mind-8dac5f95-72c8x982v-luongnv89s-pro"
       },
       "project_cleanup": {
         "attempted": true,
         "ok": true,
-        "raw": "Vercel CLI 55.0.0 (Node.js 26.7.0)\nThe project fk-spike-money-mind-1a2fe07f will be removed permanently.\nIt will also delete everything under the proj"
+        "raw": "Vercel CLI 55.0.0 (Node.js 26.7.0)\nThe project fk-spike-money-mind-8dac5f95 will be removed permanently.\nIt will also delete everything under the proj"
       }
     }
   },
@@ -565,7 +565,7 @@
     "events": [
       {
         "seq": 1,
-        "ts": "2026-10-05T00:13:33.638+00:00",
+        "ts": "2026-10-05T00:17:25.738+00:00",
         "delivery_id": "dlv-badsig",
         "repo": "spike/disposable",
         "issue": 0,
@@ -575,7 +575,7 @@
       },
       {
         "seq": 2,
-        "ts": "2026-10-05T00:13:33.638+00:00",
+        "ts": "2026-10-05T00:17:25.739+00:00",
         "delivery_id": "dlv-wrongrepo",
         "repo": "other/repo",
         "issue": 0,
@@ -585,7 +585,7 @@
       },
       {
         "seq": 3,
-        "ts": "2026-10-05T00:13:33.639+00:00",
+        "ts": "2026-10-05T00:17:25.739+00:00",
         "delivery_id": "dlv-nooptin",
         "repo": "spike/disposable",
         "issue": 0,
@@ -595,7 +595,7 @@
       },
       {
         "seq": 4,
-        "ts": "2026-10-05T00:13:33.639+00:00",
+        "ts": "2026-10-05T00:17:25.740+00:00",
         "delivery_id": "dlv-good",
         "repo": "spike/disposable",
         "issue": 0,
@@ -612,56 +612,56 @@
         "task_id": "task-0004",
         "generation": 1,
         "state": "accepted",
-        "created": "2026-10-05T00:13:33.639+00:00"
+        "created": "2026-10-05T00:17:25.740+00:00"
       }
     ],
     "attempts": [
       {
-        "attempt_id": "att-implementation-383a2c30",
+        "attempt_id": "att-implementation-3598d667",
         "work_id": "wk-0004",
         "role": "implementation",
-        "session_id": "sess-cab6726c",
+        "session_id": "sess-d0aec8aa",
         "verdict": "completed",
-        "pr_head": "e5e5e5c9d5ccfb6079147e5c14e2bde82b40ea32",
-        "started": "2026-10-05T00:13:33.640+00:00",
-        "ended": "2026-10-05T00:13:33.640+00:00"
+        "pr_head": "e5e5e575f90217a69fb1ff19f6ff503d9cb5cffc6",
+        "started": "2026-10-05T00:17:25.740+00:00",
+        "ended": "2026-10-05T00:17:25.740+00:00"
       },
       {
-        "attempt_id": "att-review-735ce9f3",
+        "attempt_id": "att-review-3fe4bac4",
         "work_id": "wk-0004",
         "role": "review",
-        "session_id": "sess-95466c6c",
+        "session_id": "sess-e9d70438",
         "verdict": "approved",
-        "pr_head": "e5e5e5c9d5ccfb6079147e5c14e2bde82b40ea32",
-        "started": "2026-10-05T00:13:33.654+00:00",
-        "ended": "2026-10-05T00:13:33.654+00:00"
+        "pr_head": "e5e5e575f90217a69fb1ff19f6ff503d9cb5cffc6",
+        "started": "2026-10-05T00:17:25.752+00:00",
+        "ended": "2026-10-05T00:17:25.752+00:00"
       }
     ],
     "approvals": [
       {
-        "request_id": "apr-afcfae74b3ff",
+        "request_id": "apr-604ed450e6db",
         "actor": "77001",
         "target": "spike/disposable#7",
         "action": "approve-merge",
-        "revision_digest": "afb1ad653d635fd3",
+        "revision_digest": "73079b5310fb3646",
         "evidence_digest": "854e87287833e8e1",
         "policy_digest": "4a177236a1adc966",
-        "created": 1791159213.657593,
-        "expiry": 1791162813.657593,
+        "created": 1791159445.7557561,
+        "expiry": 1791163045.7557561,
         "state": "consumed",
         "consumed_seq": 5,
         "merge_intent": "mi-0005"
       },
       {
-        "request_id": "apr-cb57bdc6764d",
+        "request_id": "apr-d54c7f896cb8",
         "actor": "77001",
         "target": "spike/disposable#7",
         "action": "approve-merge",
-        "revision_digest": "afb1ad653d635fd3",
+        "revision_digest": "73079b5310fb3646",
         "evidence_digest": "854e87287833e8e1",
         "policy_digest": "4a177236a1adc966",
-        "created": 1791159213.6617532,
-        "expiry": 1791162813.6617532,
+        "created": 1791159445.7613308,
+        "expiry": 1791163045.7613308,
         "state": "awaiting",
         "consumed_seq": null,
         "merge_intent": null
@@ -670,8 +670,8 @@
     "merge_intents": [
       {
         "intent_id": "mi-0005",
-        "request_id": "apr-afcfae74b3ff",
-        "expected_head": "e5e5e5c9d5ccfb6079147e5c14e2bde82b40ea32",
+        "request_id": "apr-604ed450e6db",
+        "expected_head": "e5e5e575f90217a69fb1ff19f6ff503d9cb5cffc6",
         "method": "squash",
         "state": "invalidated",
         "reason": "rejected-approval"
@@ -680,7 +680,7 @@
     "audit": [
       {
         "seq": 1,
-        "ts": "2026-10-05T00:13:33.638+00:00",
+        "ts": "2026-10-05T00:17:25.738+00:00",
         "actor": "intake",
         "action": "accept-event",
         "target": "spike/disposable#0",
@@ -689,7 +689,7 @@
       },
       {
         "seq": 2,
-        "ts": "2026-10-05T00:13:33.638+00:00",
+        "ts": "2026-10-05T00:17:25.739+00:00",
         "actor": "intake",
         "action": "accept-event",
         "target": "other/repo#0",
@@ -698,7 +698,7 @@
       },
       {
         "seq": 3,
-        "ts": "2026-10-05T00:13:33.639+00:00",
+        "ts": "2026-10-05T00:17:25.739+00:00",
         "actor": "intake",
         "action": "accept-event",
         "target": "spike/disposable#0",
@@ -707,7 +707,7 @@
       },
       {
         "seq": 4,
-        "ts": "2026-10-05T00:13:33.639+00:00",
+        "ts": "2026-10-05T00:17:25.740+00:00",
         "actor": "intake",
         "action": "accept-event",
         "target": "spike/disposable#0",
@@ -716,79 +716,79 @@
       },
       {
         "seq": 5,
-        "ts": "2026-10-05T00:13:33.640+00:00",
-        "actor": "sess-cab6726c",
+        "ts": "2026-10-05T00:17:25.740+00:00",
+        "actor": "sess-d0aec8aa",
         "action": "attempt-implementation",
         "target": "wk-0004",
         "outcome": "recorded",
-        "detail": "verdict=completed head=e5e5e5c9d5cc"
+        "detail": "verdict=completed head=e5e5e575f902"
       },
       {
         "seq": 6,
-        "ts": "2026-10-05T00:13:33.654+00:00",
-        "actor": "sess-95466c6c",
+        "ts": "2026-10-05T00:17:25.752+00:00",
+        "actor": "sess-e9d70438",
         "action": "attempt-review",
         "target": "wk-0004",
         "outcome": "recorded",
-        "detail": "verdict=approved head=e5e5e5c9d5cc"
+        "detail": "verdict=approved head=e5e5e575f902"
       },
       {
         "seq": 7,
-        "ts": "2026-10-05T00:13:33.657+00:00",
+        "ts": "2026-10-05T00:17:25.755+00:00",
         "actor": "77001",
         "action": "request-approval",
         "target": "spike/disposable#7",
         "outcome": "awaiting",
-        "detail": "request_id=apr-afcfae74b3ff expiry=+3600s"
+        "detail": "request_id=apr-604ed450e6db expiry=+3600s"
       },
       {
         "seq": 8,
-        "ts": "2026-10-05T00:13:33.659+00:00",
+        "ts": "2026-10-05T00:17:25.758+00:00",
         "actor": "77001",
         "action": "approve",
-        "target": "apr-afcfae74b3ff",
+        "target": "apr-604ed450e6db",
         "outcome": "consumed",
         "detail": "merge_intent=mi-0005"
       },
       {
         "seq": 9,
-        "ts": "2026-10-05T00:13:33.660+00:00",
+        "ts": "2026-10-05T00:17:25.760+00:00",
         "actor": "77001",
         "action": "approve",
-        "target": "apr-afcfae74b3ff",
+        "target": "apr-604ed450e6db",
         "outcome": "denied",
         "detail": "replayed"
       },
       {
         "seq": 10,
-        "ts": "2026-10-05T00:13:33.661+00:00",
+        "ts": "2026-10-05T00:17:25.760+00:00",
         "actor": "77001",
         "action": "approve",
-        "target": "apr-afcfae74b3ff",
+        "target": "apr-604ed450e6db",
         "outcome": "denied",
         "detail": "replayed"
       },
       {
         "seq": 11,
-        "ts": "2026-10-05T00:13:33.661+00:00",
+        "ts": "2026-10-05T00:17:25.761+00:00",
         "actor": "77001",
         "action": "request-approval",
         "target": "spike/disposable#7",
         "outcome": "awaiting",
-        "detail": "request_id=apr-cb57bdc6764d expiry=+3600s"
+        "detail": "request_id=apr-d54c7f896cb8 expiry=+3600s"
       },
       {
         "seq": 12,
-        "ts": "2026-10-05T00:13:33.662+00:00",
+        "ts": "2026-10-05T00:17:25.761+00:00",
         "actor": "99999",
         "action": "approve",
-        "target": "apr-cb57bdc6764d",
+        "target": "apr-d54c7f896cb8",
         "outcome": "denied",
         "detail": "wrong-actor"
       },
       {
         "seq": 13,
-        "ts": "2026-10-05T00:13:33.662+00:00",
+        "ts": "2026-10-05T00:17:25.762+00:00",
         "actor": "77001",
         "action": "approve",
         "target": "apr-missing",
@@ -797,7 +797,7 @@
       },
       {
         "seq": 14,
-        "ts": "2026-10-05T00:13:33.663+00:00",
+        "ts": "2026-10-05T00:17:25.762+00:00",
         "actor": "merge-owner",
         "action": "invalidate-intent",
         "target": "mi-0005",
@@ -806,7 +806,7 @@
       },
       {
         "seq": 15,
-        "ts": "2026-10-05T00:13:33.664+00:00",
+        "ts": "2026-10-05T00:17:25.763+00:00",
         "actor": "merge-owner",
         "action": "invalidate-intent",
         "target": "mi-0005",
@@ -815,7 +815,7 @@
       },
       {
         "seq": 16,
-        "ts": "2026-10-05T00:13:33.664+00:00",
+        "ts": "2026-10-05T00:17:25.763+00:00",
         "actor": "merge-owner",
         "action": "invalidate-intent",
         "target": "mi-0005",
@@ -824,7 +824,7 @@
       },
       {
         "seq": 17,
-        "ts": "2026-10-05T00:13:33.665+00:00",
+        "ts": "2026-10-05T00:17:25.764+00:00",
         "actor": "merge-owner",
         "action": "invalidate-intent",
         "target": "mi-0005",
@@ -833,7 +833,7 @@
       },
       {
         "seq": 18,
-        "ts": "2026-10-05T00:13:33.665+00:00",
+        "ts": "2026-10-05T00:17:25.764+00:00",
         "actor": "merge-owner",
         "action": "invalidate-intent",
         "target": "mi-0005",
@@ -846,10 +846,10 @@
     "repo": "luongnv89/money-mind",
     "created": true,
     "cleaned": [],
-    "branch": "spike/endpoint-8763d715",
-    "pr_number": 88,
-    "pr_url": "https://github.com/luongnv89/money-mind/pull/88",
-    "head": "665a79ef77f2dee85a0f98416eea6e229fc9eb6a",
+    "branch": "spike/endpoint-117e872e",
+    "pr_number": 89,
+    "pr_url": "https://github.com/luongnv89/money-mind/pull/89",
+    "head": "9a7ee080d3a197852ed05dabd75c669b08316046",
     "base": "main",
     "state": "OPEN",
     "draft": false,
@@ -865,17 +865,17 @@
         "conclusion": "success"
       },
       {
-        "name": "Code Quality & Build",
-        "status": "completed",
-        "conclusion": "success"
-      },
-      {
         "name": "Security Scan",
         "status": "completed",
         "conclusion": "failure"
+      },
+      {
+        "name": "Code Quality & Build",
+        "status": "completed",
+        "conclusion": "success"
       }
     ],
-    "checks_observed_at": "2026-10-05T00:12:42.550+00:00"
+    "checks_observed_at": "2026-10-05T00:16:38.517+00:00"
   },
   "live_pr_cleanup": {
     "closed": true,

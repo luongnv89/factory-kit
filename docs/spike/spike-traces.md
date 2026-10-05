@@ -26,7 +26,7 @@ evidence row it produced. Source of truth:
 | Head moved since review | `denied:head-moved-since-review` | `legs.verify.legs[head-moved]` |
 | No check runs | `denied:required-checks-missing` | `legs.verify.legs[check-missing]` |
 | Failed required check | `denied:check-failed:Security Scan` | `legs.verify.legs[check-failed]` |
-| **Live:** real PR #88 on money-mind | `denied:check-failed:Security Scan` on **real** CI (plus Socket checks green) | `legs.verify.live`; `live_pr.checks` |
+| **Live:** real PR #89 on money-mind | `denied:check-failed:Security Scan` on **real** CI (plus Socket checks green) | `legs.verify.live`; `live_pr.checks` |
 
 ## A3 — revision-bound preview
 
@@ -38,7 +38,7 @@ evidence row it produced. Source of truth:
 | Smoke older than 10 min | `denied:stale-smoke` | `legs.preview.legs[stale-smoke]` |
 | Provider outage | blocked + cleanup **backlogged** (visible, never false-removed) | `legs.preview.legs[provider-outage]` |
 | Owned cleanup after termination | `removed:true` | `legs.preview.owned_cleanup` |
-| **Live:** real Vercel preview deploy | `dpl_49enFvq4…`, target=preview, inspect ok, smoke 200/marker-miss (deployment-protection interstitial), `vercel rm` + `project rm` ok | `live.preview` |
+| **Live:** real Vercel preview deploy | `dpl_6vTdXTEh…`, target=preview, inspect ok, smoke 200/marker-miss (deployment-protection interstitial), `vercel rm` + `project rm` ok | `live.preview` |
 
 ## A4 — durable one-use approval
 
@@ -81,7 +81,7 @@ evidence row it produced. Source of truth:
 ## A8 — identity chain
 
 `linked_identities` (run `endpoint-2026-10-05`): `wk-0004` → `task-0004` →
-`att-implementation-*`/`att-review-*` → PR head `e5e5e5…` (+ live PR #88
-head `665a79ef`) → `dpl-0001-*` (+ live `dpl_49enFvq4…`) → `apr-*` →
+`att-implementation-*`/`att-review-*` → PR head `e5e5e5…` (+ live PR #89
+head `9a7ee080`) → `dpl-0001-*` (+ live `dpl_6vTdXTEh…`) → `apr-*` →
 `mi-0005`. Fixture versions: `endpoint_walkthrough 1.0.0`,
 `preview_fixture` schema v1, `disposable_repo` schema v1.

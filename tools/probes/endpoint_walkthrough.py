@@ -756,7 +756,7 @@ class Walkthrough:
                             "generation": acc.get("generation")})
 
         # sequential sessions: implementation, then separate reviewer
-        impl_head = "e5e5e5" + _secrets.token_hex(17)  # fixture head sha
+        impl_head = "e5e5e5" + _secrets.token_hex(18)[:35]  # 40-char sha
         impl = self.store.record_attempt(acc["work_id"], "implementation",
                                          "completed", impl_head)
         time.sleep(0.01)
@@ -1088,13 +1088,16 @@ class Walkthrough:
             ("readback", self.stage_readback),
         ]
         for name, fn in pipeline:
-            if only and name != only and only != "all":
-                continue
+            # --scenario X runs the pipeline UP TO X: later stages consume
+            # ctx produced by earlier ones, so skipping deps would only
+            # manufacture KeyError legs, not evidence.
             try:
                 out = fn(ctx) or {}
                 ctx.update(out)
             except Exception as exc:  # noqa: BLE001 — leg crash is evidence
                 self.leg(name, "fail", {"exception": repr(exc)})
+            if only and name == only:
+                break
 
         elapsed = _now() - self.t0
         gates = {l["leg"]: l["status"] for l in self.legs}
@@ -1106,6 +1109,8 @@ class Walkthrough:
             "run_id": self.run_id,
             "started": _utcnow(),
             "elapsed_s": round(elapsed, 2),
+            "elapsed_note": "fixture pipeline only — live leg durations "
+                            "are inside live.pr/live.preview timestamps",
             "verdict": "endpoint-demonstrated" if all_ok else "endpoint-failed",
             "gates": gates,
             "named_blockers": named_blockers,
