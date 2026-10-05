@@ -582,7 +582,8 @@ def validate(raw):
         _err(problems, "factory_kit",
              "missing schema version — set 'factory_kit: "
              f"{SCHEMA_VERSION}'")
-    elif version not in SUPPORTED_SCHEMA_VERSIONS:
+    elif not _is_int(version) or \
+            version not in SUPPORTED_SCHEMA_VERSIONS:
         _err(problems, "factory_kit",
              f"incompatible schema version {version!r} — supported: "
              f"{list(SUPPORTED_SCHEMA_VERSIONS)}")

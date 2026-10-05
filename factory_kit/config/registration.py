@@ -119,6 +119,15 @@ class RegistrationStore:
                 existing["display"] = {
                     "owner": display["owner"], "name": display["name"],
                 }
+            # Observational fields refresh on every re-run — they are not
+            # authorization policy and never broaden the bound generation.
+            if existing["readiness"] != dict(readiness) or \
+                    existing["supported_versions"] != \
+                    list(supported_versions):
+                existing["readiness"] = dict(readiness)
+                existing["supported_versions"] = list(supported_versions)
+                changed = True
+            if changed:
                 self._save()
             active = self._active_generation(existing)
             if schema.policy_digest(effective) != active["policy_digest"]:
