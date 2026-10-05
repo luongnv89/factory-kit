@@ -367,6 +367,113 @@ class TestPilotExport(ReportFixture):
 
 
 # ---------------------------------------------------------------------------
+# Task 4.4 / A2 — revoked consent blocks export and excludes the
+# participant's collected events (durable consent state, never a flag)
+# ---------------------------------------------------------------------------
+
+class TestPilotExportConsent(ReportFixture):
+
+    def _participant_work(self, authority, issue):
+        key = durable.work_key_for(authority, issue, 1)
+        self.store.insert_work(
+            key, authority, authority.split(":")[-1], issue, 1,
+            f"task-{issue}", "pending", "fp", f"rev-{issue}",
+            "{}", "cfgd", "pold")
+        return key
+
+    def _agreement(self):
+        self.store.record_participant_agreement(
+            "pilot-export", actor_ref="telegram:123")
+
+    def test_revoked_agreement_denies_export(self):
+        self._agreement()
+        self.assertEqual(
+            report.pilot_export(self.store)["outcome"], "exported")
+        self.store.revoke_participant_agreement(
+            "pilot-export", actor_ref="telegram:123")
+        out = report.pilot_export(self.store)
+        self.assertEqual(out["outcome"], "denied")
+        self.assertEqual(out["reason"],
+                         "participant-agreement-revoked")
+        self.assertIsNotNone(out["revoked_at"])
+        # Re-agreement reopens — a fresh recorded agreement, not a
+        # deleted revocation record.
+        self._agreement()
+        self.assertEqual(
+            report.pilot_export(self.store)["outcome"], "exported")
+        self.assertEqual(
+            len(self.store.event_rows(
+                "participant_agreement_revoked")), 1)
+
+    def test_revoked_participant_events_excluded(self):
+        """A2: withdrawing one participant's consent drops every event
+        bound to their authority while internal work still exports."""
+        from factory_kit.privacy import consent
+        consent.record_obligations(
+            self.store, "pilot-collection", actor_ref="tg:1",
+            obligations="pilot terms", controller_ref="owner",
+            processor_ref="factory-kit",
+            provider_handling="codex scoped",
+            minimization_terms="aggregates", retention_terms="30d",
+            export_terms="minimal", delete_terms="tombstone",
+            process_ref="docs/pilot/consent-admission.md")
+        admitted = self._participant_work("gh:keep-p", 20)
+        revoked = self._participant_work("gh:revoked-p", 21)
+        consent.admit_participant(
+            self.store, "gh:keep-p-ref", actor_ref="tg:1",
+            authority_key="gh:keep-p", workload_class="observation",
+            trust_class="external-reviewed")
+        consent.admit_participant(
+            self.store, "gh:revoked-p-ref", actor_ref="tg:1",
+            authority_key="gh:revoked-p",
+            workload_class="observation",
+            trust_class="external-reviewed")
+        for key in (admitted, revoked):
+            self.store.record_event("work_updated", work_key=key)
+        consent.revoke_consent(self.store, "gh:revoked-p-ref",
+                             actor_ref="tg:1")
+        self._agreement()
+        out = report.pilot_export(self.store)
+        self.assertEqual(out["outcome"], "exported")
+        self.assertEqual(out["consent"]["excluded_authorities"],
+                         ["gh:revoked-p"])
+        self.assertGreaterEqual(out["consent"]["events_excluded"], 1)
+        keys = {e["properties"]["work_key"] for e in out["events"]}
+        self.assertIn(admitted, keys)
+        self.assertNotIn(revoked, keys)
+        # A5: the participant's raw reference never reaches the export.
+        self.assertNotIn("gh:revoked-p-ref", json.dumps(out))
+
+    def test_denied_admission_events_excluded(self):
+        """A participant whose admission was denied contributes
+        nothing to the aggregate — the denial is durable, so the
+        exclusion can never silently lapse."""
+        from factory_kit.privacy import consent
+        consent.record_obligations(
+            self.store, "pilot-collection", actor_ref="tg:1",
+            obligations="pilot terms", controller_ref="owner",
+            processor_ref="factory-kit",
+            provider_handling="codex scoped",
+            minimization_terms="aggregates", retention_terms="30d",
+            export_terms="minimal", delete_terms="tombstone",
+            process_ref="docs/pilot/consent-admission.md")
+        denied_wk = self._participant_work("gh:denied-p", 30)
+        consent.admit_participant(
+            self.store, "gh:denied-p-ref", actor_ref="tg:1",
+            authority_key="gh:denied-p",
+            workload_class="contributor-code",
+            trust_class="external-untrusted")
+        self.store.record_event("work_updated", work_key=denied_wk)
+        self._agreement()
+        out = report.pilot_export(self.store)
+        self.assertEqual(out["outcome"], "exported")
+        self.assertEqual(out["consent"]["excluded_authorities"],
+                         ["gh:denied-p"])
+        keys = {e["properties"]["work_key"] for e in out["events"]}
+        self.assertNotIn(denied_wk, keys)
+
+
+# ---------------------------------------------------------------------------
 # A5 — Telegram summary is concise and links evidence
 # ---------------------------------------------------------------------------
 

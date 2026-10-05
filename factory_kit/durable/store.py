@@ -96,7 +96,20 @@ Tables:
 - ``participant_agreements`` — recorded participant agreement per
   export scope (Task 2.9 / A6). An aggregate pilot export exists only
   against a durable row here; it can never silently enable external
-  collection.
+  collection. Task 4.4 adds ``state``/``revoked_at``: a revoked
+  agreement blocks the export again without erasing the record (A2).
+- ``pilot_obligations`` — the external-pilot admission context per
+  collection scope (Task 4.4 / A1): applicable obligations,
+  controller/processor responsibility, model-provider data handling,
+  minimization/retention/export/delete terms and the approved
+  consent/admission process, recorded *before* any participant data is
+  collected. No participant consent is valid under a scope without one.
+- ``pilot_participants`` — per-participant admission (Task 4.4 /
+  A2/A4): consent state, the accepted supported workload/trust
+  classification, the boundary-evidence reference for contributor-code
+  workloads and the named blocker when admission is denied. A revoked
+  row blocks new collection and excludes the participant's authority
+  from aggregate export — the record of consent is never erased.
 - ``merge_intents`` — the §6.4 Merge outcome record (Task 3.3 / F12):
   the single merge owner's serialized intent. One row commits inside
   the same transaction that consumes the one-use approval — request/
@@ -125,6 +138,7 @@ Durability rules honoured here:
 
 from __future__ import annotations
 
+import hashlib as _hashlib
 import json as _json
 import sqlite3
 import threading
@@ -143,6 +157,14 @@ class IntakeStoreError(Exception):
 
 def _utcnow() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="milliseconds")
+
+
+def _participant_hash(participant_ref) -> str:
+    """The audit-safe participant identity carried in the event trail
+    (Task 4.4 / A5): recomputable from the reference by someone who
+    already holds it, useless to an export consumer who does not. The
+    raw ``participant_ref`` lives only in ``pilot_participants``."""
+    return _hashlib.sha256(str(participant_ref).encode()).hexdigest()[:16]
 
 
 def work_key_for(authority_key, issue, generation) -> str:
@@ -456,13 +478,65 @@ CREATE INDEX IF NOT EXISTS effort_by_work
 
 -- Recorded participant agreement (Task 2.9 / A6): an aggregate pilot
 -- export exists only against a durable row here — external collection
--- can never be silently enabled by a missing flag.
+-- can never be silently enabled by a missing flag. Task 4.4 (A2) adds
+-- ``state``/``revoked_at``: revoking flips the state without deleting
+-- the row, so the withdrawal itself is durable evidence.
 CREATE TABLE IF NOT EXISTS participant_agreements(
     scope TEXT PRIMARY KEY,
     actor_ref TEXT NOT NULL,
     detail TEXT,
     seq INTEGER NOT NULL,
+    recorded_at TEXT NOT NULL,
+    state TEXT NOT NULL DEFAULT 'recorded',
+    revoked_at TEXT);
+
+-- Pilot obligations (Task 4.4 / A1): the recorded admission context a
+-- collection scope operates under. Every term field is required —
+-- bounded policy text or a document/config reference, never free-form
+-- participant content — because consent collected ahead of a complete
+-- obligations record is not consent under the approved process.
+CREATE TABLE IF NOT EXISTS pilot_obligations(
+    scope TEXT PRIMARY KEY,
+    obligations TEXT NOT NULL,
+    controller_ref TEXT NOT NULL,
+    processor_ref TEXT NOT NULL,
+    provider_handling TEXT NOT NULL,
+    minimization_terms TEXT NOT NULL,
+    retention_terms TEXT NOT NULL,
+    export_terms TEXT NOT NULL,
+    delete_terms TEXT NOT NULL,
+    process_ref TEXT NOT NULL,
+    terms_digest TEXT NOT NULL,
+    actor_ref TEXT NOT NULL,
+    seq INTEGER NOT NULL,
     recorded_at TEXT NOT NULL);
+
+-- Per-participant pilot admission (Task 4.4 / A2/A4): one row per
+-- external participant binds consent state, the accepted workload/trust
+-- classification, the boundary-evidence reference contributor-code
+-- workloads must carry, and the named readiness blocker when admission
+-- is denied. ``participant_ref`` stays in this durable row; the event
+-- trail carries only its hash, so an aggregate export can never name a
+-- participant (A5). ``authority_key`` links the participant to the repo
+-- identity its collected data is scoped under — the field the export
+-- exclusion reads.
+CREATE TABLE IF NOT EXISTS pilot_participants(
+    participant_ref TEXT PRIMARY KEY,
+    scope TEXT NOT NULL,
+    authority_key TEXT,
+    state TEXT NOT NULL,
+    workload_class TEXT,
+    trust_class TEXT,
+    boundary_evidence TEXT,
+    blocker TEXT,
+    obligations_scope TEXT,
+    actor_ref TEXT NOT NULL,
+    seq INTEGER NOT NULL,
+    recorded_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    revoked_at TEXT);
+CREATE INDEX IF NOT EXISTS pilot_participants_by_scope
+    ON pilot_participants(scope, state);
 
 -- Preview evidence (Task 3.1 / F11, §6.4): one durable row per preview
 -- deployment bound to the exact head/base revision it covers — provider,
@@ -746,9 +820,11 @@ class IntakeStore:
     def _migrate(self):
         """In-place additive upgrades for databases created before a
         column existed (``CREATE TABLE IF NOT EXISTS`` alone cannot add
-        one). Currently: ``events.supersedes`` (Task 2.9) and
+        one). Currently: ``events.supersedes`` (Task 2.9),
         ``work_queue.enqueued_at`` (Task 3.4 — the durable queue-age
-        source the A2 views read)."""
+        source the A2 views read) and ``participant_agreements.state`` /
+        ``revoked_at`` (Task 4.4 — the durable consent-withdrawal
+        record)."""
         cols = {r[1] for r in
                 self.db.execute("PRAGMA table_info(events)")}
         if "supersedes" not in cols:
@@ -759,6 +835,17 @@ class IntakeStore:
         if "enqueued_at" not in cols:
             self.db.execute(
                 "ALTER TABLE work_queue ADD COLUMN enqueued_at TEXT")
+        cols = {r[1] for r in
+                self.db.execute(
+                    "PRAGMA table_info(participant_agreements)")}
+        if "state" not in cols:
+            self.db.execute(
+                "ALTER TABLE participant_agreements"
+                " ADD COLUMN state TEXT NOT NULL DEFAULT 'recorded'")
+        if "revoked_at" not in cols:
+            self.db.execute(
+                "ALTER TABLE participant_agreements"
+                " ADD COLUMN revoked_at TEXT")
 
     def close(self):
         db = getattr(self, "db", None)
@@ -2418,7 +2505,9 @@ class IntakeStore:
                                      detail=None):
         """Record participant agreement for an export ``scope`` (e.g.
         ``"pilot-export"``). The row is the durable proof an aggregate
-        export checks — it can never be enabled silently (A6)."""
+        export checks — it can never be enabled silently (A6).
+        Re-recording a revoked scope is a fresh agreement: the state
+        returns to ``recorded`` and ``revoked_at`` clears (A2)."""
         if not scope:
             raise IntakeStoreError(
                 "participant agreement requires a scope")
@@ -2430,12 +2519,14 @@ class IntakeStore:
             seq = tx.next_seq()
             tx._q(
                 "INSERT INTO participant_agreements"
-                "(scope,actor_ref,detail,seq,recorded_at)"
-                " VALUES(?,?,?,?,?)"
+                "(scope,actor_ref,detail,seq,recorded_at,state,"
+                "revoked_at)"
+                " VALUES(?,?,?,?,?,'recorded',NULL)"
                 " ON CONFLICT(scope) DO UPDATE SET"
                 " actor_ref=excluded.actor_ref,"
                 " detail=excluded.detail, seq=excluded.seq,"
-                " recorded_at=excluded.recorded_at",
+                " recorded_at=excluded.recorded_at,"
+                " state='recorded', revoked_at=NULL",
                 (scope, actor_ref, detail, seq, now))
             tx.record_event(
                 "participant_agreement_recorded",
@@ -2445,17 +2536,320 @@ class IntakeStore:
             return {"outcome": "recorded", "scope": scope,
                     "recorded_at": now}
 
+    def revoke_participant_agreement(self, scope, *, actor_ref):
+        """Withdraw the scope-level participant agreement (Task 4.4 /
+        A2): the row flips to ``revoked`` — never deleted — and the
+        ``participant_agreement_revoked`` event records the withdrawal.
+        A revoked agreement denies aggregate export again, so consent
+        withdrawal takes effect at the boundary it was granted on."""
+        if not scope:
+            raise IntakeStoreError(
+                "participant agreement revoke requires a scope")
+        if not actor_ref:
+            raise IntakeStoreError(
+                "participant agreement revoke requires"
+                " a restricted actor_ref")
+        now = _utcnow()
+        with self.transact() as tx:
+            row = tx._q(
+                "SELECT state FROM participant_agreements WHERE scope=?",
+                (scope,)).fetchone()
+            if row is None:
+                raise IntakeStoreError(
+                    f"participant agreement revoke: unknown scope "
+                    f"{scope!r}")
+            if row[0] == "revoked":
+                return {"outcome": "already-revoked", "scope": scope,
+                        "revoked_at": now}
+            tx._q(
+                "UPDATE participant_agreements SET state='revoked',"
+                " revoked_at=? WHERE scope=?", (now, scope))
+            tx.record_typed_event(
+                "participant_agreement_revoked",
+                properties={"scope": scope, "actor_ref": actor_ref,
+                            "revoked_at": now})
+            return {"outcome": "revoked", "scope": scope,
+                    "revoked_at": now}
+
     def participant_agreement(self, scope="pilot-export"):
         """The recorded agreement row for ``scope``, or ``None`` — the
-        gate an aggregate pilot export must pass (A6)."""
+        gate an aggregate pilot export must pass (A6). ``state`` is
+        ``recorded`` while the agreement stands and ``revoked`` after
+        withdrawal (A2)."""
         row = self._q(
-            "SELECT scope,actor_ref,detail,seq,recorded_at"
+            "SELECT scope,actor_ref,detail,seq,recorded_at,state,"
+            "revoked_at"
             " FROM participant_agreements WHERE scope=?",
             (scope,)).fetchone()
         if row is None:
             return None
         return {"scope": row[0], "actor_ref": row[1], "detail": row[2],
-                "seq": row[3], "recorded_at": row[4]}
+                "seq": row[3], "recorded_at": row[4], "state": row[5],
+                "revoked_at": row[6]}
+
+    # -- pilot obligations + per-participant admission (Task 4.4 / A1–A4) ---
+
+    _PILOT_OBLIGATION_COLS = (
+        "scope", "obligations", "controller_ref", "processor_ref",
+        "provider_handling", "minimization_terms", "retention_terms",
+        "export_terms", "delete_terms", "process_ref", "terms_digest",
+        "actor_ref", "seq", "recorded_at")
+
+    _PILOT_PARTICIPANT_COLS = (
+        "participant_ref", "scope", "authority_key", "state",
+        "workload_class", "trust_class", "boundary_evidence", "blocker",
+        "obligations_scope", "actor_ref", "seq", "recorded_at",
+        "updated_at", "revoked_at")
+
+    #: Bounded length for the obligations record's policy-text fields —
+    #: they carry terms and references, never participant content.
+    PILOT_FIELD_MAX = 400
+
+    def _pilot_field(self, name, value, *, required=True):
+        """Validate one obligations/admission field: present when
+        required and bounded — policy text and references only (A1)."""
+        if value is None or not str(value).strip():
+            if required:
+                raise IntakeStoreError(
+                    f"pilot obligations require {name}")
+            return None
+        value = str(value).strip()
+        if len(value) > self.PILOT_FIELD_MAX:
+            raise IntakeStoreError(
+                f"pilot field {name} exceeds {self.PILOT_FIELD_MAX}"
+                " chars — record a reference, not content")
+        return value
+
+    def record_pilot_obligations(self, scope, *, actor_ref,
+                                 obligations, controller_ref,
+                                 processor_ref, provider_handling,
+                                 minimization_terms, retention_terms,
+                                 export_terms, delete_terms,
+                                 process_ref, terms_digest):
+        """Record the external-pilot admission context for ``scope``
+        (Task 4.4 / A1).
+
+        Every term is required: applicable obligations, controller and
+        processor responsibility, model-provider data handling,
+        minimization/retention/export/delete terms and the approved
+        consent/admission process reference. The row commits with its
+        ``pilot_obligations_recorded`` event *before* any participant
+        consent can exist under the scope — the gate layer refuses
+        consent when this row is absent.
+        """
+        fields = {name: self._pilot_field(name, value) for name, value in (
+            ("obligations", obligations),
+            ("controller_ref", controller_ref),
+            ("processor_ref", processor_ref),
+            ("provider_handling", provider_handling),
+            ("minimization_terms", minimization_terms),
+            ("retention_terms", retention_terms),
+            ("export_terms", export_terms),
+            ("delete_terms", delete_terms),
+            ("process_ref", process_ref),
+            ("terms_digest", terms_digest))}
+        if not scope or not str(scope).strip():
+            raise IntakeStoreError(
+                "pilot obligations require a scope")
+        if not actor_ref:
+            raise IntakeStoreError(
+                "pilot obligations require a restricted actor_ref")
+        now = _utcnow()
+        with self.transact() as tx:
+            seq = tx.next_seq()
+            tx._q(
+                "INSERT INTO pilot_obligations"
+                "(scope,obligations,controller_ref,processor_ref,"
+                "provider_handling,minimization_terms,retention_terms,"
+                "export_terms,delete_terms,process_ref,terms_digest,"
+                "actor_ref,seq,recorded_at)"
+                " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+                " ON CONFLICT(scope) DO UPDATE SET"
+                " obligations=excluded.obligations,"
+                " controller_ref=excluded.controller_ref,"
+                " processor_ref=excluded.processor_ref,"
+                " provider_handling=excluded.provider_handling,"
+                " minimization_terms=excluded.minimization_terms,"
+                " retention_terms=excluded.retention_terms,"
+                " export_terms=excluded.export_terms,"
+                " delete_terms=excluded.delete_terms,"
+                " process_ref=excluded.process_ref,"
+                " terms_digest=excluded.terms_digest,"
+                " actor_ref=excluded.actor_ref, seq=excluded.seq,"
+                " recorded_at=excluded.recorded_at",
+                (scope, fields["obligations"], fields["controller_ref"],
+                 fields["processor_ref"], fields["provider_handling"],
+                 fields["minimization_terms"], fields["retention_terms"],
+                 fields["export_terms"], fields["delete_terms"],
+                 fields["process_ref"], fields["terms_digest"],
+                 actor_ref, seq, now))
+            tx.record_typed_event(
+                "pilot_obligations_recorded",
+                properties={"scope": scope,
+                            "terms_digest": fields["terms_digest"],
+                            "actor_ref": actor_ref,
+                            "process_ref": fields["process_ref"],
+                            "recorded_at": now})
+            return {"outcome": "recorded", "scope": scope,
+                    "terms_digest": fields["terms_digest"],
+                    "recorded_at": now}
+
+    def pilot_obligations(self, scope):
+        """The obligations row for ``scope``, or ``None`` — A1's
+        pre-collection record the admission gate checks."""
+        row = self._q(
+            "SELECT scope,obligations,controller_ref,processor_ref,"
+            "provider_handling,minimization_terms,retention_terms,"
+            "export_terms,delete_terms,process_ref,terms_digest,"
+            "actor_ref,seq,recorded_at"
+            " FROM pilot_obligations WHERE scope=?",
+            (scope,)).fetchone()
+        if row is None:
+            return None
+        return dict(zip(self._PILOT_OBLIGATION_COLS, row))
+
+    def record_pilot_admission(self, participant_ref, *, scope,
+                               actor_ref, state, authority_key=None,
+                               workload_class=None, trust_class=None,
+                               boundary_evidence=None, blocker=None,
+                               obligations_scope=None):
+        """Persist one participant admission decision (Task 4.4 /
+        A2/A4).
+
+        ``state`` is ``consented`` (collection may open — the gate has
+        already verified consent, classification and boundary evidence)
+        or ``denied`` (admission refused; ``blocker`` names the
+        readiness blocker, durable audit rather than a silent drop).
+        Revocation goes through :meth:`revoke_pilot_participant`. The
+        typed event carries the participant *hash* — the raw reference
+        stays in this row and never enters the aggregate trail (A5).
+        """
+        if not participant_ref or not str(participant_ref).strip():
+            raise IntakeStoreError(
+                "pilot admission requires a participant_ref")
+        if not scope or not str(scope).strip():
+            raise IntakeStoreError(
+                "pilot admission requires a scope")
+        if state not in ("consented", "denied"):
+            raise IntakeStoreError(
+                f"pilot admission state must be consented|denied, "
+                f"not {state!r}")
+        if state == "denied" and not blocker:
+            raise IntakeStoreError(
+                "denied pilot admission requires a named blocker")
+        if not actor_ref:
+            raise IntakeStoreError(
+                "pilot admission requires a restricted actor_ref")
+        p_hash = _participant_hash(participant_ref)
+        now = _utcnow()
+        with self.transact() as tx:
+            seq = tx.next_seq()
+            tx._q(
+                "INSERT INTO pilot_participants"
+                "(participant_ref,scope,authority_key,state,"
+                "workload_class,trust_class,boundary_evidence,blocker,"
+                "obligations_scope,actor_ref,seq,recorded_at,"
+                "updated_at,revoked_at)"
+                " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,NULL)"
+                " ON CONFLICT(participant_ref) DO UPDATE SET"
+                " scope=excluded.scope,"
+                " authority_key=excluded.authority_key,"
+                " state=excluded.state,"
+                " workload_class=excluded.workload_class,"
+                " trust_class=excluded.trust_class,"
+                " boundary_evidence=excluded.boundary_evidence,"
+                " blocker=excluded.blocker,"
+                " obligations_scope=excluded.obligations_scope,"
+                " actor_ref=excluded.actor_ref, seq=excluded.seq,"
+                " updated_at=excluded.updated_at, revoked_at=NULL",
+                (participant_ref, scope, authority_key, state,
+                 workload_class, trust_class, boundary_evidence,
+                 blocker, obligations_scope, actor_ref, seq, now, now))
+            if state == "consented":
+                tx.record_typed_event(
+                    "pilot_consent_recorded",
+                    properties={
+                        "participant_hash": p_hash, "scope": scope,
+                        "actor_ref": actor_ref,
+                        "workload_class": workload_class,
+                        "trust_class": trust_class,
+                        "boundary_ref": boundary_evidence,
+                        "recorded_at": now})
+            else:
+                tx.record_typed_event(
+                    "pilot_admission_denied",
+                    properties={
+                        "participant_hash": p_hash, "scope": scope,
+                        "reason": blocker, "blocker": blocker,
+                        "actor_ref": actor_ref, "recorded_at": now})
+            return {"outcome": "recorded", "state": state,
+                    "participant_ref": participant_ref,
+                    "participant_hash": p_hash, "scope": scope,
+                    "recorded_at": now}
+
+    def revoke_pilot_participant(self, participant_ref, *, actor_ref):
+        """Withdraw one participant's consent (Task 4.4 / A2): the row
+        flips to ``revoked`` — never deleted — and
+        ``pilot_consent_revoked`` records the withdrawal. Revocation
+        blocks new collection and excludes the participant's authority
+        from aggregate export; existing durable rows stay as the audit
+        record the recorded procedure prescribes."""
+        if not participant_ref or not str(participant_ref).strip():
+            raise IntakeStoreError(
+                "pilot consent revoke requires a participant_ref")
+        if not actor_ref:
+            raise IntakeStoreError(
+                "pilot consent revoke requires a restricted actor_ref")
+        now = _utcnow()
+        with self.transact() as tx:
+            row = tx._q(
+                "SELECT state,scope FROM pilot_participants"
+                " WHERE participant_ref=?",
+                (participant_ref,)).fetchone()
+            if row is None:
+                raise IntakeStoreError(
+                    f"pilot consent revoke: unknown participant "
+                    f"{participant_ref!r}")
+            if row[0] == "revoked":
+                return {"outcome": "already-revoked",
+                        "participant_ref": participant_ref,
+                        "revoked_at": now}
+            tx._q(
+                "UPDATE pilot_participants SET state='revoked',"
+                " revoked_at=?, updated_at=?, seq=?"
+                " WHERE participant_ref=?",
+                (now, now, tx.next_seq(), participant_ref))
+            tx.record_typed_event(
+                "pilot_consent_revoked",
+                properties={
+                    "participant_hash": _participant_hash(
+                        participant_ref),
+                    "scope": row[1], "actor_ref": actor_ref,
+                    "revoked_at": now})
+            return {"outcome": "revoked",
+                    "participant_ref": participant_ref,
+                    "revoked_at": now}
+
+    def pilot_participant(self, participant_ref):
+        """The admission row for one participant, or ``None``."""
+        row = self._q(
+            "SELECT participant_ref,scope,authority_key,state,"
+            "workload_class,trust_class,boundary_evidence,blocker,"
+            "obligations_scope,actor_ref,seq,recorded_at,updated_at,"
+            "revoked_at"
+            " FROM pilot_participants WHERE participant_ref=?",
+            (participant_ref,)).fetchone()
+        if row is None:
+            return None
+        return dict(zip(self._PILOT_PARTICIPANT_COLS, row))
+
+    def pilot_participant_rows(self, scope=None):
+        """Every participant admission row (optionally per ``scope``) —
+        the export exclusion and status views read these."""
+        rows = self._rows("pilot_participants")
+        if scope is None:
+            return rows
+        return [r for r in rows if r["scope"] == scope]
 
     # -- preview records (Task 3.1 / F11, §6.4 Preview evidence) -------------
     #
@@ -3059,9 +3453,11 @@ class IntakeStore:
     # Deliberately out of scope — shared/global rows a single
     # registration never owned: ``meta`` (the sequence), ``lane_state``
     # rows for lanes never occupied by this repo, ``reconcile_watermark``
-    # (store-global), ``participant_agreements`` (consent outlives any
-    # registration), and denied-delivery ``events`` whose delivery_id was
-    # never bound to a work row (they carry no repo binding).
+    # (store-global), ``participant_agreements`` / ``pilot_obligations``
+    # / ``pilot_participants`` (consent and its withdrawal outlive any
+    # registration — Task 4.4), and denied-delivery ``events`` whose
+    # delivery_id was never bound to a work row (they carry no repo
+    # binding).
 
     def work_rows_for_authority(self, authority_key):
         """Every work row minted under one repo identity."""
