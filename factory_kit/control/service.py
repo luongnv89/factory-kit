@@ -91,6 +91,13 @@ class ControlService:
         self.verification = verification
         self._alerts = alert_sink if alert_sink is not None else []
         self._now = now or time.time
+        if lane is not None:
+            # The lane's own apply paths — the stage-boundary gate, the
+            # fenced-attempt branch and crash-window recovery — commit
+            # the revision themselves; the A3 preview retirement rides
+            # this hook. Uninstalled, those applies would leave the old
+            # preview alive while the durable revision moved on.
+            lane.steer_post_apply = self._steer_post_apply
 
     # ------------------------------------------------------------------ #
     # entry point

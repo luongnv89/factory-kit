@@ -1258,6 +1258,83 @@ class IntakeStore:
             return {"outcome": outcome, "attempt_id": attempt_id,
                     "work_key": work_key, "role": role}
 
+    def end_attempt_record(self, attempt_id, *, outcome, verdict=None,
+                           duration_s=None, active_seconds=None,
+                           usage=None):
+        """Close the §6.4 record for an attempt whose ledger row
+        already ended — the path ``finish_execution_attempt`` denies
+        by design (it only closes ``active`` attempts).
+
+        A steered attempt ends without a result commit in two places:
+        ``steer_terminate`` once the runtime confirms the process exit,
+        and the fenced-result intake when ``collect`` already returned
+        — both prove the worker is dead. Writing the durable ``ended``
+        marker keeps later termination scans honest: an un-ended record
+        reads as *still possibly running*, so it parks every subsequent
+        checkpoint as uncertain (A5). The attempt's usage lands too —
+        consumed seconds are retained on the work key, never reset
+        (A2): measured when the worker reported them, a ``NULL``
+        active_seconds row honestly counted as unknown otherwise.
+
+        Idempotent — the first close wins ``ended``/``outcome``; a
+        later call carrying measured usage upgrades only the usage row,
+        never rewrites the recorded end.
+        """
+        usage = _events_schema.normalize_usage(usage) \
+            if usage is not None else None
+        measured = active_seconds is not None or usage is not None
+        now = _utcnow()
+        with self.transact() as tx:
+            rec = tx._q(
+                "SELECT work_key, task_id, generation, role, ended"
+                " FROM attempt_records WHERE attempt_id=?",
+                (attempt_id,)).fetchone()
+            if rec is None:
+                return {"outcome": "denied",
+                        "reason": "unknown-attempt"}
+            work_key, task_id, generation, role, ended = rec
+            if ended is None:
+                tx._q(
+                    "UPDATE attempt_records SET ended=?, outcome=?,"
+                    " verdict=COALESCE(?,verdict), duration_s=?,"
+                    " usage_state=? WHERE attempt_id=?",
+                    (now, outcome, verdict, duration_s,
+                     "measured" if measured else "unknown",
+                     attempt_id))
+            if measured:
+                # Measured truth upgrades an earlier unknown
+                # placeholder — REPLACE never the reverse (a missing
+                # report must not clobber seconds already recorded).
+                tx._q(
+                    "INSERT OR REPLACE INTO attempt_usage"
+                    "(attempt_id,work_key,role,active_seconds,usage,"
+                    "recorded_at) VALUES(?,?,?,?,?,?)",
+                    (attempt_id, work_key, role, active_seconds,
+                     _json.dumps(usage, sort_keys=True)
+                     if usage is not None else None, now))
+                tx._q(
+                    "UPDATE attempt_records SET usage_state='measured'"
+                    " WHERE attempt_id=?", (attempt_id,))
+            else:
+                tx._q(
+                    "INSERT OR IGNORE INTO attempt_usage"
+                    "(attempt_id,work_key,role,active_seconds,usage,"
+                    "recorded_at) VALUES(?,?,?,?,?,?)",
+                    (attempt_id, work_key, role, None, None, now))
+            if ended is None:
+                tx.record_event(
+                    "attempt_finished", work_key=work_key,
+                    detail=_json.dumps({
+                        "task_id": task_id, "attempt_id": attempt_id,
+                        "generation": generation, "role": role,
+                        "duration_s": duration_s,
+                        "verdict": verdict or outcome,
+                        "outcome": outcome,
+                        "usage": usage if usage is not None
+                        else "unknown"}, sort_keys=True))
+            return {"outcome": "closed" if ended is None
+                    else "already-closed", "attempt_id": attempt_id}
+
     # -- result intake (worker candidates commit nothing) ----------------------
 
     def accept_result(self, result_id, attempt_id, detail=None):

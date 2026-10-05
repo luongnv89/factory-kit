@@ -306,6 +306,59 @@ class TestA2FenceThenReplace(SteerFixture):
                         kinds.index("scope_steer_applied"))
         self.assertIn("steer_terminated", kinds)
 
+        # The confirmed termination closed the durable record — an
+        # un-ended row would read as still-live evidence forever.
+        self.assertTrue(
+            all(r["ended"] for r in
+                self.store.attempt_record_rows(work_key)))
+
+    def test_second_steer_terminates_only_the_live_attempt(self):
+        """Regression: a confirmed steer termination must not poison
+        the next checkpoint. Without the durable end marker the first
+        fenced attempt's open record reads as still possibly running,
+        so the second steer parks the change — and the whole work —
+        as ``steer-termination-uncertain`` (A2/A5)."""
+        # Three implementation attempts so the second replacement has
+        # budget headroom (2 consumed → 1 remaining).
+        self.eff["limits"]["implementation_attempts"] = 3
+        work_key = self._accept(26)
+        steers = {}
+
+        def impl(ctx):
+            if "first" not in steers:
+                steers["first"] = self._steer(26)
+            elif "second" not in steers:
+                steers["second"] = self._steer(
+                    26, criteria="Revised again: README files only.")
+            return WorkerResult(verdict="completed",
+                                active_seconds=5.0)
+
+        worker = ScriptedWorker(script={"implementation": impl})
+        lane = self._wire_lane(worker, "ws26")
+        lane.tick()
+
+        self.assertEqual(steers["first"]["steer_state"], "applied")
+        self.assertEqual(steers["first"]["termination"], "confirmed")
+        # The second checkpoint terminates the live replacement — the
+        # first attempt's closed record is dead evidence, never
+        # re-scanned as uncertain.
+        self.assertEqual(steers["second"]["steer_state"], "applied",
+                         steers["second"])
+        self.assertEqual(steers["second"]["termination"], "confirmed")
+
+        self.assertEqual(
+            self.store.get_work(work_key)["state"], "completed")
+        recs = self.store.attempt_record_rows(work_key)
+        self.assertEqual([r["role"] for r in recs],
+                         ["implementation"] * 3 + ["review"])
+        self.assertTrue(all(r["ended"] for r in recs), recs)
+        # Two audited revisions on one generation — each immutable.
+        chain = self._steers(work_key)
+        self.assertEqual([s["state"] for s in chain],
+                         ["applied", "applied"])
+        self.assertEqual([s["revision"] for s in chain], [1, 2])
+        self.assertEqual(worker.started[-1].role, "review")
+
     def test_queued_work_applies_in_one_commit(self):
         """No stage in flight = already at a checkpoint: record +
         apply land inside the same transaction (A2)."""

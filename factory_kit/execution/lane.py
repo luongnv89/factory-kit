@@ -591,6 +591,19 @@ class ExecutionLane:
                 self.store.emit_alert(
                     "fenced-result", work_key, "high",
                     detail=f"{attempt_id}: {accepted['reason']}")
+                # ``collect`` returned — the process provably exited,
+                # so the durable record closes here: without the end
+                # marker later termination scans read it as still
+                # possibly running and park the next checkpoint as
+                # uncertain (A5). Its reported usage stays measured
+                # consumption — a denied result still spent seconds
+                # the remaining budgets must retain (A2).
+                self.store.end_attempt_record(
+                    attempt_id, outcome="fenced",
+                    verdict=result.verdict,
+                    duration_s=self._now() - started_epoch,
+                    active_seconds=result.active_seconds,
+                    usage=result.usage)
                 return {"outcome": "fenced",
                         "reason": accepted["reason"],
                         "verdict": result.verdict}
@@ -829,6 +842,19 @@ class ExecutionLane:
                 outcome = self.worker.terminate(handle)
             except WorkerError:
                 outcome = "uncertain"
+            if outcome == "confirmed":
+                # Confirmed exit IS the durable end — close the record
+                # now so the next steer (or the lane's own checkpoint
+                # gate racing this one) re-scans dead evidence instead
+                # of a live-looking unfinished row (A5). The ledger row
+                # already ended ``fenced``, so
+                # ``finish_execution_attempt`` can never close it.
+                started = records[attempt_id].get("started")
+                self.store.end_attempt_record(
+                    attempt_id, outcome="terminated",
+                    duration_s=max(0.0, self._now()
+                                   - _iso_to_epoch(started))
+                    if started else None)
             outcomes.append({"attempt_id": attempt_id,
                              "termination": outcome})
         uncertain = [o for o in outcomes
