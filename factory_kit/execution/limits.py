@@ -51,8 +51,10 @@ IDLE_AUDIT_S = 30 * 60.0
 WARN_FRACTION = 0.8
 
 #: Work states that mean the lane's part is done or blocked — the work
-#: can no longer receive active authority.
-TERMINAL_WORK_STATES = ("completed", "parked", "quarantined", "blocked")
+#: can no longer receive active authority. ``canceled`` (Task 2.7) is
+#: terminal for the generation.
+TERMINAL_WORK_STATES = ("completed", "parked", "quarantined", "blocked",
+                        "canceled")
 
 #: Attempt outcomes the ledger accepts at close.
 ATTEMPT_OUTCOMES = ("completed", "failed", "fenced", "expired")

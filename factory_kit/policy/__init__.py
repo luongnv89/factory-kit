@@ -21,6 +21,17 @@ the documented split of who may decide:
 The pre-dispatch evaluator consuming the policy data is
 :func:`factory_kit.execution.preflight.dispatch_gate` — colocated with
 the lane that enforces it.
+
+The two privileged side-effect surfaces added by Tasks 2.5/2.7 stay on
+the coordinator side of this split:
+
+- :class:`factory_kit.publication.intents.PublicationBroker` — the only
+  path to a remote mutation; workers submit intent *requests*, never
+  remote credentials.
+- :class:`factory_kit.control.service.ControlService` — the only path
+  that turns Telegram commands into committed control state; actors
+  are numeric-ID allowlisted (CFG02) and every command persists before
+  it is acknowledged.
 """
 
 __all__ = []
