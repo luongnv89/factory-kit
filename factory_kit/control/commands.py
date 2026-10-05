@@ -51,7 +51,7 @@ _REQUIRED_TARGET = {
     "retry": ("repo_id", "issue"),
 }
 
-_REF_RE = re.compile(r"^telegram:(\d+)$")
+_REF_RE = re.compile(r"^telegram:(-?\d+)$")
 
 #: Natural-language proposal patterns — deliberately small and
 #: conservative: anything ambiguous produces no proposal and the
@@ -73,19 +73,24 @@ _SLASH = re.compile(r"^/([a-z]+)\b")
 
 def _num(value):
     """Coerce a numeric ID field — Telegram IDs are integers; a
-    digit-string is accepted, anything else is not a number."""
+    digit-string is accepted (Telegram chat IDs are *negative*), a
+    sign-only or non-numeric string is not a number."""
     if isinstance(value, bool):
         return None
     if isinstance(value, int):
         return value
-    if isinstance(value, str) and value.strip().isdigit():
-        return int(value.strip())
+    if isinstance(value, str):
+        s = value.strip()
+        if s.isdigit() or (s.startswith("-") and s[1:].isdigit()):
+            return int(s)
     return None
 
 
 def _ref(value):
     """Normalize an actor/chat reference to ``telegram:<digits>`` —
-    usernames and non-numeric IDs fail (CFG02)."""
+    usernames and non-numeric IDs fail (CFG02). Group chat IDs are
+    negative, so the canonical ``telegram:-<digits>`` form must
+    round-trip: a transport echoing the emitted ref is not a forgery."""
     if value is None:
         return None
     if isinstance(value, dict):
@@ -95,7 +100,7 @@ def _ref(value):
     if number is not None:
         return f"telegram:{number}"
     match = _REF_RE.match(str(value).strip())
-    return f"telegram:{match.group(1)}" if match else None
+    return f"telegram:{int(match.group(1))}" if match else None
 
 
 def validate(message):

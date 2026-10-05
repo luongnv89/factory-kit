@@ -1062,6 +1062,31 @@ class IntakeStore:
             f"UPDATE publication_intents SET {', '.join(sets)}"
             " WHERE intent_id=?", params)
 
+    def reopen_intent(self, intent_id, *, task_id=None, generation=None,
+                      authority_key=None, repo_id=None,
+                      expected_revision=None, actor_ref=None,
+                      claim_expires_epoch=None):
+        """Re-open a terminally ``failed``/``denied`` intent for a fresh
+        authorized attempt (inside ``transact``).
+
+        The partial unique index covers *every* state, so a retry cannot
+        insert a second row for the same serialized (work, operation,
+        target) identity — it re-opens the same one instead: the
+        terminal outcome is cleared back to ``recorded`` and the
+        attempt-bound fields are refreshed, keeping exactly one remote
+        operation per identity while a transient failure never
+        permanently tombstones republication (A3)."""
+        self._q(
+            "UPDATE publication_intents SET state='recorded',"
+            " reason=NULL, remote_ref=NULL, detail=NULL,"
+            " task_id=?, generation=?, authority_key=?, repo_id=?,"
+            " expected_revision=?, actor_ref=?,"
+            " claim_expires_epoch=?, updated_at=?"
+            " WHERE intent_id=?",
+            (task_id, generation, authority_key, repo_id,
+             expected_revision, actor_ref, claim_expires_epoch,
+             _utcnow(), intent_id))
+
     def intent_rows(self, work_key=None):
         rows = self._rows("publication_intents")
         if work_key is None:

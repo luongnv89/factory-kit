@@ -122,8 +122,13 @@ class GhCliRemote(RemotePort):
                                      self._identity["full_name"])}
 
     def publish_branch(self, branch, sha, identity) -> dict:
-        """Push the exact expected revision to the target branch."""
-        self._run([self.git_bin, "push", "origin",
+        """Push the exact expected revision to the target branch —
+        bound to the registered repository like every other method
+        here, never to whatever ``origin`` happens to resolve to in
+        the process cwd (the read-back can only *detect* a stray push,
+        it cannot un-send it)."""
+        self._run([self.git_bin, "push",
+                   f"https://github.com/{self._identity['full_name']}.git",
                    f"{sha}:refs/heads/{branch}"])
         return {"branch": branch, "sha": sha}
 

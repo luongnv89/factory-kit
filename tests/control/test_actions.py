@@ -436,6 +436,20 @@ class TestA5Rejections(ControlFixture):
         self.assertEqual(out["outcome"], "rejected")
         self.assertEqual(out["reason"], "wrong-chat")
 
+    def test_canonical_negative_chat_ref_roundtrips(self):
+        """Structured transports may echo the *canonical* ref form —
+        ``telegram:-<digits>`` for group chats. The emitted form must
+        be accepted back (negative Telegram IDs are the norm)."""
+        self._accept(24)
+        out = self.control.handle({
+            "command_id": "c-neg", "actor_ref": f"telegram:{USER}",
+            "chat_ref": f"telegram:{CHAT}", "action": "status",
+            "repo_id": self.repo_id, "issue": 24})
+        self.assertEqual(out["outcome"], "answered", out)
+        # …and the record holds the same canonical form an int emits.
+        rec = self._records("c-neg")[0]
+        self.assertEqual(rec["chat_ref"], f"telegram:{CHAT}")
+
     def test_missing_target_asks_for_concrete(self):
         self._accept(13)
         msg = self._msg("pause", issue=13)
@@ -533,6 +547,7 @@ class TestA6AccessibleResponses(ControlFixture):
         self.assertIn("task", text)
         self.assertIn("generation 1", text)
         self.assertIn("Attempts:", text)
+        self.assertIn("Limits:", text)        # the budget surface (A2)
         self.assertIn("Blocker:", text)
         self.assertIn("Committed effects:", text)
         self.assertIn("Last heartbeat:", text)

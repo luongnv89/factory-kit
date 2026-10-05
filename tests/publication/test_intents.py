@@ -280,6 +280,46 @@ class TestA2ScopedBroker(PublicationFixture):
         self.assertEqual(out["reason"], "actor-revoked")
         self.assertEqual(self.remote.calls, [])
 
+    def test_malformed_repository_shape_denied_not_raised(self):
+        """A non-dict ``repository`` field is malformed input — denied
+        cleanly, never an AttributeError escape from the worker-facing
+        surface."""
+        work_key = self._accept(68)
+        req = self._request(work_key=work_key)
+        req["repository"] = "not-a-dict"
+        out = self._broker().request_mutation(req)
+        self.assertEqual(out["outcome"], "denied")
+        self.assertEqual(out["reason"], "bad-repository")
+        self.assertEqual(self.remote.calls, [])
+
+    def test_expired_claim_at_effect_time_denies(self):
+        """The claim window is re-evaluated in the transaction that
+        marks the intent applied — a claim lapsing between the intent
+        commit and the effect still denies (violation: quarantine +
+        alert), and no remote call leaves."""
+        work_key = self._accept(69)
+        ticks = [self.clock[0]]
+
+        def advancing():
+            ticks[0] += 1000.0
+            return ticks[0]
+
+        broker = PublicationBroker(
+            self.store, self.remote, self.registrations, self.eff,
+            clock=advancing, alert_sink=self.alert_sink)
+        req = self._request(
+            work_key=work_key,
+            claim_expires_epoch=self.clock[0] + 1500)
+        out = broker.publish(work_key, req)
+        # Clock reads: intent commit at t+1000 (< t+1500, live); the
+        # pre-effect gate reads t+2000 — the claim already expired.
+        self.assertEqual(out["outcome"], "denied")
+        self.assertEqual(out["reason"], "expired-claim")
+        self.assertEqual(self.remote.calls, [])
+        self.assertEqual(self.store.get_work(work_key)["state"],
+                         "quarantined")
+        self.assertTrue(self.store.alert_rows("unauthorized-mutation"))
+
 
 # ---------------------------------------------------------------------------
 # A3 — one accepted operation/PR; crash-window recovery by identity
@@ -312,6 +352,54 @@ class TestA3SerializationAndRecovery(PublicationFixture):
         self.assertEqual(intent["state"], "linked")
         pr = self.remote.pulls[out["remote_ref"]]
         self.assertEqual(pr["identity"]["work_key"], work_key)
+
+    def test_transient_remote_failure_retries_same_identity(self):
+        """A clean remote refusal leaves a terminal ``failed`` intent —
+        a healthy retry re-opens the same serialized identity (one row,
+        one remote effect) instead of tombstoning the operation."""
+        work_key = self._accept(63)
+        self.remote.faults["pr-publish"] = "raise"
+        first = self._broker().publish(work_key, self._request())
+        self.assertEqual(first["reason"], "remote-error")
+        self.assertEqual(self.store.get_intent(first["intent_id"])
+                         ["state"], "failed")
+        self.remote.faults.pop("pr-publish")
+        second = self._broker().publish(work_key, self._request())
+        self.assertEqual(second["outcome"], "applied")
+        self.assertEqual(second["intent_id"], first["intent_id"])
+        self.assertEqual(len(self.remote.pulls), 1)
+        self.assertEqual(len(self.store.intent_rows(work_key)), 1)
+        events = self.store.event_rows("publication_intent_reopened")
+        self.assertEqual(json.loads(events[-1]["detail"])
+                         ["intent_id"], first["intent_id"])
+
+    def test_denied_intent_reopens_after_config_restored(self):
+        """A non-violation denial (stale config) leaves terminal
+        evidence; once the config matches the bound digests again the
+        retry re-opens the same identity — no silent second row."""
+        work_key = self._accept(64)
+        drifted = effective()
+        drifted["limits"]["wall_hours"] = 12
+        first = self._broker(eff=drifted).publish(
+            work_key, self._request())
+        self.assertEqual(first["reason"], "stale-config")
+        second = self._broker().publish(work_key, self._request())
+        self.assertEqual(second["outcome"], "applied")
+        self.assertEqual(second["intent_id"], first["intent_id"])
+        self.assertEqual(len(self.store.intent_rows(work_key)), 1)
+
+    def test_expired_claim_replay_on_consumed_identity_converges(self):
+        """A replay with an expired claim over an already-linked
+        identity converges on the committed intent — never a crash on
+        the serialized identity's unique index."""
+        work_key = self._accept(65)
+        out = self._broker().publish(work_key, self._request())
+        self.assertEqual(out["outcome"], "applied")
+        replay = self._broker().publish(
+            work_key,
+            self._request(claim_expires_epoch=self.clock[0] - 1))
+        self.assertEqual(replay["outcome"], "converged")
+        self.assertEqual(replay["intent_id"], out["intent_id"])
 
     def test_pending_intent_recovery_links_without_republish(self):
         """A broker restart finds intents stuck pre-effect and links
@@ -490,6 +578,28 @@ class TestA6ViolationQuarantineAlert(PublicationFixture):
         emitted = [a for a in self.alert_sink
                    if a["outcome"] == "emitted"]
         self.assertEqual(len(emitted), 1)
+
+    def test_repeated_violation_same_identity_converges(self):
+        """A repeated unauthorized attempt on the SAME (work,
+        operation, target) converges on the committed denied intent —
+        the serialized identity is enforced by the unique index, so the
+        second denial must not crash on it; the evidence, quarantine
+        and deduplicated alert from the first attempt still stand."""
+        work_key = self._accept(62)
+        broker = self._broker()
+        req = self._request(work_key=work_key, actor_ref="mallory")
+        first = broker.request_mutation(dict(req))
+        second = broker.request_mutation(dict(req))
+        self.assertEqual(first["outcome"], "denied")
+        self.assertEqual(second["outcome"], "denied")
+        self.assertEqual(second["intent_id"], first["intent_id"])
+        denied = [i for i in self.store.intent_rows(work_key)
+                  if i["state"] == "denied"]
+        self.assertEqual(len(denied), 1)          # one identity, one row
+        self.assertEqual(self.store.get_work(work_key)["state"],
+                         "quarantined")
+        self.assertEqual(
+            len(self.store.alert_rows("unauthorized-mutation")), 1)
 
     def test_alert_store_dedupes_same_identity(self):
         """The durable dedup contract the operator channel relies on:

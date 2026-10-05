@@ -114,6 +114,10 @@ def verify_request(request):
     operation = request.get("operation")
     target = str(request.get("target") or "").strip()
     repository = request.get("repository")
+    if repository is not None and not isinstance(repository, dict):
+        # A non-dict repository value is malformed input — deny it, never
+        # crash on it (the worker-facing surface must not raise).
+        return {"ok": False, "reason": "bad-repository"}
     repo_id = str((repository or {}).get("repo_id") or "").strip()
     full_name = str((repository or {}).get("full_name") or "").strip()
     if operation not in _OPERATIONS:
@@ -207,8 +211,35 @@ class PublicationBroker:
     def _deny_tx(self, intent_id, *, request, ctx, state_reason,
                  violation=False):
         """Denial writes, inside the caller's ``transact`` — the denied
-        intent and (on a violation) the quarantine commit atomically."""
+        intent and (on a violation) the quarantine commit atomically.
+
+        The serialized (work, operation, target) identity may already
+        carry a committed intent — a *repeated* denial on it converges
+        on the existing row instead of violating the unique index (the
+        request is still denied, and a violation still quarantines the
+        work; the operator alert dedups downstream)."""
         work = ctx.get("work") if ctx else None
+        operation = request.get("operation") or "-"
+        target = request.get("target")
+        repository = request.get("repository")
+        repo_id = repository.get("repo_id") \
+            if isinstance(repository, dict) else None
+        if work is not None and target:
+            existing = self.store.find_intent(
+                work["work_key"], operation, target)
+            if existing is not None:
+                if violation:
+                    self.store.set_work_state(
+                        work["work_key"], "quarantined",
+                        reason=state_reason)
+                    self.store.record_event(
+                        "work_quarantined",
+                        work_key=work["work_key"],
+                        reason=state_reason,
+                        detail="unauthorized mutation attempt")
+                return {"outcome": "denied", "reason": state_reason,
+                        "intent_id": existing["intent_id"],
+                        "violation": violation, "converged": True}
         self.store.insert_intent(
             intent_id,
             work_key=work["work_key"] if work else None,
@@ -216,7 +247,7 @@ class PublicationBroker:
             task_id=ctx.get("task_id") if ctx else None,
             generation=work.get("generation") if work else None,
             authority_key=(work or {}).get("authority_key"),
-            repo_id=(request.get("repository") or {}).get("repo_id"),
+            repo_id=repo_id,
             operation=request.get("operation") or "-",
             expected_revision=request.get("expected_revision"),
             target=request.get("target"),
@@ -350,23 +381,22 @@ class PublicationBroker:
         work = ctx["work"]
         generation = work.get("generation")
 
-        # 2 — expired claims deny as violations before any intent work:
-        #     the claim's validity window is part of the permit.
-        claim = req.get("claim_expires_epoch")
-        if claim is not None and float(claim) < self.clock():
-            return self._deny(request=req, ctx=ctx,
-                            state_reason="expired-claim",
-                            violation=True)
-
-        # 3 — serialize the (work, operation, target) identity + run the
-        #     authorization recheck under the write lock: one live
-        #     intent per identity, committed before any effect, with
-        #     every permit element re-evaluated at that instant (A1–A4).
+        # 2 — serialize the (work, operation, target) identity + run the
+        #     permit rechecks under the write lock. Live intents
+        #     (recorded/applied/linked/parked) own the identity and
+        #     converge — never a second remote operation (A3). A
+        #     terminally failed/denied intent is *re-decided*: the full
+        #     authorization recheck runs again, and an authorized retry
+        #     re-opens the same row — one remote operation still owns
+        #     the identity, so a transient failure never permanently
+        #     tombstones republication.
         denied = None
+        claim = req.get("claim_expires_epoch")
         with self.store.transact() as tx:
             existing = tx.find_intent(work_key, req["operation"],
                                       req["target"])
-            if existing is not None:
+            if existing is not None and existing["state"] in (
+                    "recorded", "applied", "linked", "parked"):
                 # A racing attempt already owns the identity: converge
                 # on it — never a second remote operation (A3).
                 return {"outcome": "converged",
@@ -374,31 +404,66 @@ class PublicationBroker:
                         "intent_id": existing["intent_id"],
                         "state": existing["state"],
                         "remote_ref": existing["remote_ref"]}
-            auth = self._authorize(ctx, req)
-            if not auth["ok"]:
+            if claim is not None and float(claim) < self.clock():
+                # Expired claims deny as violations — the claim's
+                # validity window is part of the permit, evaluated at
+                # commit time (A2). _deny_tx converges on the existing
+                # row when the identity already carries a terminal
+                # intent, so a repeated denial never violates the
+                # unique index.
                 denied = self._deny_tx(
                     "pub-" + uuid.uuid4().hex[:12],
-                    request=req, ctx=ctx, state_reason=auth["reason"],
-                    violation=auth["reason"] in _VIOLATION_REASONS)
+                    request=req, ctx=ctx, state_reason="expired-claim",
+                    violation=True)
             else:
-                intent_id = "pub-" + uuid.uuid4().hex[:12]
-                tx.insert_intent(
-                    intent_id,
-                    work_key=work_key, seq=None,
-                    task_id=ctx["task_id"], generation=generation,
-                    authority_key=work["authority_key"],
-                    repo_id=req["repository"]["repo_id"],
-                    operation=req["operation"],
-                    expected_revision=req["expected_revision"],
-                    target=req["target"], actor_ref=req["actor_ref"],
-                    claim_expires_epoch=req["claim_expires_epoch"],
-                    state="recorded")
-                tx.record_event(
-                    "publication_intent_recorded", work_key=work_key,
-                    detail=json.dumps(
-                        {"intent_id": intent_id,
-                         "operation": req["operation"],
-                         "target": req["target"]}, sort_keys=True))
+                auth = self._authorize(ctx, req)
+                if not auth["ok"]:
+                    denied = self._deny_tx(
+                        "pub-" + uuid.uuid4().hex[:12],
+                        request=req, ctx=ctx, state_reason=auth["reason"],
+                        violation=auth["reason"] in _VIOLATION_REASONS)
+                elif existing is not None:
+                    # Terminal failed/denied intent — an authorized
+                    # retry re-opens the same serialized identity with
+                    # refreshed attempt-bound fields; the unique index
+                    # still enforces one row per identity.
+                    intent_id = existing["intent_id"]
+                    tx.reopen_intent(
+                        intent_id, task_id=ctx["task_id"],
+                        generation=generation,
+                        authority_key=work["authority_key"],
+                        repo_id=req["repository"]["repo_id"],
+                        expected_revision=req["expected_revision"],
+                        actor_ref=req["actor_ref"],
+                        claim_expires_epoch=req["claim_expires_epoch"])
+                    tx.record_event(
+                        "publication_intent_reopened",
+                        work_key=work_key,
+                        detail=json.dumps(
+                            {"intent_id": intent_id,
+                             "operation": req["operation"],
+                             "target": req["target"],
+                             "prior_state": existing["state"]},
+                            sort_keys=True))
+                else:
+                    intent_id = "pub-" + uuid.uuid4().hex[:12]
+                    tx.insert_intent(
+                        intent_id,
+                        work_key=work_key, seq=None,
+                        task_id=ctx["task_id"], generation=generation,
+                        authority_key=work["authority_key"],
+                        repo_id=req["repository"]["repo_id"],
+                        operation=req["operation"],
+                        expected_revision=req["expected_revision"],
+                        target=req["target"], actor_ref=req["actor_ref"],
+                        claim_expires_epoch=req["claim_expires_epoch"],
+                        state="recorded")
+                    tx.record_event(
+                        "publication_intent_recorded", work_key=work_key,
+                        detail=json.dumps(
+                            {"intent_id": intent_id,
+                             "operation": req["operation"],
+                             "target": req["target"]}, sort_keys=True))
         if denied is not None:
             if denied.pop("violation"):
                 self._alert("unauthorized-mutation", severity="high",
@@ -406,11 +471,15 @@ class PublicationBroker:
                             detail=denied["reason"])
             return denied
 
-        # 4 — final pre-effect fence re-check, committed in the same
-        #     transaction that marks the intent applied: no window where
-        #     the intent says applied while the fence already landed.
+        # 3 — final pre-effect gate, one transaction: the fence recheck
+        #     AND the claim window are re-evaluated in the transaction
+        #     that marks the intent applied — no window where the
+        #     intent says applied while the fence already landed or the
+        #     claim already expired (A2/A4). An expired claim is a
+        #     violation: deny + quarantine + deduplicated alert.
         #     A fence landing after this point was authorized before it
         #     — its outcome is reconciled and accurately linked (A4).
+        expired = False
         with self.store.transact() as tx:
             fence = tx.fence_state(work_key)
             if fence is not None and fence["fenced"]:
@@ -418,9 +487,25 @@ class PublicationBroker:
                                  reason="fenced")
                 return {"outcome": "denied", "reason": "fenced",
                         "intent_id": intent_id}
-            tx.update_intent(intent_id, state="applied")
+            if claim is not None and float(claim) < self.clock():
+                tx.update_intent(intent_id, state="denied",
+                                 reason="expired-claim")
+                tx.set_work_state(work_key, "quarantined",
+                                  reason="expired-claim")
+                tx.record_event("work_quarantined",
+                                work_key=work_key,
+                                reason="expired-claim",
+                                detail="claim expired before effect")
+                expired = True
+            else:
+                tx.update_intent(intent_id, state="applied")
+        if expired:
+            self._alert("unauthorized-mutation", severity="high",
+                        work_key=work_key, detail="expired-claim")
+            return {"outcome": "denied", "reason": "expired-claim",
+                    "intent_id": intent_id}
 
-        # 5 — pre-effect read-back: the remote may already hold what
+        # 4 — pre-effect read-back: the remote may already hold what
         #     this identity's operation would create (a prior lost
         #     response, a raced writer). Converge on one match, park on
         #     more-than-one — never send a second effect into existing
@@ -434,9 +519,27 @@ class PublicationBroker:
         if converged is not None:
             return converged
 
+        # 5 — last permit check at the instant the effect is about to
+        #     leave: the remote pre-read may have taken longer than the
+        #     claim's remaining validity window (A2).
+        if claim is not None and float(claim) < self.clock():
+            with self.store.transact() as tx:
+                tx.update_intent(intent_id, state="denied",
+                                 reason="expired-claim")
+                tx.set_work_state(work_key, "quarantined",
+                                  reason="expired-claim")
+                tx.record_event("work_quarantined",
+                                work_key=work_key,
+                                reason="expired-claim",
+                                detail="claim expired before effect")
+            self._alert("unauthorized-mutation", severity="high",
+                        work_key=work_key, detail="expired-claim")
+            return {"outcome": "denied", "reason": "expired-claim",
+                    "intent_id": intent_id}
+
         # 6 — the remote effect itself. This is the ONLY place a remote
         #     mutation happens, and only after the durable intent
-        #     committed and the fence recheck passed.
+        #     committed and the fence + claim rechecks passed.
         try:
             result = self._send_effect(req, intent_id, work_key,
                                        generation,

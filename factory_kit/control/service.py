@@ -36,12 +36,14 @@ Actions:
 
 from __future__ import annotations
 
+import json
 import time
 import uuid
 
 from factory_kit.config import schema
 from factory_kit.durable.store import _utcnow, work_key_for
 from factory_kit.control import commands
+from factory_kit.execution.lane import _iso_to_epoch
 
 __all__ = ["ControlService"]
 
@@ -459,12 +461,58 @@ class ControlService:
                else "; none yet."),
             f"Revision: {revision}. Last update: "
             f"{work.get('updated_at')}.",
+            self._limits_text(work, attempts),
             f"Blocker: {blocker}.",
             f"Committed effects: {links}.",
             f"Last heartbeat: {beat}. Fence: {fence_txt}.",
             _COMMAND_FOOTER,
         ]
         return "\n".join(lines)
+
+    def _limits_text(self, work, attempts):
+        """A2 — the limits element of the status surface: the bound
+        execution budget and the work's consumption against it, from
+        the latest attempt's durable limits snapshot (the dispatch-time
+        bound budget) or the current effective config before any
+        attempt ran. Unknown usage is named, never shown as zero."""
+        work_key = work["work_key"]
+        lim = None
+        for rec in reversed(attempts):
+            if rec.get("limits"):
+                try:
+                    lim = json.loads(rec["limits"])
+                except ValueError:
+                    lim = None
+                if lim:
+                    break
+        if lim is None:
+            raw = (self.configs.get(work["repo_id"]) or {}).get(
+                "limits") or {}
+            lim = {
+                "implementation_attempts": int(
+                    raw.get("implementation_attempts", 2)),
+                "active_worker_seconds": float(
+                    raw.get("active_worker_minutes", 60)) * 60.0,
+                "wall_seconds": float(raw.get("wall_hours", 24)) * 3600.0,
+            }
+        measured, unknown = self.store.work_active_seconds(work_key)
+        impl_used = self.store.count_attempts(
+            work_key, role="implementation")
+        starts = []
+        for rec in attempts:
+            epoch = _iso_to_epoch(rec.get("started"))
+            if epoch:
+                starts.append(epoch)
+        wall_used = max(0.0, self._now() - min(starts)) \
+            if starts else 0.0
+        unknown_txt = (f", {unknown} unmeasured" if unknown else "")
+        return (
+            f"Limits: implementation attempts {impl_used}/"
+            f"{int(lim.get('implementation_attempts', 0))}; "
+            f"active worker {measured:.0f}s/"
+            f"{float(lim.get('active_worker_seconds', 0)):.0f}s"
+            f"{unknown_txt}; wall {wall_used:.0f}s/"
+            f"{float(lim.get('wall_seconds', 0)):.0f}s.")
 
     def _ack_text(self, cmd, work, headline):
         return "\n".join([
