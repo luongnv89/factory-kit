@@ -104,6 +104,46 @@ run registers nothing and remains diagnosable from the ledger.
 python3 -m factory_kit.setup status [--state setup-state.json]
 ```
 
+### 6 — Remove (ownership-aware, reviewed twice)
+
+```bash
+python3 -m factory_kit.setup uninstall --repo /path/to/project \
+    --out removal.json [--state …] [--registrations …]
+python3 -m factory_kit.setup remove --repo /path/to/project \
+    --plan removal.json --history retain|export|delete \
+    --accepted-by <operator> [--state …] [--registrations …]
+```
+
+`uninstall` is read-only: it emits a removal plan from the recorded
+ownership ledger — only ledger-owned bytes plus recorded remote-effect
+intents. `remove` applies the accepted plan: intake stops first, the
+active-generation fence commits before termination, user edits and
+shared infrastructure survive, provider outages leave a visible
+cleanup-pending backlog, and the registration ends as an identity
+tombstone. `--history` has no default — an undecided removal plan is
+refused.
+
+## Tested recipe
+
+The single supported recipe — tested pins, every command exercised by
+`tests/recipes/test_install_recipe.py`, operations/recovery vocabulary
+and the backup/restore rehearsal — lives in `docs/recipes/`:
+
+- [installation](../../docs/recipes/installation.md) — plan → apply →
+  readiness → status → uninstall → remove, plus the negative
+  walkthrough's named blockers
+- [operations](../../docs/recipes/operations.md) — supervision, webhook
+  transport, secrets, park/quarantine reasons, limits, ambiguous
+  publication/merge read-back
+- [backup-restore](../../docs/recipes/backup-restore.md) — the two-artifact
+  durable pair, the restore rehearsal, corrupt/incomplete blockers
+- [support-matrix](../../docs/recipes/support-matrix.md) — tested pins
+  only; nothing else is claimed
+
+No install command exists (no `pip install`, no `hermes plugins
+install`) — public distribution is unresolved under Q8
+(`docs/decisions/q8-distribution.md`).
+
 ## Guarantees
 
 - `.gitissue.yml` is never written; existing CI is never replaced —
