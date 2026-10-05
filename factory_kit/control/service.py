@@ -32,6 +32,12 @@ Actions:
 - **retry** — mints a freshly authorized, audited generation via
   ``authorize_generation`` with the control actor as
   ``authorized_by``; there is no silent retry path (A4).
+- **approve**/**reject** — the Task-3.2 human decision on a durable
+  one-use approval request. The decision row (restricted actor/chat,
+  bound action/target, outcome) commits in the *same* transaction as
+  the command record; pause and cancel invalidate standing
+  approvals in theirs (F12 A5 — a held or canceled task can never
+  leave live merge authority behind).
 """
 
 from __future__ import annotations
@@ -53,7 +59,8 @@ __all__ = ["ControlService"]
 _COMMAND_FOOTER = (
     "Commands: 'status <repo> <issue>' | 'pause <repo> <issue> <gen>' | "
     "'resume <repo> <issue> <gen>' | 'cancel <repo> <issue> <gen>' | "
-    "'retry <repo> <issue>'")
+    "'retry <repo> <issue>' | 'approve <repo> <issue> <gen>' | "
+    "'reject <repo> <issue> <gen>'")
 
 _STATE_WORDS = {
     "pending": "QUEUED", "active": "ACTIVE", "completed": "COMPLETED",
@@ -70,12 +77,13 @@ class ControlService:
     """Authorized durable control over the execution lane."""
 
     def __init__(self, store, lane, registrations, configs, *,
-                 preview=None, alert_sink=None, now=None):
+                 preview=None, approval=None, alert_sink=None, now=None):
         self.store = store
         self.lane = lane
         self.registrations = registrations
         self.configs = dict(configs)
         self.preview = preview
+        self.approval = approval
         self._alerts = alert_sink if alert_sink is not None else []
         self._now = now or time.time
 
@@ -299,6 +307,11 @@ class ControlService:
                 detail = "paused"
             tx.record_event("work_paused", work_key=work_key,
                             reason=detail)
+            # F12 A5 — a held task leaves no live merge authority: any
+            # standing approval dies inside the same commit as the
+            # pause boundary (resume never revives it — fresh
+            # reverification + approval are required).
+            tx.invalidate_approvals_tx(work_key, "task-paused")
             self._record(tx, cmd, received_at, "accepted",
                          detail=detail)
         word = "PAUSE REQUESTED" if active else "PAUSED"
@@ -357,6 +370,10 @@ class ControlService:
         # inside the authenticated handler's receipt window (A3).
         with self.store.transact() as tx:
             tx.fence_work_tx(work_key, "cancel", work["generation"])
+            # F12 A5 — cancellation voids standing approvals inside
+            # the same commit as the fence: the generation can never
+            # carry live merge authority past its own end.
+            tx.invalidate_approvals_tx(work_key, "canceled")
             self._record(tx, cmd, received_at, "accepted",
                          detail="fenced")
         # Termination is a separate persisted outcome (A4): the fence
@@ -423,6 +440,68 @@ class ControlService:
                 "work_key": result.get("work_key") or work["work_key"],
                 "generation": result.get("generation"),
                 "text": text}
+
+    def _do_approve(self, cmd, work, effective, received_at):
+        return self._do_decision(cmd, work, effective, received_at,
+                                 "approve")
+
+    def _do_reject(self, cmd, work, effective, received_at):
+        return self._do_decision(cmd, work, effective, received_at,
+                                 "reject")
+
+    def _do_decision(self, cmd, work, effective, received_at, verdict):
+        """The F12 decision path (Task 3.2): the typed verdict is
+        resolved against the durable request — the explicit
+        ``request_id`` when the button carried one, else the work's
+        one live request — and the decision row + command record
+        commit in ONE transaction. A transport that lost the ack can
+        never lose the committed decision."""
+        work_key = work["work_key"]
+        if self.approval is None:
+            return self._reject_cmd(cmd, "approval-unsupported",
+                                    received_at)
+        with self.store.transact() as tx:
+            res = self.approval.decide_tx(
+                tx, request_id=cmd.get("request_id"),
+                work_key=work_key, command_id=cmd["command_id"],
+                actor_ref=cmd["actor_ref"], chat_ref=cmd["chat_ref"],
+                verdict=verdict, received_at=received_at)
+            ok = res["outcome"] in ("approved", "rejected", "duplicate")
+            self._record(
+                tx, cmd, received_at,
+                "accepted" if ok else "rejected",
+                reason=res.get("reason") or res["outcome"],
+                detail=f"decision {res.get('decision_id')} on "
+                       f"{res.get('request_id')}")
+        if res["outcome"] == "approved":
+            headline = (
+                f"APPROVED - request {res['request_id']} grants "
+                f"{res['action']} on {res['target']} (head "
+                f"{res.get('head_sha')}, method {res.get('merge_method')}"
+                f") until {res.get('expires_iso')}. The grant "
+                "is one-use: the merge owner spends it once.")
+        elif res["outcome"] == "rejected":
+            headline = (
+                f"REJECTION RECORDED - request {res['request_id']} "
+                f"declined; work {work_key} is blocked for a human "
+                "decision. No further approval is requested "
+                "automatically.")
+        elif res["outcome"] == "duplicate":
+            headline = (
+                f"DUPLICATE - decision already recorded "
+                f"({res.get('recorded_outcome')}).")
+        else:
+            headline = (f"APPROVAL DENIED - {res.get('reason')}. "
+                        "No merge authority was granted.")
+        return {"ok": ok,
+                "outcome": "accepted" if ok else "rejected",
+                "decision_outcome": res["outcome"],
+                "reason": res.get("reason"),
+                "request_id": res.get("request_id"),
+                "decision_id": res.get("decision_id"),
+                "command_id": cmd["command_id"],
+                "work_key": work_key,
+                "text": self._ack_text(cmd, work, headline)}
 
     # ------------------------------------------------------------------ #
     # accessible rendering (A2/A6) — explicit state words, stable ids,

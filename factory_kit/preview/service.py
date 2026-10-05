@@ -97,16 +97,21 @@ class PreviewService:
     - ``alert_sink`` — optional operator-channel sink (list or
       callable); the durable alert row is the local visibility and is
       written first (§7.3).
+    - ``approval`` — optional :class:`ApprovalService`; when wired,
+      every record retirement voids approvals bound to the dead
+      preview evidence (F12 A5 — an unhealthy, stale or superseded
+      preview can never leave merge authority standing).
     """
 
     def __init__(self, store, preview_port, registrations, configs, *,
-                 now=None, alert_sink=None):
+                 now=None, alert_sink=None, approval=None):
         self.store = store
         self.port = preview_port
         self.registrations = registrations
         self.configs = dict(configs)
         self._now = now or time.time
         self._alerts = alert_sink
+        self._approval = approval
 
     # ------------------------------------------------------------------ #
     # helpers
@@ -347,6 +352,10 @@ class PreviewService:
                 tx.record_event("dispatch_blocked",
                                 work_key=work["work_key"],
                                 reason=f"preview-failed:{reason}")
+        if self._approval is not None:
+            # F12 A5 — the retired record's evidence is dead: approvals
+            # bound to it invalidate immediately, not on a later sweep.
+            self._approval.invalidate_for_preview(rec["work_key"])
         if block:
             self._alert("preview-unhealthy", rec["work_key"], "high",
                         f"preview {rec['preview_id']}: {reason}")
@@ -460,6 +469,11 @@ class PreviewService:
                             reason="superseded",
                             properties=self._event_props(
                                 fresh, observed_at=_utcnow()))
+                        # F12 A5 — approvals bound to the superseded
+                        # record's evidence die inside the same commit
+                        # that retires it.
+                        tx.invalidate_approvals_tx(
+                            work_key, "preview-moved")
                     tx.insert_preview(
                         preview_id, work_key=work_key,
                         seq=tx.next_seq(), task_id=work.get("task_id"),
@@ -644,6 +658,9 @@ class PreviewService:
                     properties=self._event_props(
                         tx.get_preview(rec["preview_id"]),
                         observed_at=observed_at))
+                # F12 A5 — the fence voids standing approvals inside
+                # the same commit.
+                tx.invalidate_approvals_tx(work_key, "fenced")
                 post = ("invalidate", tx.get_preview(rec["preview_id"]))
             else:
                 tx.update_preview(

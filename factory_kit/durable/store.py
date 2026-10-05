@@ -460,6 +460,87 @@ CREATE INDEX IF NOT EXISTS preview_by_work
     ON preview_records(work_key, created_at);
 CREATE INDEX IF NOT EXISTS preview_by_deployment
     ON preview_records(deployment_id);
+
+-- One-use approval authority (Task 3.2 / F12, §6.4 Approval): one
+-- durable row per issued human-approval request, binding the action,
+-- the repository/PR target, the exact head/base revision, the
+-- evidence/preview/config/policy digests it grants on, issuance and
+-- expiry, and the decision identity that resolved it. States:
+-- ``awaiting`` (issued, undecided), ``approved`` (accepted decision,
+-- consumable exactly once), ``rejected`` (the human declined — the
+-- work is human-blocked), ``expired``, ``invalidated`` (revision/
+-- evidence/config/actor/task moved under it) and ``consumed`` (the
+-- one merge authority was spent atomically by the merge owner).
+CREATE TABLE IF NOT EXISTS approval_requests(
+    request_id TEXT PRIMARY KEY,
+    work_key TEXT NOT NULL,
+    seq INTEGER,
+    task_id TEXT,
+    generation INTEGER,
+    authority_key TEXT,
+    repo_id TEXT,
+    action TEXT NOT NULL,
+    target TEXT NOT NULL,
+    pr_number TEXT,
+    pr_url TEXT,
+    head_sha TEXT,
+    base_name TEXT,
+    base_sha TEXT,
+    evidence_id TEXT,
+    preview_id TEXT,
+    evidence_digest TEXT,
+    preview_digest TEXT,
+    config_digest TEXT,
+    policy_digest TEXT,
+    merge_method TEXT,
+    state TEXT NOT NULL,
+    reason TEXT,
+    decision_id TEXT,
+    actor_ref TEXT,
+    issued_at TEXT NOT NULL,
+    expires_epoch REAL NOT NULL,
+    consumed_seq INTEGER,
+    detail TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL);
+-- One *live* (awaiting/approved) request per work — concurrent
+-- issuance and decision races converge on the single committed row,
+-- the same way the active-preview slot is un-raceable (A4).
+CREATE UNIQUE INDEX IF NOT EXISTS one_live_approval_per_work
+    ON approval_requests(work_key)
+    WHERE state IN ('awaiting','approved');
+CREATE INDEX IF NOT EXISTS approval_by_work
+    ON approval_requests(work_key, created_at);
+
+-- Approval decisions (F12 A2/A3): append-only human-decision history.
+-- Every typed decision reaching the service — accepted, rejected or
+-- denied (forged actor, wrong chat, replayed, expired, stale
+-- evidence) — persists a row carrying the restricted actor/chat
+-- references, the request's bound action/target (never broader than
+-- the request), receipt + commit times, the outcome and the auditable
+-- reason. ``state`` is the consumed/revoked lifecycle of the winning
+-- accepted row; denied/rejected rows stay ``recorded``.
+CREATE TABLE IF NOT EXISTS approval_decisions(
+    decision_id TEXT PRIMARY KEY,
+    request_id TEXT NOT NULL,
+    work_key TEXT,
+    seq INTEGER,
+    command_id TEXT,
+    actor_ref TEXT NOT NULL,
+    chat_ref TEXT,
+    action TEXT NOT NULL,
+    target TEXT NOT NULL,
+    verdict TEXT,
+    outcome TEXT NOT NULL,
+    reason TEXT,
+    state TEXT NOT NULL,
+    received_at TEXT NOT NULL,
+    decided_at TEXT NOT NULL,
+    detail TEXT);
+CREATE INDEX IF NOT EXISTS decisions_by_request
+    ON approval_decisions(request_id, decided_at);
+CREATE INDEX IF NOT EXISTS decisions_by_command
+    ON approval_decisions(command_id);
 """
 
 
@@ -2001,6 +2082,258 @@ class IntakeStore:
         if row is None:
             return None
         return dict(zip(cls._PREVIEW_COLS, row))
+
+    # -- one-use approval authority (Task 3.2 / F12, §6.4 Approval) -----
+    #
+    # ``approval_requests`` holds the issued one-use grant; the partial
+    # unique index makes one live (awaiting/approved) request per work
+    # un-raceable. ``approval_decisions`` is the append-only decision
+    # history — accepted, rejected and every denied attempt — carrying
+    # restricted actor/chat references and the request's bound
+    # action/target verbatim so a decision can never broaden the
+    # request's scope (A6).
+
+    _APPROVAL_REQUEST_COLS = (
+        "request_id", "work_key", "seq", "task_id", "generation",
+        "authority_key", "repo_id", "action", "target", "pr_number",
+        "pr_url", "head_sha", "base_name", "base_sha", "evidence_id",
+        "preview_id", "evidence_digest", "preview_digest",
+        "config_digest", "policy_digest", "merge_method", "state",
+        "reason", "decision_id", "actor_ref", "issued_at",
+        "expires_epoch", "consumed_seq", "detail", "created_at",
+        "updated_at")
+
+    _APPROVAL_DECISION_COLS = (
+        "decision_id", "request_id", "work_key", "seq", "command_id",
+        "actor_ref", "chat_ref", "action", "target", "verdict",
+        "outcome", "reason", "state", "received_at", "decided_at",
+        "detail")
+
+    #: Request states that still hold the work's one live slot.
+    APPROVAL_LIVE_STATES = ("awaiting", "approved")
+
+    def insert_approval_request(self, request_id, *, work_key, seq=None,
+                                task_id=None, generation=None,
+                                authority_key=None, repo_id=None,
+                                action, target, pr_number=None,
+                                pr_url=None, head_sha=None,
+                                base_name=None, base_sha=None,
+                                evidence_id=None, preview_id=None,
+                                evidence_digest=None,
+                                preview_digest=None, config_digest=None,
+                                policy_digest=None, merge_method=None,
+                                state, reason=None, decision_id=None,
+                                actor_ref=None, issued_at,
+                                expires_epoch, consumed_seq=None,
+                                detail=None):
+        """Write one approval request row (inside ``transact``). The
+        row must commit *before* the request is presented anywhere —
+        a prompt that outlived its durable record could never exist
+        (A1)."""
+        now = _utcnow()
+        self._q(
+            "INSERT INTO approval_requests"
+            "(request_id,work_key,seq,task_id,generation,authority_key,"
+            "repo_id,action,target,pr_number,pr_url,head_sha,base_name,"
+            "base_sha,evidence_id,preview_id,evidence_digest,"
+            "preview_digest,config_digest,policy_digest,merge_method,"
+            "state,reason,decision_id,actor_ref,issued_at,"
+            "expires_epoch,consumed_seq,detail,created_at,updated_at)"
+            " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,"
+            "?,?,?,?,?)",
+            (request_id, work_key, seq, task_id, generation,
+             authority_key, repo_id, action, target,
+             str(pr_number) if pr_number is not None else None, pr_url,
+             head_sha, base_name, base_sha, evidence_id, preview_id,
+             evidence_digest, preview_digest, config_digest,
+             policy_digest, merge_method, state, reason, decision_id,
+             actor_ref, issued_at, expires_epoch, consumed_seq, detail,
+             now, now))
+
+    def update_approval_request(self, request_id, **fields):
+        """Advance a request's outcome (inside ``transact``). Only
+        named columns may be written — the bound evidence surface is
+        fixed at issuance so a decision can never broaden action,
+        scope, revision or expiry (A6)."""
+        allowed = {"state", "reason", "decision_id", "actor_ref",
+                   "consumed_seq", "detail"}
+        unknown = set(fields) - allowed
+        if unknown:
+            raise IntakeStoreError(
+                f"unknown approval-request fields {sorted(unknown)}")
+        sets, params = ["updated_at=?"], [_utcnow()]
+        for col in sorted(fields):
+            sets.append(f"{col}=?")
+            params.append(fields[col])
+        params.append(request_id)
+        self._q(
+            f"UPDATE approval_requests SET {', '.join(sets)}"
+            " WHERE request_id=?", params)
+
+    def get_approval_request(self, request_id):
+        row = self._q(
+            "SELECT * FROM approval_requests WHERE request_id=?",
+            (request_id,)).fetchone()
+        return self._approval_request_row(row)
+
+    def live_approval_request(self, work_key):
+        """The request currently holding the work's one live
+        (awaiting/approved) slot, or ``None`` — enforced by the
+        partial unique index so a racing second request can never
+        mint a second live grant."""
+        row = self._q(
+            "SELECT * FROM approval_requests WHERE work_key=?"
+            " AND state IN ('awaiting','approved')"
+            " ORDER BY rowid DESC LIMIT 1", (work_key,)).fetchone()
+        return self._approval_request_row(row)
+
+    def live_approval_requests(self, work_key=None):
+        """Every live request (the sweep's input); ``work_key``
+        narrows to one work."""
+        if work_key is None:
+            rows = self._q(
+                "SELECT * FROM approval_requests"
+                " WHERE state IN ('awaiting','approved')"
+                " ORDER BY created_at").fetchall()
+        else:
+            rows = self._q(
+                "SELECT * FROM approval_requests WHERE work_key=?"
+                " AND state IN ('awaiting','approved')"
+                " ORDER BY created_at", (work_key,)).fetchall()
+        return [self._approval_request_row(r) for r in rows]
+
+    def approval_request_rows(self, work_key=None, state=None):
+        rows = self._rows("approval_requests")
+        if work_key is not None:
+            rows = [r for r in rows if r["work_key"] == work_key]
+        if state is not None:
+            rows = [r for r in rows if r["state"] == state]
+        return rows
+
+    def insert_approval_decision(self, decision_id, *, request_id,
+                                 work_key=None, seq=None, command_id=None,
+                                 actor_ref, chat_ref=None, action,
+                                 target, verdict=None, outcome,
+                                 reason=None, state, received_at,
+                                 decided_at=None, detail=None):
+        """Append one decision row + its ``approval_decided`` typed
+        event twin (inside ``transact``) — the §7.1 record of the
+        durable decision ID, restricted actor, action, target and
+        receipt/outcome (A2/A3)."""
+        self._q(
+            "INSERT INTO approval_decisions"
+            "(decision_id,request_id,work_key,seq,command_id,actor_ref,"
+            "chat_ref,action,target,verdict,outcome,reason,state,"
+            "received_at,decided_at,detail) VALUES(?,?,?,?,?,?,?,?,?,?,"
+            "?,?,?,?,?,?)",
+            (decision_id, request_id, work_key, seq, command_id,
+             actor_ref, chat_ref, action, target, verdict, outcome,
+             reason, state, received_at, decided_at or _utcnow(),
+             detail))
+        self.record_typed_event(
+            "approval_decided", work_key=work_key, reason=reason,
+            properties={"request_id": request_id,
+                        "decision_id": decision_id,
+                        "actor_ref": actor_ref,
+                        "chat_ref": chat_ref,
+                        "action": action, "target": target,
+                        "verdict": verdict, "outcome": outcome,
+                        "decided_at": decided_at or _utcnow()})
+
+    def update_approval_decision(self, decision_id, **fields):
+        """Advance the winning decision's consumed/revoked lifecycle
+        (inside ``transact``). ``outcome``/``verdict``/``action``/
+        ``target`` are immutable — history is append-only (A6)."""
+        allowed = {"state", "reason", "detail"}
+        unknown = set(fields) - allowed
+        if unknown:
+            raise IntakeStoreError(
+                f"unknown approval-decision fields {sorted(unknown)}")
+        sets, params = [], []
+        for col in sorted(fields):
+            sets.append(f"{col}=?")
+            params.append(fields[col])
+        params.append(decision_id)
+        self._q(
+            f"UPDATE approval_decisions SET {', '.join(sets)}"
+            " WHERE decision_id=?", params)
+
+    def get_approval_decision(self, decision_id):
+        row = self._q(
+            "SELECT * FROM approval_decisions WHERE decision_id=?",
+            (decision_id,)).fetchone()
+        return self._approval_decision_row(row)
+
+    def find_decision_by_command(self, command_id):
+        """Dedup lookup — a repeated typed command returns the
+        recorded decision instead of re-deciding (A4)."""
+        if not command_id:
+            return None
+        row = self._q(
+            "SELECT * FROM approval_decisions WHERE command_id=?"
+            " ORDER BY rowid DESC LIMIT 1", (command_id,)).fetchone()
+        return self._approval_decision_row(row)
+
+    def approval_decision_rows(self, request_id=None, work_key=None):
+        rows = self._rows("approval_decisions")
+        if request_id is not None:
+            rows = [r for r in rows if r["request_id"] == request_id]
+        if work_key is not None:
+            rows = [r for r in rows if r["work_key"] == work_key]
+        return rows
+
+    def invalidate_approvals(self, work_key, reason):
+        """Own-transact wrapper: invalidate every live request the
+        work holds (control/preview/verification callers that carry
+        no enclosing write boundary)."""
+        with self.transact() as tx:
+            return tx.invalidate_approvals_tx(work_key, reason)
+
+    def invalidate_approvals_tx(self, work_key, reason):
+        """Retire every live request for ``work_key`` — the A5 move:
+        cancel/pause/fence callers run this inside their own commit so
+        the task transition and the authority loss are atomic (a task
+        that moved can never leave a live grant behind)."""
+        out = []
+        for req in self.live_approval_requests(work_key):
+            out.append(self.invalidate_approval_tx(req, reason))
+        return out
+
+    def invalidate_approval_tx(self, req, reason,
+                              state="invalidated"):
+        """One terminal transition on a live request: the row's state
+        + reason, the winning decision's ``revoked`` mark and the
+        ``approval_invalidated`` event — all inside the caller's
+        commit (inside ``transact``)."""
+        self.update_approval_request(req["request_id"], state=state,
+                                     reason=reason)
+        if req.get("decision_id"):
+            self.update_approval_decision(req["decision_id"],
+                                          state="revoked")
+        self.record_typed_event(
+            "approval_invalidated", work_key=req["work_key"],
+            reason=reason,
+            properties={"request_id": req["request_id"],
+                        "decision_id": req.get("decision_id"),
+                        "prior_state": req["state"],
+                        "action": req["action"],
+                        "target": req["target"],
+                        "head_sha": req.get("head_sha"),
+                        "base_sha": req.get("base_sha"),
+                        "invalidated_at": _utcnow()})
+        return req["request_id"]
+
+    @classmethod
+    def _approval_request_row(cls, row):
+        if row is None:
+            return None
+        return dict(zip(cls._APPROVAL_REQUEST_COLS, row))
+
+    @classmethod
+    def _approval_decision_row(cls, row):
+        if row is None:
+            return None
+        return dict(zip(cls._APPROVAL_DECISION_COLS, row))
 
     # -- read accessors (inspectability + tests) --------------------------------
 
