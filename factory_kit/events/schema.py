@@ -205,9 +205,27 @@ EVENT_SCHEMAS = {
     "approval_invalidated": {
         "required": ("request_id", "reason"),
     },
+    # Task 3.3 — the protected conditional merge owner (F12). The
+    # intent event twins the durable ``merge_intents`` row minted by
+    # the atomic approval→intent spend; ``merge_denied`` records every
+    # blocked attempt with its explicit reason; ``merge_observed``
+    # carries the authoritative outcome — never the call's response —
+    # including the actual remote-recorded actor so a human-originated
+    # merge is attributed to the human, never to the factory approval.
+    "merge_intent_recorded": {
+        "required": ("intent_id", "request_id", "expected_head"),
+        "nullable": ("decision_id", "pr_number", "merge_method",
+                     "expected_base_name", "expected_base_sha",
+                     "actor_ref"),
+    },
+    "merge_denied": {
+        "required": ("reason",),
+        "nullable": ("request_id", "intent_id", "blockers"),
+    },
     "merge_observed": {
         "required": ("intent_id", "expected_head", "outcome"),
-        "nullable": ("merge_sha",),
+        "nullable": ("merge_sha", "merged_by", "merge_actor_kind",
+                     "read_back_at", "request_id", "pr_number"),
     },
 }
 

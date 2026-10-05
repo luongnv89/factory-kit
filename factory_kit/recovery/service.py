@@ -92,6 +92,12 @@ class RecoveryService:
       optional, used to invalidate preview evidence on linked-PR
       head/base drift and to sweep preview TTL/cleanup backlogs inside
       every reconciliation/recovery pass (F11 A4/A5).
+    - ``merge`` — :class:`factory_kit.merge.service.MergeService`;
+      optional. Its ``reconcile_pending`` resolves committed-but-
+      unresolved merge intents by authoritative read-back inside every
+      pass — the merge owner keeps the crash window and parked unknowns
+      on the same Hermes-owned cadence, never a second scheduler
+      (F12 A6).
     - ``issue_source`` — the issue-observation port
       (:class:`GhIssuePoller` in production).
     - ``remote`` — the read-only remote port for linked-PR drift
@@ -105,7 +111,7 @@ class RecoveryService:
 
     def __init__(self, store, registrations, configs, *, intake=None,
                  lane=None, broker=None, verification=None,
-                 preview=None,
+                 preview=None, merge=None,
                  issue_source=None, remote=None,
                  opt_in_label="factory-kit",
                  interval_s=NOMINAL_INTERVAL_S,
@@ -120,6 +126,7 @@ class RecoveryService:
         self.broker = broker
         self.verification = verification
         self.preview = preview
+        self.merge = merge
         self.issue_source = issue_source
         self.remote = remote if remote is not None else \
             getattr(broker, "remote", None)
@@ -291,6 +298,38 @@ class RecoveryService:
                         task_id=intent.get("task_id"),
                         reused_identity=out.get("remote_ref")
                         or out.get("intent_id"))
+
+        # 2.5 — merge intents committed before their remote outcome
+        # resolved (F12 A6): the merge owner reconciles by authoritative
+        # read-back — the crash window and parked unknowns settle on
+        # this same pass; a remote failure leaves them live for the
+        # next one. No path here resends a merge.
+        if self.merge is not None:
+            remote_attempted = remote_attempted or any(
+                i.get("work_key")
+                for i in self.store.pending_merge_intents())
+            try:
+                outcomes = self.merge.reconcile_pending()
+                report["merge_intents"] = outcomes
+            except RemoteError as exc:
+                remote_ok = False
+                report["errors"].append(
+                    {"stage": "merge-intents",
+                     "error": type(exc).__name__})
+            else:
+                for out in outcomes:
+                    intent = self.store.get_merge_intent(
+                        out.get("intent_id")) or {}
+                    work_key = intent.get("work_key")
+                    if work_key is None:
+                        continue
+                    self._recovered_event(
+                        work_key, source,
+                        "resumed" if out.get("outcome") == "merged"
+                        else "parked",
+                        reason=out.get("reason") or "merge-reconciled",
+                        task_id=intent.get("task_id"),
+                        reused_identity=out.get("intent_id"))
 
         # 3 — orphaned attempts + lane occupancy: the lane's existing
         # crash fences — a stale active attempt is fenced and its
@@ -578,6 +617,20 @@ class RecoveryService:
                 observed = observed or had_pending
             except RemoteError as exc:
                 note_failure("intents", exc)
+
+        # c.5 — merge intents: the merge owner resolves its crash
+        #     window and parked unknowns by read-back on this same
+        #     cadence (F12 A6) — a remote failure keeps them live.
+        if self.merge is not None:
+            had_pending_merge = any(
+                i.get("work_key")
+                for i in self.store.pending_merge_intents())
+            try:
+                report["merge_intents"] = \
+                    self.merge.reconcile_pending()
+                observed = observed or had_pending_merge
+            except RemoteError as exc:
+                note_failure("merge-intents", exc)
 
         # d — linked-PR drift: unexpected terminal state, human
         #     head/base movement, irreconcilable identity (A6).
