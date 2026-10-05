@@ -78,6 +78,21 @@ class RemotePort:
         branch (and work identity where the remote records it)."""
         raise NotImplementedError
 
+    def read_pr(self, number):
+        """Authoritative current-revision read (Task 2.6 / F04):
+        ``{"number", "url", "state", "draft", "head", "head_branch",
+        "base"}`` for PR ``number``, or ``None`` when it does not
+        exist. ``head`` is the head *SHA* — the revision verification
+        binds evidence to."""
+        raise NotImplementedError
+
+    def check_runs(self, sha):
+        """Authoritative check-run observation for revision ``sha``:
+        ``[{"id", "name", "status", "conclusion", "app",
+        "details_url"}]`` — provider identity included so the evidence
+        names *which* system reported each conclusion (F04 A2)."""
+        raise NotImplementedError
+
 
 class GhCliRemote(RemotePort):
     """Thin adapter over the scoped ``gh``/``git`` credential — the only
@@ -169,6 +184,40 @@ class GhCliRemote(RemotePort):
                  "base": r.get("baseRefName"),
                  "state": r.get("state")} for r in rows]
 
+    def read_pr(self, number):
+        # A non-zero ``gh`` exit is deliberately NOT mapped to None:
+        # the caller cannot tell "PR does not exist" from "GitHub
+        # unreachable", and verification must answer ``unknown`` for
+        # the latter — never mistake an outage for a closed PR (A3).
+        out = self._run([self.gh_bin, "pr", "view", str(number),
+                         "--repo", self._identity["full_name"],
+                         "--json",
+                         "number,url,state,isDraft,headRefOid,"
+                         "headRefName,baseRefName"])
+        if not out or out.get("number") is None:
+            return None
+        return {"number": str(out.get("number")),
+                "url": out.get("url"),
+                "state": out.get("state"),
+                "draft": bool(out.get("isDraft")),
+                "head": out.get("headRefOid"),
+                "head_branch": out.get("headRefName"),
+                "base": out.get("baseRefName")}
+
+    def check_runs(self, sha):
+        out = self._run([self.gh_bin, "api",
+                         f"repos/{self._identity['full_name']}"
+                         f"/commits/{sha}/check-runs"])
+        runs = out.get("check_runs") if isinstance(out, dict) else None
+        return [{"id": str(c.get("id")),
+                 "name": c.get("name"),
+                 "status": c.get("status"),
+                 "conclusion": c.get("conclusion"),
+                 "app": (c.get("app") or {}).get("slug"),
+                 "details_url": c.get("details_url") or
+                 c.get("html_url")}
+                for c in (runs or [])]
+
 
 class ScriptedRemote(RemotePort):
     """Deterministic fixture remote — the DisposableRemote analogue for
@@ -179,11 +228,16 @@ class ScriptedRemote(RemotePort):
     - ``faults`` injects the crash/ambiguity cases the criteria name:
       ``"crash-after-create"`` applies the effect then raises
       :class:`RemoteAmbiguity` (the response was lost — the classic
-      crash window); ``"raise"`` refuses cleanly; ``"silent"`` does
-      nothing yet reports success.
+      crash window); ``"crash-before-create"`` loses the request;
+      ``"raise"`` refuses cleanly — also on the read-only verbs
+      ``"pr-read"``/``"check-runs"``, where it is the verification
+      stage's GitHub-unavailable fixture.
     - ``identity_override`` simulates the uncertain-repository-identity
       case: read-back reports a *different* repo authority than the
       registration's, which must park rather than link.
+    - ``checks`` maps ``{sha: [check-run dicts]}`` — the check-runs
+      fixture for current-revision verification; ``pr_drafts`` holds
+      PR numbers that read back as drafts.
     """
 
     def __init__(self, repo_id, full_name, *, faults=None):
@@ -192,6 +246,9 @@ class ScriptedRemote(RemotePort):
         self.branches = {
             "main": "e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5"}
         self.pulls = {}                    # str(number) -> record
+        self.checks = {}                   # sha -> [check-run dicts]
+        self.pr_drafts = set()             # PR numbers reported draft
+        self.pr_states = {}                # PR number -> state override
         self.faults = dict(faults or {})
         self.calls = []                    # ordered (op, kwargs) log
         self._next_pr = 100
@@ -250,3 +307,22 @@ class ScriptedRemote(RemotePort):
                      in (None, authority)]
             rows = keyed
         return [dict(p) for p in rows]
+
+    def read_pr(self, number):
+        def apply(**kw):
+            pull = self.pulls.get(str(number))
+            if pull is None:
+                return None
+            return {"number": str(pull["number"]), "url": pull["url"],
+                    "state": self.pr_states.get(str(number),
+                                                pull["state"]),
+                    "draft": str(number) in self.pr_drafts,
+                    "head": self.branches.get(pull["head"]),
+                    "head_branch": pull["head"],
+                    "base": pull["base"]}
+        return self._call("pr-read", apply, number=number)
+
+    def check_runs(self, sha):
+        def apply(**kw):
+            return [dict(c) for c in self.checks.get(sha, [])]
+        return self._call("check-runs", apply, sha=sha)

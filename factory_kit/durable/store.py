@@ -68,6 +68,19 @@ Tables:
   requested/paused/resumed plus the stage the next dispatch must resume
   at, so a pause is durable across restarts and a resume never replays
   a completed stage.
+- ``review_records`` — the §6.4 independent-review record (Task 2.6 /
+  F04 A1): the separate reviewer session's own identity (attempt +
+  session + verdict + findings) bound to the exact revision it
+  inspected. Implementation self-reports can never mint one — the
+  record is accepted only against a real finished ``review``-role
+  attempt on a session no implementation attempt used.
+- ``verification_evidence`` — the §6.4 Evidence record / §7.1
+  ``evidence_checked`` (Task 2.6 / F04 A2–A6): one timestamped
+  observation row per evaluation — PR identity, head/base SHA,
+  check-run identities/conclusions, review identity, artifact/log
+  references and the passing/stale/unknown reason. ``verified`` is a
+  point-in-time observation bound to a SHA, never merge authority;
+  later observations append new rows rather than rewriting history.
 
 Durability rules honoured here:
 
@@ -291,6 +304,45 @@ CREATE TABLE IF NOT EXISTS work_control(
     paused_stage TEXT,
     detail TEXT,
     updated_at TEXT NOT NULL);
+
+CREATE TABLE IF NOT EXISTS review_records(
+    review_id TEXT PRIMARY KEY,
+    work_key TEXT NOT NULL,
+    attempt_id TEXT NOT NULL,
+    session_id TEXT NOT NULL,
+    role TEXT NOT NULL,
+    model TEXT,
+    verdict TEXT NOT NULL,
+    findings TEXT,
+    sha TEXT NOT NULL,
+    artifacts TEXT,
+    recorded_at TEXT NOT NULL);
+-- One review record per review attempt — a session's verdict is
+-- recorded exactly once; re-reviews are new attempts, not rewrites.
+CREATE UNIQUE INDEX IF NOT EXISTS one_review_per_attempt
+    ON review_records(attempt_id);
+CREATE INDEX IF NOT EXISTS review_by_work_sha
+    ON review_records(work_key, sha);
+
+CREATE TABLE IF NOT EXISTS verification_evidence(
+    evidence_id TEXT PRIMARY KEY,
+    work_key TEXT NOT NULL,
+    seq INTEGER,
+    pr_number TEXT,
+    pr_url TEXT,
+    head_sha TEXT,
+    base_name TEXT,
+    base_sha TEXT,
+    checks TEXT,
+    review_id TEXT,
+    review_session TEXT,
+    artifacts TEXT,
+    contract_digest TEXT,
+    status TEXT NOT NULL,
+    reason TEXT,
+    observed_at TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS evidence_by_work
+    ON verification_evidence(work_key, observed_at);
 """
 
 
@@ -1191,6 +1243,194 @@ class IntakeStore:
         if state is None:
             return rows
         return [r for r in rows if r["pause_state"] == state]
+
+    # -- independent review records (Task 2.6 / F04 A1) -------------------------
+    #
+    # A review record is candidate evidence from the *separate* reviewer
+    # session: it is accepted only when the claimed attempt is a real,
+    # finished ``review``-role attempt on this work, the claimed session
+    # matches the attempt's own, and that session was never used by an
+    # implementation attempt — the concrete check that makes a
+    # self-reported implementation review unable to satisfy the
+    # independent-review requirement.
+
+    def record_review(self, review_id, *, work_key, attempt_id,
+                      session_id, model=None, verdict, findings=None,
+                      sha, artifacts=None):
+        """Persist the reviewer session's own record — the validation,
+        the row and its event commit as ONE durable transaction.
+        Returns the acceptance verdict; denials are also durable — a
+        rejected record writes a ``review_rejected`` event with the
+        reason so a substituted self-report stays visible."""
+        with self.transact() as tx:
+            return tx._record_review_tx(
+                review_id, work_key=work_key, attempt_id=attempt_id,
+                session_id=session_id, model=model, verdict=verdict,
+                findings=findings, sha=sha, artifacts=artifacts)
+
+    def _record_review_tx(self, review_id, *, work_key, attempt_id,
+                          session_id, model=None, verdict,
+                          findings=None, sha, artifacts=None):
+        attempt = self._q(
+            "SELECT work_key, role, session_id, verdict, ended FROM"
+            " attempt_records WHERE attempt_id=?",
+            (attempt_id,)).fetchone()
+        reason = None
+        if self.get_work(work_key) is None:
+            reason = "unknown-work"
+        elif attempt is None or attempt[0] != work_key:
+            reason = "unknown-attempt"
+        elif attempt[1] != "review":
+            reason = "not-review-attempt"
+        elif attempt[4] is None:
+            reason = "attempt-unfinished"
+        elif attempt[2] != session_id:
+            reason = "session-mismatch"
+        else:
+            impl_sessions = {
+                r[0] for r in
+                self._q("SELECT session_id FROM attempt_records"
+                        " WHERE work_key=? AND role='implementation'",
+                        (work_key,)).fetchall()}
+            if session_id in impl_sessions:
+                reason = "not-independent"
+            elif self._q(
+                    "SELECT review_id FROM review_records"
+                    " WHERE attempt_id=?", (attempt_id,)).fetchone():
+                reason = "already-recorded"
+        if reason is not None:
+            self.record_event("review_rejected", work_key=work_key,
+                              reason=reason,
+                              detail=f"attempt={attempt_id}")
+            return {"outcome": "denied", "reason": reason,
+                    "review_id": None}
+        self._q(
+            "INSERT INTO review_records"
+            "(review_id,work_key,attempt_id,session_id,role,model,"
+            "verdict,findings,sha,artifacts,recorded_at)"
+            " VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+            (review_id, work_key, attempt_id, session_id, "review",
+             model, verdict,
+             _json.dumps(findings, sort_keys=True)
+             if findings is not None else None,
+             str(sha),
+             _json.dumps(artifacts, sort_keys=True)
+             if artifacts is not None else None,
+             _utcnow()))
+        self.record_event(
+            "review_recorded", work_key=work_key,
+            detail=_json.dumps({"review_id": review_id,
+                                "attempt_id": attempt_id,
+                                "session_id": session_id,
+                                "verdict": verdict, "sha": str(sha)},
+                               sort_keys=True))
+        return {"outcome": "recorded", "review_id": review_id}
+
+    def review_rows(self, work_key=None, sha=None):
+        rows = self._rows("review_records")
+        if work_key is not None:
+            rows = [r for r in rows if r["work_key"] == work_key]
+        if sha is not None:
+            rows = [r for r in rows if r["sha"] == str(sha)]
+        return rows
+
+    def latest_review(self, work_key, sha=None):
+        """The newest review record for the work (optionally bound to one
+        revision) — revision-bound evidence must always come from the
+        review session that inspected *that* SHA (A5). Ordered by
+        ``rowid`` — commit order, never wall-clock ties."""
+        if sha is None:
+            row = self._q(
+                "SELECT * FROM review_records WHERE work_key=?"
+                " ORDER BY rowid DESC LIMIT 1", (work_key,)).fetchone()
+        else:
+            row = self._q(
+                "SELECT * FROM review_records WHERE work_key=?"
+                " AND sha=? ORDER BY rowid DESC LIMIT 1",
+                (work_key, str(sha))).fetchone()
+        if row is None:
+            return None
+        cols = [c[1] for c in self._q("PRAGMA table_info(review_records)")]
+        return dict(zip(cols, row))
+
+    # -- verification evidence (Task 2.6 / F04 A2–A6, §6.4 Evidence) -----------
+    #
+    # One row per observation — never updated after the commit. ``verified``
+    # is a timestamped intermediate observation; a later head/base/contract
+    # change is recorded by *appending* a new observation, so the trail
+    # always shows which SHA was verified when and why the current answer
+    # is stale/failed/unknown.
+
+    def record_evidence(self, evidence_id, *, work_key, seq=None,
+                        pr_number=None, pr_url=None, head_sha=None,
+                        base_name=None, base_sha=None, checks=None,
+                        review_id=None, review_session=None,
+                        artifacts=None, contract_digest=None,
+                        status, reason=None):
+        """Append one ``evidence_checked`` observation (inside
+        ``transact``). The event row carries the §7.1 fields — PR
+        identity, SHA, check/review identities, observation time and
+        the passing/stale/unknown reason."""
+        now = _utcnow()
+        self._q(
+            "INSERT INTO verification_evidence"
+            "(evidence_id,work_key,seq,pr_number,pr_url,head_sha,"
+            "base_name,base_sha,checks,review_id,review_session,"
+            "artifacts,contract_digest,status,reason,observed_at)"
+            " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (evidence_id, work_key, seq,
+             str(pr_number) if pr_number is not None else None, pr_url,
+             head_sha, base_name, base_sha,
+             _json.dumps(checks, sort_keys=True)
+             if checks is not None else None,
+             review_id, review_session,
+             _json.dumps(artifacts, sort_keys=True)
+             if artifacts is not None else None,
+             contract_digest, status, reason, now))
+        self.record_event(
+            "evidence_checked", work_key=work_key, reason=reason,
+            detail=_json.dumps(
+                {"evidence_id": evidence_id,
+                 "pr": str(pr_number) if pr_number is not None else None,
+                 "head_sha": head_sha, "base_sha": base_sha,
+                 "checks": checks, "review_id": review_id,
+                 "review_session": review_session,
+                 "status": status, "observed_at": now},
+                sort_keys=True))
+        return {"outcome": "recorded", "evidence_id": evidence_id,
+                "observed_at": now}
+
+    def evidence_rows(self, work_key=None):
+        rows = self._rows("verification_evidence")
+        if work_key is None:
+            return rows
+        return [r for r in rows if r["work_key"] == work_key]
+
+    def latest_evidence(self, work_key):
+        """The current observation — the *only* row a status surface may
+        quote. Ordered by ``rowid`` (commit order): wall-clock ties can
+        never reorder two observations (A6)."""
+        row = self._q(
+            "SELECT * FROM verification_evidence WHERE work_key=?"
+            " ORDER BY rowid DESC LIMIT 1", (work_key,)).fetchone()
+        if row is None:
+            return None
+        cols = [c[1] for c in
+                self._q("PRAGMA table_info(verification_evidence)")]
+        return dict(zip(cols, row))
+
+    def latest_verified_evidence(self, work_key):
+        """The newest ``verified`` observation — the anchor drift
+        detection compares a fresh read against (A6)."""
+        row = self._q(
+            "SELECT * FROM verification_evidence WHERE work_key=?"
+            " AND status='verified' ORDER BY rowid DESC LIMIT 1",
+            (work_key,)).fetchone()
+        if row is None:
+            return None
+        cols = [c[1] for c in
+                self._q("PRAGMA table_info(verification_evidence)")]
+        return dict(zip(cols, row))
 
     # -- events (§7.1) ---------------------------------------------------------
 
