@@ -262,6 +262,27 @@ class TestTargetVerdicts(unittest.TestCase):
         res = {r["id"]: r for r in report["targets"]["results"]}
         self.assertEqual(res["repeat_use_2x4wk_90d"]["failed_runs_retained"], 1)
 
+    def test_week_gap_breaks_completed_streak(self):
+        """A3 — an unreported week between reports breaks a completed
+        streak exactly like an explicit missing outcome does."""
+        cls = ep._classify_weeks(
+            [
+                {"week": 1, "outcome": "completed"},
+                {"week": 2, "outcome": "completed"},
+                {"week": 4, "outcome": "completed"},
+            ]
+        )
+        self.assertEqual(cls["longest_completed_streak"], 2)
+        cls = ep._classify_weeks(
+            [
+                {"week": 1, "outcome": "completed"},
+                {"week": 2, "outcome": "completed"},
+                {"week": 3, "outcome": "completed"},
+                {"week": 4, "outcome": "completed"},
+            ]
+        )
+        self.assertEqual(cls["longest_completed_streak"], 4)
+
 
 class TestEffortSeparationAndExport(unittest.TestCase):
     """A5 — builder work separated from calendar waits; the export is

@@ -88,6 +88,7 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from factory_kit.diagnostics import report as _report
 from factory_kit.durable import store as _durable
 from factory_kit.events import schema as _schema
 from factory_kit.privacy import consent as _consent
@@ -450,19 +451,26 @@ def _classify_weeks(reports):
     """Fold one participant's weekly reports into the run counts and
     the longest completed-run streak. ``failed`` reports are retained
     attempts; ``missing`` weeks are absences — neither counts toward
-    the consecutive-completed requirement (A3)."""
+    the consecutive-completed requirement (A3). A *gap* in the week
+    index — a week no report exists for at all — breaks the streak the
+    same way an explicit ``missing`` outcome does."""
     counts = {o: 0 for o in RUN_OUTCOMES}
     streak = best = 0
+    prev_week = None
     for r in sorted(reports, key=lambda x: x.get("week") or 0):
         outcome = r.get("outcome")
         if outcome not in counts:
             outcome = "missing"
         counts[outcome] += 1
-        if outcome == "completed":
+        week = r.get("week")
+        gap = prev_week is not None and week is not None and week > prev_week + 1
+        if outcome == "completed" and not gap:
             streak += 1
             best = max(best, streak)
         else:
-            streak = 0
+            streak = 1 if outcome == "completed" else 0
+            best = max(best, streak)
+        prev_week = week
     return {
         "counts": counts,
         "longest_completed_streak": best,
@@ -832,8 +840,6 @@ def run(*, fixture_dir=FIXTURES):
         # because the scope agreement stands; denied/revoked authority
         # keys are excluded inside it (A2/A5). A gate failure here is an
         # instrumentation defect — it raises, never degrades silently.
-        from factory_kit.diagnostics import report as _report
-
         export = _report.pilot_export(store, scope=EXPORT_SCOPE)
 
         report = {
