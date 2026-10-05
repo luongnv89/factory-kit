@@ -96,7 +96,13 @@ precondition itself (issue #33) is executable:
 confirmed continue, proven candidate-lane hooks and a grounded ≤3-day
 bound — and records **precondition `unmet`, authorization
 `blocked`**: no adapter code is built or authorized until the owner
-acts; see `docs/adapters/adapter-precondition.md`.
+acts; see `docs/adapters/adapter-precondition.md`. The F14 future-scope
+record and policy/design checklists (issue #34 / Task 5.3) document the
+§8.4 GATE-E01–E04 gates fail-closed — autonomous merge, additional
+preview providers, external-contributor input classes, production
+promotion and parallel projects each stay deferred pending a separate
+future PRD, explicit owner adoption and independent evidence; see
+`docs/future/f14-gates.md` and `docs/decisions/future-scope.md`.
 
 ## Documents
 
@@ -120,6 +126,8 @@ acts; see `docs/adapters/adapter-precondition.md`.
 - [F13 harness admission assessment](docs/adapters/admission-assessment.md) — GATE-E04 audit over pilot evidence + the single documented candidate; `admission-deferred`
 - [F13 admission record](docs/decisions/f13-admission.md) — deferred pending owner act; task 5.2 stays gated
 - [Task-5.2 admission precondition](docs/adapters/adapter-precondition.md) — fail-closed gate on the recorded adoption; `unmet`, implementation `blocked`
+- [F14 future policy and design gates](docs/future/f14-gates.md) — GATE-E01–E04 admission/design checklists; every capability `deferred`, fail-closed
+- [F14 deferred-scope record](docs/decisions/future-scope.md) — standing prerequisites, capability register, re-entry conditions; pending owner confirmation
 - [Decision records](docs/decisions/)
 - [Canonical manifest example](.factory-kit.yml)
 - [Reference diagram](assets/warp-ai-factory-reference.jpg)
