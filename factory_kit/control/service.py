@@ -49,6 +49,7 @@ import uuid
 from factory_kit.config import schema
 from factory_kit.durable.store import _utcnow, work_key_for
 from factory_kit.control import commands
+from factory_kit.control import steering
 from factory_kit.diagnostics import views as _views
 from factory_kit.execution.lane import _iso_to_epoch
 
@@ -61,7 +62,8 @@ _COMMAND_FOOTER = (
     "Commands: 'status <repo> <issue>' | 'pause <repo> <issue> <gen>' | "
     "'resume <repo> <issue> <gen>' | 'cancel <repo> <issue> <gen>' | "
     "'retry <repo> <issue>' | 'approve <repo> <issue> <gen>' | "
-    "'reject <repo> <issue> <gen>'")
+    "'reject <repo> <issue> <gen>' | 'steer <repo> <issue> <gen> "
+    "criteria=<revised>'")
 
 _STATE_WORDS = {
     "pending": "QUEUED", "active": "ACTIVE", "completed": "COMPLETED",
@@ -78,13 +80,15 @@ class ControlService:
     """Authorized durable control over the execution lane."""
 
     def __init__(self, store, lane, registrations, configs, *,
-                 preview=None, approval=None, alert_sink=None, now=None):
+                 preview=None, approval=None, verification=None,
+                 alert_sink=None, now=None):
         self.store = store
         self.lane = lane
         self.registrations = registrations
         self.configs = dict(configs)
         self.preview = preview
         self.approval = approval
+        self.verification = verification
         self._alerts = alert_sink if alert_sink is not None else []
         self._now = now or time.time
 
@@ -442,6 +446,171 @@ class ControlService:
                 "generation": result.get("generation"),
                 "text": text}
 
+    def _do_steer(self, cmd, work, effective, received_at):
+        """The F09 checkpointed scope change (Task 4.1).
+
+        ONE durable commit writes the pending ``scope_revisions`` row
+        (target generation + revised criteria + authorization + audit
+        identity, A1) *and* the checkpoint fence over any live attempt
+        — the fence is durable before termination runs and before any
+        replacement authority issues (A2). A work already at a
+        checkpoint (no in-flight stage) applies inside the same
+        commit. Termination then runs against live handles; confirmed
+        exit commits the apply, an uncertain exit parks the change
+        with its reason — authority never overlaps (A5)."""
+        work_key = work["work_key"]
+        if work["state"] in steering.TERMINAL_WORK_STATES:
+            return self._reject_cmd(cmd, "work-terminal", received_at)
+        fence = self.store.fence_state(work_key)
+        if fence is not None and fence["fenced"]:
+            # A4 — a canceled/fenced generation can never be revived
+            # by steering; fresh authority is a new generation (retry).
+            return self._reject_cmd(cmd, "generation-canceled",
+                                    received_at)
+        if cmd.get("mode") == "live" and \
+                not steering.live_supported(effective):
+            # F09 AC2 — explain the supported path; never claim live
+            # injection, never dispatch an unsupported harness.
+            return self._reject_cmd(cmd, "live-steering-unsupported",
+                                    received_at)
+        if self.store.pending_steer(work_key) is not None:
+            return self._reject_cmd(cmd, "steer-pending", received_at)
+        fingerprint = steering.criteria_fingerprint(cmd["criteria"])
+        if fingerprint == (work.get("context_fingerprint") or ""):
+            return self._reject_cmd(cmd, "criteria-unchanged",
+                                    received_at)
+        stage = steering.checkpoint_stage(self.store, work_key)
+        needs_terminate = False
+        with self.store.transact() as tx:
+            rec = steering.record_steer_tx(
+                tx, self.store, cmd=cmd, work=work,
+                fingerprint=fingerprint, received_at=received_at)
+            steer = rec["steer"]
+            outcome = rec["outcome"]
+            if outcome == "recorded":
+                # Re-evaluate inside the commit: a claim landing
+                # between any earlier read and this write is fenced
+                # here — the durable fence always precedes both
+                # termination and replacement authority (A2).
+                if tx.has_active_attempt(work_key):
+                    tx.fence_attempts_tx(
+                        work_key, f"steer:{steer['steer_id']}")
+                    needs_terminate = True
+                else:
+                    steering.apply_tx(
+                        tx, self.store, steer, work, stage=stage,
+                        effective=effective, now=self._now())
+            # ``duplicate`` writes nothing — handle()'s find_control
+            # dedup already owns the replay answer, and a second
+            # control row for the same command_id can never exist.
+            if outcome != "duplicate":
+                detail = (f"steer {steer['steer_id']} {outcome}"
+                          if outcome != "steer-pending" else
+                          f"steer-pending:{steer['steer_id']}")
+                self._record(
+                    tx, cmd, received_at,
+                    "accepted" if outcome != "steer-pending"
+                    else "rejected",
+                    reason=outcome if outcome != "recorded" else None,
+                    detail=detail)
+        if outcome == "duplicate":
+            return {"ok": True, "outcome": "duplicate",
+                    "steer_id": steer["steer_id"],
+                    "steer_state": steer["state"],
+                    "command_id": cmd["command_id"],
+                    "work_key": work_key,
+                    "text": self._ack_text(
+                        cmd, work,
+                        f"DUPLICATE STEER - command already recorded "
+                        f"(steer {steer['steer_id']}, "
+                        f"{steer['state']}).")}
+        if outcome == "steer-pending":
+            return {"ok": False, "outcome": "rejected",
+                    "reason": "steer-pending",
+                    "command_id": cmd["command_id"],
+                    "work_key": work_key,
+                    "text": self._reject_text(
+                        "steer-pending", None, work_key)}
+        if not needs_terminate:
+            fresh = self.store.get_steer(steer["steer_id"])
+            if fresh["state"] == "applied":
+                # Post-commit preview retirement follows the apply
+                # (A3), like cancel's cleanup window — a *parked*
+                # revision changed no scope, so its preview stays.
+                self._steer_post_apply(work_key)
+            return self._steer_result(cmd, work, fresh,
+                                      termination=None)
+        # A live attempt was fenced in the commit; termination is the
+        # separate persisted outcome — confirmed exit commits the
+        # apply, uncertain exit parks with the reason (A5).
+        term = self.lane.steer_terminate(
+            work_key, reason=f"steer:{steer['steer_id']}",
+            deadline_s=30.0)
+        with self.store.transact() as tx:
+            fresh = tx.get_steer(steer["steer_id"])
+            if fresh is None or fresh["state"] != "pending":
+                applied = {"outcome": fresh["state"]
+                           if fresh else "missing"}
+            elif term["termination"] == "confirmed":
+                applied = steering.apply_tx(
+                    tx, self.store, fresh,
+                    tx.get_work(work_key) or work, stage=stage,
+                    effective=effective, now=self._now())
+            else:
+                applied = steering.park_tx(
+                    tx, self.store, fresh, work_key,
+                    reason="steer-termination-uncertain")
+        if applied["outcome"] == "applied":
+            self._steer_post_apply(work_key)
+        return self._steer_result(
+            cmd, work, self.store.get_steer(steer["steer_id"]),
+            termination=term["termination"])
+
+    def _steer_post_apply(self, work_key):
+        """Post-commit A3 invalidation needing the preview service —
+        the active preview record dies with the superseded revision
+        (stale evidence + approvals already moved inside apply_tx;
+        the service's retirement also cascades bound approvals and
+        schedules owned-resource cleanup)."""
+        if self.preview is None:
+            return None
+        try:
+            return self.preview.invalidate(work_key, "scope-steered")
+        except Exception as exc:    # evidence path — never lies
+            return {"outcome": "error", "reason": type(exc).__name__}
+
+    def _steer_result(self, cmd, work, steer, *, termination):
+        applied = steer["state"] == "applied"
+        revision = steer["revision"]
+        support = steering.live_supported(
+            self.configs.get(cmd["repo_id"]) or {})
+        if applied:
+            headline = (
+                f"STEER APPLIED - revision {revision} committed on "
+                f"{steer['steer_id']}: the old attempt was fenced at "
+                f"the {steer.get('applied_stage') or 'stage'} "
+                "checkpoint and the replacement receives the revised "
+                "criteria with the recorded remaining budgets.")
+        else:
+            headline = (
+                f"STEER PARKED - revision {revision} recorded but not "
+                f"applied ({steer.get('reason')}); no replacement "
+                "authority was issued.")
+        if termination == "confirmed":
+            headline += " Fenced attempt exit confirmed."
+        elif termination is not None:
+            headline += (" Fenced attempt exit unconfirmed inside the "
+                         "deadline - replacement stays denied.")
+        headline += (" " + steering.checkpoint_behavior_text(support))
+        return {"ok": applied, "outcome": "accepted",
+                "steer_id": steer["steer_id"],
+                "steer_state": steer["state"],
+                "revision": revision,
+                "termination": termination,
+                "command_id": cmd["command_id"],
+                "work_key": work["work_key"],
+                "text": self._ack_text(cmd, work, headline)}
+
     def _do_approve(self, cmd, work, effective, received_at):
         return self._do_decision(cmd, work, effective, received_at,
                                  "approve")
@@ -646,4 +815,24 @@ class ControlService:
             return (f"DUPLICATE - command already processed "
                     f"(recorded outcome: {outcome}).\n"
                     f"{_COMMAND_FOOTER}")
+        # F09 — the steering rejections answer with the supported
+        # behavior, never a bare error code (A4).
+        if reason == "live-steering-unsupported":
+            return (f"REJECTED - {reason}.\n"
+                    + steering.checkpoint_behavior_text(False)
+                    + f"\n{_COMMAND_FOOTER}")
+        if reason == "steer-pending":
+            return (f"REJECTED - {reason}: one scope change is already "
+                    "recorded for this generation and has not applied "
+                    "yet - wait for the checkpoint to commit.\n"
+                    f"{_COMMAND_FOOTER}")
+        if reason == "generation-canceled":
+            return (f"REJECTED - {reason}: steering cannot revive a "
+                    "canceled generation; fresh authority is "
+                    "'retry <repo> <issue>'.\n"
+                    f"{_COMMAND_FOOTER}")
+        if reason == "criteria-unchanged":
+            return (f"REJECTED - {reason}: the revised criteria match "
+                    "the current context revision - no scope change "
+                    f"was recorded.\n{_COMMAND_FOOTER}")
         return (f"REJECTED - {reason}.{ask}\n{_COMMAND_FOOTER}")

@@ -42,11 +42,17 @@ __all__ = [
 
 #: The recognized control verbs (A1).
 ACTIONS = ("status", "pause", "resume", "cancel", "retry",
-           "approve", "reject")
+           "approve", "reject", "steer")
 
 #: Commands that change execution state — they require the full
 #: explicit target: repository + task + generation (A1).
-MUTATING_ACTIONS = ("pause", "resume", "cancel", "approve", "reject")
+MUTATING_ACTIONS = ("pause", "resume", "cancel", "approve", "reject",
+                    "steer")
+
+#: Bounds on the revised acceptance criteria a ``steer`` command
+#: carries — the criteria text persists in ``scope_revisions``, so it
+#: is bounded like every other durable payload (Task 4.1 / F09 A1).
+CRITERIA_MAX_CHARS = 4000
 
 #: A3 — the documented text equivalent of every interactive affordance.
 #: Each entry names the button/action, the exact text command that does
@@ -94,6 +100,14 @@ COMMAND_REFERENCE = (
      "mutates": True,
      "effect": "record the human rejection; work blocks for a human "
                "decision"},
+    {"action": "steer",
+     "command": "steer <repo> <issue> <generation> "
+                "criteria=<revised criteria>",
+     "scope": "repository + issue + live generation",
+     "mutates": True,
+     "effect": "persist the authorized scope change; the old attempt is "
+               "fenced at its stage checkpoint and the replacement runs "
+               "the revised criteria within the remaining budgets"},
 )
 
 
@@ -128,6 +142,7 @@ _REQUIRED_TARGET = {
     "retry": ("repo_id", "issue"),
     "approve": ("repo_id", "issue", "generation"),
     "reject": ("repo_id", "issue", "generation"),
+    "steer": ("repo_id", "issue", "generation", "criteria"),
 }
 
 _REF_RE = re.compile(r"^telegram:(-?\d+)$")
@@ -143,6 +158,7 @@ _NL_ACTION = (
     (re.compile(r"\b(retry|rerun|re-?run)\b", re.I), "retry"),
     (re.compile(r"\b(approve|accept|lgtm|ship)\b", re.I), "approve"),
     (re.compile(r"\b(reject|decline)\b", re.I), "reject"),
+    (re.compile(r"\b(steer|re-?scope|redirect)\b", re.I), "steer"),
 )
 _NL_REPO = re.compile(
     r"\b(?:repo(?:sitory)?|gh)[:# ]+([A-Za-z0-9_-]+)\b", re.I)
@@ -194,7 +210,7 @@ def validate(message):
 
     ``malformed`` · ``no-command-id`` · ``unsupported-action`` ·
     ``no-actor`` · ``no-chat`` · ``target-required`` ·
-    ``bad-generation``
+    ``bad-generation`` · ``criteria-too-large``
     """
     if not isinstance(message, dict):
         return {"ok": False, "reason": "malformed"}
@@ -231,15 +247,34 @@ def validate(message):
     if generation is not None and generation < 1:
         return {"ok": False, "reason": "bad-generation"}
 
+    criteria = message.get("criteria")
+    criteria = str(criteria).strip() if criteria is not None else None
+    if criteria is not None and not criteria:
+        criteria = None
+    if criteria is not None and len(criteria) > CRITERIA_MAX_CHARS:
+        return {"ok": False, "reason": "criteria-too-large"}
+
     missing = [name for name in _REQUIRED_TARGET[action]
                if {"repo_id": repo_id, "issue": issue,
-                   "generation": generation}[name] in (None, "")]
+                   "generation": generation,
+                   "criteria": criteria}[name] in (None, "")]
     if missing:
         return {"ok": False, "reason": "target-required",
                 "missing": missing}
 
     request_id = message.get("request_id")
     request_id = str(request_id).strip() if request_id else None
+
+    # F09 — the steering mode is a *request*: ``checkpoint`` (default)
+    # applies at the next supported role/stage boundary; ``live`` asks
+    # for runtime injection, which the service denies unless the
+    # configured runtime capability allows it (no unsupported harness
+    # is ever dispatched). Other actions carry no mode.
+    mode = None
+    if action == "steer":
+        mode = str(message.get("mode") or "checkpoint").strip().lower()
+        if mode not in ("checkpoint", "live"):
+            return {"ok": False, "reason": "unsupported-mode"}
 
     return {"ok": True, "value": {
         "command_id": command_id,
@@ -249,6 +284,8 @@ def validate(message):
         "repo_id": repo_id,
         "issue": issue,
         "generation": generation,
+        "criteria": criteria,
+        "mode": mode,
         "request_id": request_id,
         "received_text": message.get("text"),
     }}
@@ -284,4 +321,10 @@ def propose(text):
     gen = _NL_GEN.search(body)
     if gen:
         proposal["generation"] = int(gen.group(1))
+    if action == "steer":
+        # The proposal's criteria is the operator's own sentence — the
+        # revised instruction they typed. It still passes the typed
+        # required-target check, so an unusable sentence is rejected
+        # rather than guessed at.
+        proposal["criteria"] = body[:CRITERIA_MAX_CHARS]
     return proposal

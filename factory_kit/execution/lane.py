@@ -95,6 +95,11 @@ class ExecutionLane:
         self._now = now or time.time
         self._handles = {}            # attempt_id -> live SessionHandle
         self._first_dispatch = {}     # work_key -> epoch of first attempt
+        # Optional post-apply hook for steering's service-level
+        # invalidation (F09 A3 — preview retirement). The control
+        # service installs ``ControlService._steer_post_apply``;
+        # store-level approvals/evidence always move inside apply_tx.
+        self.steer_post_apply = None
 
     # ------------------------------------------------------------------
     # Eligibility + queue visibility
@@ -121,6 +126,14 @@ class ExecutionLane:
             if work["state"] == "active" and \
                     self.store.count_attempts(work["work_key"]) == 0:
                 pass                    # crashed pre-claim — safe to retry
+            elif work["state"] == "active" and \
+                    self.store.pending_steer(work["work_key"]) is not \
+                    None and \
+                    not self.store.has_active_attempt(
+                        work["work_key"]):
+                # F09 crash window: the steer fence committed but the
+                # apply never did — the checkpoint apply is owed.
+                pass
             elif work["state"] != "pending":
                 continue
             reg = self._reg(work["repo_id"])
@@ -258,6 +271,23 @@ class ExecutionLane:
             "acceptance_ref": acceptance_ref,
             "tools_allow": tuple(gate["selected"]["tools"]),
         }
+        # F09 A2 — bind the revision the replacement runs under into
+        # its durable limits snapshot: the recorded remaining budgets
+        # the steer granted ride the attempt row, so "the replacement
+        # received the revised criteria and the remaining budgets" is
+        # per-attempt auditable, not an inference.
+        applied_steer = self.store.latest_steer(
+            work_key, state="applied")
+        if applied_steer is not None and \
+                applied_steer["criteria_fingerprint"] == \
+                work["context_fingerprint"]:
+            budgets = json.loads(applied_steer["budgets"]) \
+                if applied_steer["budgets"] else {}
+            dispatch_base["limits"] = {
+                **dispatch_base["limits"],
+                "steer": {"steer_id": applied_steer["steer_id"],
+                          "revision": applied_steer["revision"],
+                          "remaining": budgets.get("remaining")}}
         try:
             outcome = self._run_sessions(work, dispatch_base, limits)
         except Exception as exc:
@@ -366,6 +396,25 @@ class ExecutionLane:
                                     detail=f"stage={stage}")
                 return {"outcome": "paused", "reason": "pause-boundary",
                         "final": "paused", "stage": stage}
+            # F09 checkpoint gate (Task 4.1): a recorded-but-unapplied
+            # scope change commits here — the stage boundary IS the
+            # supported checkpoint. The apply fences any live attempt
+            # first and re-queues the work under the revised criteria
+            # with the recorded remaining budgets; a checkpoint that
+            # cannot be safely fenced parks with its reason — never
+            # overlapping authority (A2/A5). Reached only when the
+            # pause boundary is clear, so the apply always re-enters
+            # at ``stage``.
+            steer = self.store.pending_steer(work_key)
+            if steer is not None:
+                applied = self._apply_pending_steer(work, steer, stage)
+                if applied["outcome"] == "parked":
+                    return {"outcome": "parked",
+                            "reason": applied["reason"],
+                            "final": "parked"}
+                if applied["outcome"] == "applied":
+                    work, base = self._steered_dispatch(
+                        work_key, base, applied)
             status = self._budget(work_key, limits)
             # Emit every crossing warning — even when the same
             # checkpoint is already exhausted, the 80% crossing still
@@ -391,17 +440,65 @@ class ExecutionLane:
 
             result = self._run_attempt(work_key, base, stage, limits)
             if result["outcome"] == "blocked":
+                if str(result["reason"]).startswith("claim-work-") \
+                        and (self.store.pending_steer(work_key) or
+                             self.store.latest_steer(work_key)) \
+                        is not None:
+                    # The scope apply re-queued the work between this
+                    # pass's gate read and the durable claim — the
+                    # revision owns the next dispatch; a generic
+                    # 'blocked' finish would strand the applied
+                    # change (F09 A2/A5).
+                    steer = self.store.pending_steer(work_key) or \
+                        self.store.latest_steer(work_key)
+                    return {"outcome": "steered",
+                            "reason": f"steer:{steer['steer_id']}",
+                            "final": "queued"}
                 return self._finish(work_key, "blocked",
                                     result["reason"], final="blocked")
             if result["outcome"] == "fenced":
+                fence = self.store.fence_state(work_key)
+                if fence is None or not fence["fenced"]:
+                    # Attempt-level fence — a steering checkpoint owns
+                    # it (F09 A2/A4): the control path already
+                    # committed the revision apply (or a still-pending
+                    # row applies now — never quarantining a scope
+                    # change like a cancellation). The work re-queues
+                    # under the revised criteria; the replacement
+                    # re-runs the fenced stage.
+                    steer = self.store.pending_steer(work_key) or \
+                        self.store.latest_steer(work_key)
+                    if steer is not None and steer["state"] == "parked":
+                        # The checkpoint parked the change (A5) — the
+                        # park is already the terminal state; never
+                        # overwrite it with a generic quarantine.
+                        return {"outcome": "parked",
+                                "reason": steer["reason"],
+                                "final": "parked"}
+                    if steer is not None and steer["state"] in (
+                            "pending", "applied"):
+                        if steer["state"] == "pending":
+                            applied = self._apply_pending_steer(
+                                work, steer, stage)
+                            if applied["outcome"] == "parked":
+                                return {"outcome": "parked",
+                                        "reason": applied["reason"],
+                                        "final": "parked"}
+                        return {"outcome": "steered",
+                                "reason": f"steer:{steer['steer_id']}",
+                                "final": "queued"}
+                    # No fence, no steer, still fenced — an orphan
+                    # ledger kill: quarantine honestly.
+                    return self._finish(work_key, "quarantined",
+                                        "attempt-fenced",
+                                        final="parked")
                 # Heartbeat sweep or cancel fenced mid-attempt — the
                 # fence resolver already owns the terminal state. A
                 # cancel-fence with confirmed termination lands the
                 # work on ``canceled`` (terminal for the generation,
                 # Task 2.7 A4); uncertainty quarantines.
-                fence = self.store.fence_state(work_key)
-                term = (fence or {}).get("termination")
-                reason = (fence or {}).get("fence_reason") or "fenced"
+                term = fence.get("termination")
+                reason = fence.get("fence_reason") or "fenced"
                 if str(reason).startswith("cancel"):
                     state = ("canceled" if term == "confirmed"
                              else "quarantined")
@@ -696,6 +793,125 @@ class ExecutionLane:
                 else "confirmed",
                 "attempts": outcomes}
 
+    def steer_terminate(self, work_key, *, reason="steer",
+                        deadline_s=30.0):
+        """Terminate every live handle of ``work_key``'s unfinished
+        attempts — called *after* the steering checkpoint fence
+        committed (the pending revision row and the attempt fences
+        land in one transaction, so the fence is durable before this
+        runs: F09 A2).
+
+        The termination outcome is a separate persisted row from the
+        fence: ``confirmed`` only when every unfinished attempt either
+        already has a durable end or its live handle reports dead
+        inside the deadline — anything else is ``uncertain`` and the
+        pending steer parks (A5). Unlike ``terminate_work`` this
+        touches no generation fence and no work state — the
+        generation survives; only the attempt's authority ends.
+        """
+        deadline = self._now() + float(deadline_s)
+        records = {r["attempt_id"]: r for r in
+                   self.store.attempt_record_rows(work_key)}
+        outcomes = []
+        for attempt_id in sorted(records):
+            if records[attempt_id].get("ended"):
+                continue            # finished pre-fence — not live
+            handle = self._handles.pop(attempt_id, None)
+            if handle is None or self._now() > deadline:
+                # Live when fenced but no handle to terminate through
+                # (crashed dispatch) or out of deadline — the
+                # runtime-side process may still run: uncertain,
+                # never silently confirmed (A5).
+                outcomes.append({"attempt_id": attempt_id,
+                                 "termination": "uncertain"})
+                continue
+            try:
+                outcome = self.worker.terminate(handle)
+            except WorkerError:
+                outcome = "uncertain"
+            outcomes.append({"attempt_id": attempt_id,
+                             "termination": outcome})
+        uncertain = [o for o in outcomes
+                     if o["termination"] != "confirmed"]
+        if uncertain:
+            self.store.emit_alert(
+                "steer-terminate-uncertain", work_key, "high",
+                detail=f"{len(uncertain)} attempt(s) did not confirm "
+                       f"exit inside {deadline_s:.0f}s")
+        self.store.record_event(
+            "steer_terminated", work_key=work_key, reason=reason,
+            detail=json.dumps(outcomes, sort_keys=True))
+        return {"outcome": "terminated",
+                "termination": "quarantined" if uncertain
+                else "confirmed",
+                "attempts": outcomes}
+
+    def _apply_pending_steer(self, work, steer, stage):
+        """Commit a recorded-but-unapplied scope change at this stage
+        boundary (F09 A2/A5).
+
+        Mirrors the control path's fence → terminate → apply ordering
+        for the two windows the service cannot cover inline — the
+        crash gap between the record+fence commit and the apply, and
+        a pending row still live when the lane reaches its checkpoint.
+        Every unfinished attempt must confirm exit before the
+        replacement's authority issues; uncertainty parks with the
+        durable reason — authority never overlaps."""
+        from ..control import steering   # lane-local: avoids the
+        # control→execution import cycle (control/__init__ imports the
+        # service, which imports this lane)
+        work_key = work["work_key"]
+        term = self.steer_terminate(
+            work_key, reason=f"steer:{steer['steer_id']}")
+        effective = self.configs.get(work["repo_id"]) or {}
+        with self.store.transact() as tx:
+            fresh = tx.get_steer(steer["steer_id"])
+            if fresh is None:
+                return {"outcome": "missing",
+                        "steer_id": steer["steer_id"],
+                        "revision": steer["revision"]}
+            if fresh["state"] != "pending":
+                # The control path applied (or parked) it between the
+                # gate read and this commit — converge on the durable
+                # row; one accepted change total (A1).
+                budgets = json.loads(fresh["budgets"]) \
+                    if fresh["budgets"] else {}
+                return {"outcome": fresh["state"],
+                        "steer_id": fresh["steer_id"],
+                        "revision": fresh["revision"],
+                        "remaining": budgets.get("remaining")}
+            if term["termination"] != "confirmed":
+                return steering.park_tx(
+                    tx, self.store, fresh, work_key,
+                    reason="steer-termination-uncertain")
+            applied = steering.apply_tx(
+                tx, self.store, fresh,
+                tx.get_work(work_key) or work, stage=stage,
+                effective=effective, now=self._now())
+        if applied["outcome"] == "applied" and \
+                self.steer_post_apply is not None:
+            self.steer_post_apply(work_key)
+        return applied
+
+    def _steered_dispatch(self, work_key, base, applied):
+        """Refresh the dispatch base after a steer apply commits
+        mid-pass: the apply re-queued the work ``pending``, so the
+        lane re-activates it in place — the replacement runs in this
+        same pass, bound to the revised criteria fingerprint and the
+        revision's recorded remaining budgets (A2)."""
+        self.store.activate_work(work_key)
+        work = self.store.get_work(work_key)
+        base = dict(base)
+        base["acceptance_ref"] = (
+            f"{work['authority_key']}#{work['issue']}"
+            f"/criteria@{(work['context_fingerprint'] or '')[:12]}")
+        base["limits"] = {
+            **base["limits"],
+            "steer": {"steer_id": applied["steer_id"],
+                      "revision": applied["revision"],
+                      "remaining": applied.get("remaining")}}
+        return work, base
+
     def _recover_lane(self, timeout_s):
         """Free an occupant that can never resume: terminal work state,
         or a crashed dispatch (occupied past the heartbeat window with
@@ -718,7 +934,16 @@ class ExecutionLane:
         if self._now() - occupied_since < timeout_s:
             return None                 # inside the grace window
         if work["state"] == "active":
-            if self.store.count_attempts(work_key) == 0:
+            if self.store.pending_steer(work_key) is not None:
+                # F09 crash window — the steer checkpoint owns the
+                # terminal decision: revert to pending so the gate
+                # applies it (or parks with the steer reason). A
+                # generic lane-recovery park would strand the
+                # recorded revision ``pending`` forever.
+                self.store.set_work_state(work_key, "pending")
+                self._mark_queued(work_key, "queued",
+                                  reason="lane-recovered-steer")
+            elif self.store.count_attempts(work_key) == 0:
                 self.store.set_work_state(work_key, "pending")
                 self._mark_queued(work_key, "queued",
                                   reason="lane-recovered")
