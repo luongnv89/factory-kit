@@ -705,28 +705,84 @@ class RecoveryService:
                                  detail=f"linked PR {pr_number} is "
                                         f"{state}"),
                     "work_key": work_key}
-        if expected is not None and pr.get("head") is not None \
-                and str(pr["head"]) != str(expected):
+        if expected.get("sha") is not None and \
+                pr.get("head") is not None \
+                and str(pr["head"]) != str(expected["sha"]):
             # A human (or unrecorded) revision moved the published
             # head — verified evidence goes stale, the work parks, and
             # no force-push ever restores the recorded SHA (A6).
             self._stale_evidence(work_key, "remote-head-moved")
             return {**self._park(
                 work_key,
-                f"remote-head-moved:{expected}->{pr['head']}",
+                f"remote-head-moved:{expected['sha']}->{pr['head']}",
                 source=source, severity="high",
                 alert_kind="remote-drift",
                 detail=f"linked PR {pr_number} head moved"),
                 "work_key": work_key}
+        if expected.get("head_branch") is not None \
+                and pr.get("head_branch") is not None \
+                and str(pr["head_branch"]) != str(expected["head_branch"]):
+            # The PR's head no longer sits on the recorded publish
+            # branch — a same-SHA repoint or rename is still human
+            # movement the SHA check alone cannot see (A6).
+            self._stale_evidence(work_key, "remote-head-moved")
+            return {**self._park(
+                work_key,
+                f"remote-head-moved:{expected['head_branch']}"
+                f"->{pr['head_branch']}",
+                source=source, severity="high",
+                alert_kind="remote-drift",
+                detail=f"linked PR {pr_number} head branch moved"),
+                "work_key": work_key}
+        if pr.get("base") is not None and (
+                expected.get("base_name") is not None
+                or expected.get("base_sha") is not None):
+            # A human retargeted the PR's base — or moved the base
+            # revision itself. The durable expectation is the verified
+            # observation's recorded base; a never-verified work has no
+            # durable base expectation, so its check stays head-bound —
+            # honest, never guessed (A6).
+            base_moved = None
+            if expected.get("base_name") is not None and \
+                    str(pr["base"]) != str(expected["base_name"]):
+                base_moved = f"{expected['base_name']}->{pr['base']}"
+            elif expected.get("base_sha") is not None:
+                # Same-named base: a force-push shows only in the SHA.
+                # One extra read, bounded to work that *has* a durable
+                # base expectation to compare against.
+                try:
+                    seen = self.remote.read_branch(pr["base"])
+                except RemoteError as exc:
+                    report["errors"].append(
+                        {"stage": "base-read", "work_key": work_key,
+                         "error": type(exc).__name__})
+                    return {"work_key": work_key,
+                            "outcome": "unknown",
+                            "reason": f"remote-unavailable:"
+                                      f"{type(exc).__name__}"}
+                if seen is not None \
+                        and str(seen) != str(expected["base_sha"]):
+                    base_moved = (f"{expected['base_name']}@"
+                                  f"{expected['base_sha']}->{seen}")
+            if base_moved is not None:
+                self._stale_evidence(work_key, "remote-base-moved")
+                return {**self._park(
+                    work_key, f"remote-base-moved:{base_moved}",
+                    source=source, severity="high",
+                    alert_kind="remote-drift",
+                    detail=f"linked PR {pr_number} base moved"),
+                    "work_key": work_key}
         return {"work_key": work_key, "outcome": "observed",
                 "pr": pr_number, "state": state.lower()}
 
     def _linked_remote(self, work):
-        """The work's linked PR number + the expected head revision the
-        serialized intent recorded — the identity drift is measured
-        against (never against a freshly invented value)."""
+        """The work's linked PR number + the durable expectations the
+        drift checks measure against: head SHA *and* head branch from
+        the serialized intent, base name/SHA from the verified
+        observation — never a freshly invented value (A6)."""
         work_key = work["work_key"]
-        expected = None
+        expected = {"sha": None, "head_branch": None,
+                    "base_name": None, "base_sha": None}
         pr_number = work.get("linked_pr")
         linked = [i for i in self.store.intent_rows(work_key)
                   if i["operation"] == "pr-publish"
@@ -736,7 +792,13 @@ class RecoveryService:
         if linked:
             matched = [i for i in linked
                        if str(i["remote_ref"]) == str(pr_number)]
-            expected = (matched or linked)[-1].get("expected_revision")
+            intent = (matched or linked)[-1]
+            expected["sha"] = intent.get("expected_revision")
+            expected["head_branch"] = intent.get("target")
+        verified = self.store.latest_verified_evidence(work_key)
+        if verified is not None:
+            expected["base_name"] = verified.get("base_name")
+            expected["base_sha"] = verified.get("base_sha")
         return (str(pr_number) if pr_number is not None else None,
                 expected)
 

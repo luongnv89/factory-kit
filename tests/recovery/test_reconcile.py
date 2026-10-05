@@ -399,6 +399,61 @@ class TestA6Drift(ReconcileFixture):
         self.assertEqual(latest["reason"], "remote-head-moved")
         self.assertEqual(len(self.remote.pulls), 1)
 
+    def test_same_sha_head_branch_move_parks(self):
+        work_key = self._accept(42)
+        self.issue_rows[42] = issue(42)
+        pr = self._linked(work_key)
+        # The PR's head was repointed to a *different* branch carrying
+        # the same SHA — the SHA check alone cannot see it; the durable
+        # expectation is the serialized intent's recorded target (A6).
+        self.remote.branches["human-takeover"] = SHA
+        self.remote.pulls[pr]["head"] = "human-takeover"
+        report = self.recovery.tick()
+        work = self.store.get_work(work_key)
+        self.assertEqual(work["state"], "parked")
+        self.assertTrue(work["parked_reason"].startswith(
+            "remote-head-moved"))
+        self.assertTrue(self.store.alert_rows("remote-drift"))
+        # Nothing was pushed back — drift is parked, never repaired.
+        self.assertEqual(
+            [c["op"] for c in self.remote.calls].count("pr-publish"),
+            0)
+
+    def test_human_base_movement_parks_and_stales_evidence(self):
+        work_key = self._accept(42)
+        self.issue_rows[42] = issue(42)
+        pr = self._linked(work_key)
+        self._verified_evidence(work_key, pr)
+        # A human retargeted the PR's base — the durable expectation is
+        # the verified observation's recorded base (A6).
+        self.remote.pulls[pr]["base"] = "develop"
+        self.remote.branches["develop"] = "dd" * 20
+        report = self.recovery.tick()
+        work = self.store.get_work(work_key)
+        self.assertEqual(work["state"], "parked")
+        self.assertTrue(work["parked_reason"].startswith(
+            "remote-base-moved"))
+        self.assertTrue(self.store.alert_rows("remote-drift"))
+        latest = self.store.latest_evidence(work_key)
+        self.assertEqual(latest["status"], "stale")
+        self.assertEqual(latest["reason"], "remote-base-moved")
+
+    def test_base_sha_move_same_name_parks(self):
+        work_key = self._accept(42)
+        self.issue_rows[42] = issue(42)
+        pr = self._linked(work_key)
+        self._verified_evidence(work_key, pr)
+        # A human force-push moved the base revision — same name, new
+        # SHA; the verified observation's recorded base SHA is the
+        # durable expectation (A6).
+        self.remote.branches["main"] = "dd" * 20
+        report = self.recovery.tick()
+        work = self.store.get_work(work_key)
+        self.assertEqual(work["state"], "parked")
+        self.assertTrue(work["parked_reason"].startswith(
+            "remote-base-moved"))
+        self.assertTrue(self.store.alert_rows("remote-drift"))
+
     def test_unexpected_terminal_pr_state_parks(self):
         work_key = self._accept(42)
         self.issue_rows[42] = issue(42)
