@@ -24,8 +24,12 @@ remove --plan <file> --history retain|export|delete --accepted-by
 <operator>` applies it — intake stops first, the active-generation
 fence commits before termination, user edits and shared infrastructure
 survive, provider outages leave a visible cleanup-pending backlog, and
-the registration ends as an identity tombstone. The factory runtime is
-not implemented yet.
+the registration ends as an identity tombstone. The packaged support
+recipe (issue #23 / Task 3.9) lives in `docs/recipes/` — tested
+installation/removal commands, operations and recovery vocabulary, the
+backup/restore rehearsal and the tested-only support matrix — exercised
+end-to-end by `tests/recipes/` and `tests/recovery/test_backup_restore.py`.
+The full issue→preview→approved-merge endpoint run is Task 3.10 scope.
 
 ## Documents
 
@@ -36,6 +40,7 @@ not implemented yet.
 - [Spike evidence and boundary map](docs/spike/)
 - [Fault-matrix evidence](docs/evidence/fault-matrix.md)
 - [§5.1 measured local targets](docs/measurements/v1-targets.md)
+- [Tested support recipe](docs/recipes/) — installation, operations, backup/restore, support matrix
 - [Decision records](docs/decisions/)
 - [Canonical manifest example](.factory-kit.yml)
 - [Reference diagram](assets/warp-ai-factory-reference.jpg)
