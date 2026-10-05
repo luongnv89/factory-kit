@@ -64,7 +64,17 @@ factory_kit.setup` legs, gated per participant by the consent gate,
 recorded on a minimized `pilot_observation_recorded` trail, with
 weekly repeat-use reports classified honestly and live-observation
 prerequisites named — per `docs/measurements/external-study.md` and
-`docs/pilot/observations.md`.
+`docs/pilot/observations.md`. The usefulness evaluation (issue #30 /
+Task 4.6) aggregates every proposed internal/external target through
+`tools/probes/pilot_evaluation.py` — a read-only cross-check over the
+recorded archives that re-derives each cell, names missing data and
+takeover exclusions, and audits that no positive claim survives
+incomplete or failed evidence — per
+`docs/measurements/pilot-evaluation.md`. The recorded disposition is
+**narrow/consolidate** on measured reasons (7/10 merge-ready, 1/2
+repeat use, amortized overhead erasing the intervention saving, one
+author takeover), pending owner confirmation — `continue` stays the
+owner's act; see `docs/decisions/continue-narrow-stop.md`.
 
 ## Documents
 
@@ -79,6 +89,8 @@ prerequisites named — per `docs/measurements/external-study.md` and
 - [§5.1 measured local targets](docs/measurements/v1-targets.md)
 - [§1.4 dogfood cohort comparison](docs/measurements/dogfood-comparison.md) — scripted two-project cohort rehearsal, named live-run blockers
 - [External-pilot study](docs/measurements/external-study.md) — scripted three-environment install + repeat-use rehearsal under the consent gate, named live-observation blockers
+- [Usefulness evaluation](docs/measurements/pilot-evaluation.md) — cross-checked evidence table over the recorded archives; narrow/consolidate disposition
+- [Continue/narrow/stop record](docs/decisions/continue-narrow-stop.md) — measured recommendation pending owner confirmation
 - [Tested support recipe](docs/recipes/) — installation, operations, backup/restore, upgrade/repair/rollback, support matrix
 - [Pilot consent and workload-trust admission](docs/pilot/consent-admission.md) — obligations record, consent gate, boundary probes, named blockers
 - [External-pilot observations](docs/pilot/observations.md) — per-participant minimized evidence log
