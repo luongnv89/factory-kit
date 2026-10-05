@@ -1,0 +1,700 @@
+{
+ "run_id": "release-gate-1791224246",
+ "version": "1.0.0",
+ "kind": "release-gate",
+ "mode": "release-check",
+ "generated_at": "2026-10-05T18:17:26Z",
+ "environment": {
+  "python": "3.14.7",
+  "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+  "machine": "arm64",
+  "manifest": "/Users/montimage/buildspace/luongnv89/factory-kit/.factory-kit.yml",
+  "manifest_effective_digest": "471800e23c5595c818afde9d59d627dc6800fba44ca6444430d072303433a372",
+  "package_dir": "/Users/montimage/buildspace/luongnv89/factory-kit/docs/releases/v1.1",
+  "reproduce": "python3 tools/probes/release_gate.py --write docs/releases/v1.1/release-gate-$(date +%F).json"
+ },
+ "sources": {
+  "v1_acceptance": {
+   "path": "docs/decisions/v1.0-acceptance.md",
+   "sha256": "8e4e17a45f07",
+   "status": "ok",
+   "role": "v1.0 owner acceptance record (task 3.10 A6/A7)"
+  },
+  "v1_audit": {
+   "path": "docs/evidence/v1.0-gate.md",
+   "sha256": "ddabfef873fb",
+   "status": "ok",
+   "role": "v1.0 requirement-to-evidence gate audit (GATE-M01\u2013M08)"
+  },
+  "consent": {
+   "path": "docs/pilot/consent-admission.md",
+   "sha256": "9467c6a4a681",
+   "status": "ok",
+   "role": "pilot consent + trust-admission record (task 4.4)"
+  },
+  "observations": {
+   "path": "docs/pilot/observations.md",
+   "sha256": "0bb092a869d8",
+   "status": "ok",
+   "role": "per-participant minimized observation log (task 4.5)"
+  },
+  "external": {
+   "path": "docs/measurements/external-study-2026-10-05.json",
+   "sha256": "1ab49d7ff08e",
+   "status": "ok",
+   "role": "recorded external-pilot study archive (task 4.5)",
+   "kind": "external-pilot",
+   "verdict": "external-pilot-run-complete"
+  },
+  "evaluation": {
+   "path": "docs/measurements/pilot-evaluation-2026-10-05.json",
+   "sha256": "32d0eaac1927",
+   "status": "ok",
+   "role": "aggregated usefulness evaluation (task 4.6)",
+   "kind": "pilot-evaluation",
+   "verdict": "evaluation-complete"
+  },
+  "decision": {
+   "path": "docs/decisions/continue-narrow-stop.md",
+   "sha256": "476bbf88ed22",
+   "status": "ok",
+   "role": "continue/narrow/stop decision record (task 4.6)"
+  },
+  "q8": {
+   "path": "docs/decisions/q8-distribution.md",
+   "sha256": "752990eea279",
+   "status": "ok",
+   "role": "Q8 license/distribution/support/notice record (task 3.9)"
+  },
+  "fault_matrix": {
+   "path": "docs/evidence/fault-matrix-2026-10-05.json",
+   "sha256": "d6880b3e2d26",
+   "status": "ok",
+   "role": "\u00a78.2 fault-matrix recorded run (tasks 3.6/3.7)",
+   "kind": "factory-kit/fault-matrix@1",
+   "verdict": "fault-matrix-passed"
+  },
+  "support_matrix": {
+   "path": "docs/recipes/support-matrix.md",
+   "sha256": "e7892e771671",
+   "status": "ok",
+   "role": "pinned supported versions/skills/dependencies (task 3.9)"
+  }
+ },
+ "gates": {
+  "f09_f10_evidence": {
+   "state": "passed",
+   "summary": "reproducible F09/F10 acceptance evidence",
+   "evidence": [
+    "factory_kit/control/steering.py",
+    "tests/control/test_steering.py",
+    "factory_kit/setup/upgrade.py",
+    "factory_kit/setup/repair.py",
+    "tests/test_setup_upgrade.py",
+    "tests/recipes/test_upgrade_recipe.py",
+    "docs/evidence/fault-matrix-2026-10-05.json"
+   ],
+   "fault_matrix_verdict": "fault-matrix-passed",
+   "sources": {
+    "fault_matrix": "ok"
+   },
+   "blockers": []
+  },
+  "support_recipes": {
+   "state": "passed",
+   "summary": "pinned supported versions + install/upgrade/removal recipes",
+   "evidence": [
+    "docs/recipes/installation.md",
+    "docs/recipes/upgrade-repair.md",
+    "docs/recipes/operations.md",
+    "docs/recipes/backup-restore.md",
+    "docs/recipes/support-matrix.md",
+    "docs/releases/v1.1/evidence.md",
+    "docs/releases/v1.1/onboarding.md",
+    "docs/releases/v1.1/release-checklist.md"
+   ],
+   "sources": {
+    "support_matrix": "ok"
+   },
+   "blockers": []
+  },
+  "package_docs": {
+   "state": "passed",
+   "summary": "reviewable v1.1 package docs present",
+   "evidence": [
+    "docs/releases/v1.1/evidence.md",
+    "docs/releases/v1.1/onboarding.md",
+    "docs/releases/v1.1/release-checklist.md"
+   ],
+   "sources": {},
+   "blockers": []
+  },
+  "v1_0_gate": {
+   "state": "blocked",
+   "summary": "passed v1.0 gate (owner acceptance + open ledger)",
+   "evidence": [
+    "docs/decisions/v1.0-acceptance.md",
+    "docs/evidence/v1.0-gate.md"
+   ],
+   "closed_gates": [
+    "GATE-M02"
+   ],
+   "owner_accepted": false,
+   "sources": {
+    "v1_acceptance": "ok",
+    "v1_audit": "ok"
+   },
+   "blockers": [
+    "GATE-M02 closed on the v1.0 audit ledger",
+    "owner v1.0 acceptance decision pending",
+    "no accepted internal-v1.0 verdict recorded"
+   ]
+  },
+  "consent_trust_admission": {
+   "state": "passed",
+   "summary": "consent/trust admission recorded and clean",
+   "evidence": [
+    "docs/pilot/consent-admission.md",
+    "docs/measurements/external-study-2026-10-05.json"
+   ],
+   "sources": {
+    "consent": "ok",
+    "external": "ok"
+   },
+   "blockers": []
+  },
+  "pilot_observations": {
+   "state": "passed",
+   "summary": "pilot observations recorded (fixture study \u2014 live prerequisites disclosed separately)",
+   "evidence": [
+    "docs/pilot/observations.md",
+    "docs/measurements/external-study-2026-10-05.json"
+   ],
+   "study_verdict": "external-pilot-run-complete",
+   "sources": {
+    "observations": "ok",
+    "external": "ok"
+   },
+   "blockers": []
+  },
+  "owner_decision": {
+   "state": "pending",
+   "summary": "explicit continue/narrow/stop decision (confirmed owner verdict)",
+   "evidence": [
+    "docs/decisions/continue-narrow-stop.md",
+    "docs/measurements/pilot-evaluation-2026-10-05.json"
+   ],
+   "recorded_disposition": "narrow-consolidate",
+   "owner_confirmed": false,
+   "sources": {
+    "decision": "ok",
+    "evaluation": "ok"
+   },
+   "blockers": [
+    "owner confirmation pending \u2014 recorded disposition 'narrow-consolidate' is a recommendation, not a verdict"
+   ]
+  },
+  "q8_resolved": {
+   "state": "blocked",
+   "summary": "Q8 license/distribution/support/notice resolved",
+   "evidence": [
+    "docs/decisions/q8-distribution.md"
+   ],
+   "unresolved_rows": [
+    "License for public release",
+    "Channel (PyPI / hermes plugin / source-only)",
+    "Support commitment",
+    "Dependency notice process"
+   ],
+   "sources": {
+    "q8": "ok"
+   },
+   "blockers": [
+    "Q8 row unresolved: License for public release",
+    "Q8 row unresolved: Channel (PyPI / hermes plugin / source-only)",
+    "Q8 row unresolved: Support commitment",
+    "Q8 row unresolved: Dependency notice process"
+   ]
+  }
+ },
+ "checklist": [
+  "f09_f10_evidence",
+  "support_recipes",
+  "package_docs",
+  "v1_0_gate",
+  "consent_trust_admission",
+  "pilot_observations",
+  "owner_decision",
+  "q8_resolved"
+ ],
+ "disclosure": {
+  "q9_status": "proposed \u2014 pending owner acceptance (docs/decisions/q9-acceptance.md)",
+  "targets": [
+   {
+    "scope": "internal-local",
+    "live_status": "measured-local \u2014 scripted ports, single host",
+    "verdict": "pass",
+    "proposed": "durable intake accept/reject p95 \u2264 2 s at 1 ev/s \u00d7 5 min",
+    "basis": "selected-host measured run",
+    "measured": {
+     "p95_s": 0.011729340191232042,
+     "bound_s": 2.0,
+     "margin_s": 1.988270659808768,
+     "n": 300
+    },
+    "denominator": "n=300 deliveries",
+    "id": "local.intake_p95",
+    "source": "docs/measurements/v1-targets-2026-10-05.json",
+    "window": "5 min sustained at 1 ev/s (paced 302.0 s wall)",
+    "missing": []
+   },
+   {
+    "scope": "internal-local",
+    "live_status": "measured-local \u2014 scripted ports, single host",
+    "verdict": "pass",
+    "proposed": "100 duplicate deliveries \u2264 10 s incl. restart \u2192 1 task, \u2264 1 PR",
+    "basis": "selected-host measured run",
+    "measured": {
+     "burst_wall_s": 0.05233337503159419,
+     "work_rows": 1,
+     "remote_prs": 0,
+     "outcomes": {
+      "reconciled": 50,
+      "deduplicated": 50
+     },
+     "window_s": 10.0
+    },
+    "denominator": "100 duplicate deliveries",
+    "id": "local.duplicate_burst",
+    "source": "docs/measurements/v1-targets-2026-10-05.json",
+    "window": "10.0 s burst incl. store rebuild",
+    "missing": []
+   },
+   {
+    "scope": "internal-local",
+    "live_status": "measured-local \u2014 scripted ports, single host",
+    "verdict": "pass",
+    "proposed": "local status p95 \u2264 1 s over persisted rows",
+    "basis": "selected-host measured run",
+    "measured": {
+     "p95_s": 0.00023706638021394607,
+     "bound_s": 1.0,
+     "margin_s": 0.9997629336197861,
+     "n": 100
+    },
+    "denominator": "n=100 persisted-row queries",
+    "id": "local.status_p95",
+    "source": "docs/measurements/v1-targets-2026-10-05.json",
+    "window": null,
+    "missing": []
+   },
+   {
+    "scope": "internal-local",
+    "live_status": "measured-local \u2014 scripted ports, single host",
+    "verdict": "pass",
+    "proposed": "authorized pause/cancel + fence persist \u2264 5 s, Telegram-independent",
+    "basis": "selected-host measured run",
+    "measured": {
+     "handler_p95_s": 0.003976610762765629,
+     "record_commit_p95_s": 0.0015499999999999971,
+     "bound_s": 5.0
+    },
+    "denominator": "n=30 control actions (pause/resume/cancel)",
+    "id": "local.control_persist",
+    "source": "docs/measurements/v1-targets-2026-10-05.json",
+    "window": null,
+    "missing": []
+   },
+   {
+    "scope": "internal-local",
+    "live_status": "measured-local \u2014 scripted ports, single host",
+    "verdict": "pass",
+    "proposed": "worker/descendant exit or quarantine + local notify \u2264 30 s",
+    "basis": "selected-host measured run",
+    "measured": {
+     "confirmed_wall_s": 0.002870415977668017,
+     "quarantined_wall_s": 0.0033604169730097055,
+     "bound_s": 30.0,
+     "termination_confirmed": "confirmed",
+     "termination_quarantined": "quarantined"
+    },
+    "denominator": null,
+    "id": "local.cancel_window",
+    "source": "docs/measurements/v1-targets-2026-10-05.json",
+    "window": "30 s bound on confirm-or-quarantine + notify",
+    "missing": []
+   },
+   {
+    "scope": "internal-local",
+    "live_status": "measured-local \u2014 scripted ports, single host",
+    "verdict": "pass",
+    "proposed": "reconcile interval \u2264 60 s; dropped work found \u2264 120 s after GitHub returns",
+    "basis": "selected-host measured run",
+    "measured": {
+     "interval_s": 60.0,
+     "self_backoff_s": 1.0,
+     "discovery_latency_s": 1.0024853749782778,
+     "restored_pass_wall_s": 0.0024853749782778323,
+     "accepted": [
+      "gh:R_kgDOQncOdA#2100:g1"
+     ]
+    },
+    "denominator": null,
+    "id": "local.reconcile_discovery",
+    "source": "docs/measurements/v1-targets-2026-10-05.json",
+    "window": "interval \u2264 60 s / discovery \u2264 120 s bounds",
+    "missing": []
+   },
+   {
+    "scope": "internal-local",
+    "live_status": "measured-local \u2014 scripted ports, single host",
+    "verdict": "pass",
+    "proposed": "recover/park all known active tasks \u2264 60 s of readiness",
+    "basis": "selected-host measured run",
+    "measured": {
+     "wall_s": 0.006050041993148625,
+     "duration_s": 0.0,
+     "deadline_s": 60.0,
+     "settled": 4,
+     "expected": 4
+    },
+    "denominator": "4/4 known tasks settled",
+    "id": "local.restart_recovery",
+    "source": "docs/measurements/v1-targets-2026-10-05.json",
+    "window": null,
+    "missing": []
+   },
+   {
+    "scope": "internal-local",
+    "live_status": "measured-local \u2014 scripted ports, single host",
+    "verdict": "pass",
+    "proposed": "0 lost acknowledged tasks in defined crash tests",
+    "basis": "selected-host measured run",
+    "measured": {
+     "lost_acknowledged_tasks": 0,
+     "repetitions": 57
+    },
+    "denominator": "57 fault-matrix repetitions",
+    "id": "local.crash_zero_loss",
+    "source": "docs/measurements/v1-targets-2026-10-05.json",
+    "window": null,
+    "missing": []
+   },
+   {
+    "scope": "internal-local",
+    "live_status": "measured-local \u2014 scripted ports, single host",
+    "verdict": "pass",
+    "proposed": "0 model calls in 30 idle minutes without work/exceptions",
+    "basis": "selected-host measured run",
+    "measured": {
+     "model_calls": 0,
+     "window_s": 1800.0
+    },
+    "denominator": null,
+    "id": "local.idle_zero_calls",
+    "source": "docs/measurements/v1-targets-2026-10-05.json",
+    "window": "30 idle minutes",
+    "missing": []
+   },
+   {
+    "scope": "internal-local",
+    "live_status": "measured-local \u2014 scripted ports, single host",
+    "verdict": "pass",
+    "proposed": "A6 structural bounds \u2014 observable, no SLA claim, CI excluded, 24 h park, 5 min cap, stale remote explicit",
+    "basis": "selected-host measured run",
+    "measured": {
+     "failed": [],
+     "checks": 10
+    },
+    "denominator": "10 mechanism checks",
+    "id": "local.observability",
+    "source": "docs/measurements/v1-targets-2026-10-05.json",
+    "window": null,
+    "missing": []
+   },
+   {
+    "scope": "internal-cohort",
+    "live_status": "pending-live-cohort",
+    "verdict": "fail",
+    "proposed": "at least 8 of 10 issues preview-verified and merge-ready",
+    "basis": "scripted-cohort-fixture",
+    "measured": 7,
+    "denominator": "10 cohort issues",
+    "id": "cohort.preview_merge_ready",
+    "source": "docs/measurements/dogfood-comparison-2026-10-05.json",
+    "window": "30-day post-MVP window",
+    "missing": []
+   },
+   {
+    "scope": "internal-cohort",
+    "live_status": "pending-live-cohort",
+    "verdict": "pass",
+    "proposed": "at least 3 human-approved and merged within 30 days of MVP release across two sequential registrations",
+    "basis": "scripted-cohort-fixture",
+    "measured": 4,
+    "denominator": "10-issue cohort / 10-issue baseline",
+    "id": "cohort.human_approved_merged_30d",
+    "source": "docs/measurements/dogfood-comparison-2026-10-05.json",
+    "window": "30 days",
+    "missing": []
+   },
+   {
+    "scope": "internal-cohort",
+    "live_status": "pending-live-cohort",
+    "verdict": "inconclusive",
+    "proposed": "at least 25% lower median intervention minutes per issue than the ten-issue comparable baseline within the 30-day window",
+    "basis": "scripted-cohort-fixture",
+    "measured": 30.43,
+    "denominator": "10-issue cohort / 10-issue baseline",
+    "id": "cohort.intervention_reduction",
+    "source": "docs/measurements/dogfood-comparison-2026-10-05.json",
+    "window": "30-day post-MVP window",
+    "missing": [
+     {
+      "key": "c9",
+      "what": "operator effort record",
+      "effect": "median over n=9 known \u2014 reduction verdict stays inconclusive, never zero-filled"
+     }
+    ]
+   },
+   {
+    "scope": "external-pilot",
+    "live_status": "pending-live-study",
+    "verdict": "pass",
+    "proposed": "at least 3 external maintainers complete installation and a first run within 60 days of pilot opening",
+    "basis": "scripted-pilot-fixture",
+    "measured": 3,
+    "denominator": "4 admitted participants",
+    "excluded": [
+     {
+      "key": "denied-wl",
+      "why": "admission-denied:unsupported-workload:runtime-mirror"
+     },
+     {
+      "key": "nonconsent",
+      "why": "consent-missing"
+     }
+    ],
+    "id": "pilot.onboarding_completed_60d",
+    "source": "docs/measurements/external-study-2026-10-05.json",
+    "window": "60 days",
+    "missing": [
+     {
+      "key": "obs-delta",
+      "what": "install blocked \u2014 unsupported-version",
+      "effect": "retained in denominator, excluded from numerator"
+     }
+    ]
+   },
+   {
+    "scope": "external-pilot",
+    "live_status": "pending-live-study",
+    "verdict": "pass",
+    "proposed": "at least 2 external maintainers complete setup in 45 minutes without author takeover",
+    "basis": "scripted-pilot-fixture",
+    "measured": 2,
+    "denominator": "4 admitted participants",
+    "excluded": [
+     {
+      "key": "obs-gamma",
+      "why": "author takeover \u2014 counts toward onboarding, never toward independence"
+     }
+    ],
+    "id": "pilot.independent_setup_2_in_45min",
+    "source": "docs/measurements/external-study-2026-10-05.json",
+    "window": null,
+    "missing": [
+     {
+      "key": "obs-delta",
+      "what": "setup never completed",
+      "effect": "retained in denominator, excluded from numerator"
+     }
+    ]
+   },
+   {
+    "scope": "external-pilot",
+    "live_status": "pending-live-study",
+    "verdict": "fail",
+    "proposed": "at least 2 external maintainers complete one run per week for 4 consecutive weeks within 90 days of pilot opening",
+    "basis": "scripted-pilot-fixture",
+    "measured": 1,
+    "denominator": "4 admitted participants",
+    "excluded": [],
+    "id": "pilot.repeat_use_2x4wk_90d",
+    "source": "docs/measurements/external-study-2026-10-05.json",
+    "window": "90 days",
+    "missing": [
+     {
+      "key": "obs-gamma",
+      "what": "2 weekly report(s) missing \u2014 dropout recorded",
+      "effect": "labeled absence \u2014 streaks never inferred"
+     },
+     {
+      "key": "obs-delta",
+      "what": "4 weekly report(s) missing",
+      "effect": "labeled absence \u2014 streaks never inferred"
+     }
+    ]
+   }
+  ],
+  "observation_limits": [
+   {
+    "id": "q9-adoption",
+    "kind": "owner-decision",
+    "state": "proposed \u2014 pending owner acceptance (docs/decisions/q9-acceptance.md)",
+    "required": "owner accept/adjust/reject verdict in docs/decisions/q9-acceptance.md"
+   },
+   {
+    "id": "cohort.second-project-registration",
+    "kind": "next-observation",
+    "state": "no live second project registration with a live Hermes runtime exists \u2014 both cohort legs ran on scripted ports",
+    "required": "live cohort observation \u2014 see docs/measurements/dogfood-comparison.md"
+   },
+   {
+    "id": "cohort.thirty-day-window",
+    "kind": "next-observation",
+    "state": "the 30-day post-MVP-release observation window has not elapsed \u2014 merged/declined counts are fixture-recorded, not live-observed",
+    "required": "live cohort observation \u2014 see docs/measurements/dogfood-comparison.md"
+   },
+   {
+    "id": "cohort.human-decisions",
+    "kind": "next-observation",
+    "state": "approval/decline decisions were scripted fixture inputs through the real decision path, not maintainer judgments on real diffs",
+    "required": "live cohort observation \u2014 see docs/measurements/dogfood-comparison.md"
+   },
+   {
+    "id": "cohort.baseline-collection",
+    "kind": "next-observation",
+    "state": "baseline minutes come from the recorded fixture table \u2014 a live baseline needs ten comparable direct-IDD issues logged in the same window",
+    "required": "live cohort observation \u2014 see docs/measurements/dogfood-comparison.md"
+   },
+   {
+    "id": "pilot.external-participants",
+    "kind": "next-observation",
+    "state": "no real external maintainers were recruited \u2014 the cohort is scripted fixtures on simulated environments, so independence is fixture-recorded, not observed",
+    "required": "live pilot observation \u2014 see docs/measurements/external-study.md"
+   },
+   {
+    "id": "pilot.pilot-windows",
+    "kind": "next-observation",
+    "state": "the 60-day onboarding and 90-day repeat-use windows have not elapsed \u2014 days are fixture-declared, not calendar-observed",
+    "required": "live pilot observation \u2014 see docs/measurements/external-study.md"
+   },
+   {
+    "id": "pilot.independent-timing",
+    "kind": "next-observation",
+    "state": "elapsed setup minutes are fixture-recorded observations, not independently measured wall-clock on a participant host",
+    "required": "live pilot observation \u2014 see docs/measurements/external-study.md"
+   },
+   {
+    "id": "pilot.simulated-environments",
+    "kind": "next-observation",
+    "state": "installations ran on disposable repositories with recorded readiness readings \u2014 distinct simulated hosts, never participant production environments with live Hermes",
+    "required": "live pilot observation \u2014 see docs/measurements/external-study.md"
+   },
+   {
+    "id": "pilot.live-repeat-use",
+    "kind": "next-observation",
+    "state": "weekly run reports are scripted fixture inputs \u2014 four consecutive live reporting weeks remain unobserved",
+    "required": "live pilot observation \u2014 see docs/measurements/external-study.md"
+   },
+   {
+    "id": "missing.c9",
+    "kind": "missing-data",
+    "state": "operator effort record",
+    "required": "median over n=9 known \u2014 reduction verdict stays inconclusive, never zero-filled"
+   },
+   {
+    "id": "missing.obs-delta",
+    "kind": "missing-data",
+    "state": "install blocked \u2014 unsupported-version",
+    "required": "retained in denominator, excluded from numerator"
+   },
+   {
+    "id": "missing.obs-gamma",
+    "kind": "missing-data",
+    "state": "2 weekly report(s) missing \u2014 dropout recorded",
+    "required": "labeled absence \u2014 streaks never inferred"
+   }
+  ],
+  "limits_note": "fixture/study verdicts are never live-target attainment; live prerequisites stay named"
+ },
+ "disposition": "release-withheld",
+ "deliverable_scope": "recipe-scoped",
+ "withheld_reasons": [
+  {
+   "gate": "v1_0_gate",
+   "state": "blocked",
+   "detail": "GATE-M02 closed on the v1.0 audit ledger; owner v1.0 acceptance decision pending; no accepted internal-v1.0 verdict recorded"
+  },
+  {
+   "gate": "owner_decision",
+   "state": "pending",
+   "detail": "owner confirmation pending \u2014 recorded disposition 'narrow-consolidate' is a recommendation, not a verdict"
+  },
+  {
+   "gate": "q8_resolved",
+   "state": "blocked",
+   "detail": "Q8 row unresolved: License for public release; Q8 row unresolved: Channel (PyPI / hermes plugin / source-only); Q8 row unresolved: Support commitment; Q8 row unresolved: Dependency notice process"
+  }
+ ],
+ "publish_requires": [
+  "owner records a verdict in docs/decisions/continue-narrow-stop.md",
+  "owner records internal-v1.0 acceptance in docs/decisions/v1.0-acceptance.md with every audit-ledger gate open",
+  "all four Q8 rows resolved in docs/decisions/q8-distribution.md",
+  "live-observation prerequisites stay named \u2014 fixture verdicts are never promoted to live-target claims"
+ ],
+ "audits": {
+  "gate_denominator": {
+   "declared": 8,
+   "evaluated": 8,
+   "unevaluated": [],
+   "bad_states": {}
+  },
+  "source_coverage": {
+   "gaps": {},
+   "sources": 10
+  },
+  "withheld_reason_coverage": {
+   "non_passed": [
+    "owner_decision",
+    "q8_resolved",
+    "v1_0_gate"
+   ],
+   "named": [
+    "owner_decision",
+    "q8_resolved",
+    "v1_0_gate"
+   ],
+   "uncovered": [],
+   "phantom": []
+  },
+  "no_publish_on_unpassed": {
+   "recomputed": "release-withheld",
+   "recorded": "release-withheld",
+   "consistent": true
+  },
+  "aggregate_only": {
+   "bad_keys": [],
+   "nonconforming_rows": []
+  },
+  "observation_limits_carried": {
+   "targets": 16,
+   "limits": 13,
+   "ok": true
+  },
+  "secret_scan": {
+   "outcome": "clean"
+  }
+ },
+ "breaches": [],
+ "instrumentation": "clean",
+ "verdict": "release-check-complete",
+ "never_authorized": [
+  "new concurrency, runtime, provider or adapter support",
+  "marking missing/pending evidence as achieved",
+  "publication or distribution claims while Q8 stays unresolved",
+  "expansion beyond the recipe-scoped deliverable (\u00a78.4)"
+ ],
+ "study_outcome": "conditional v1.1 release checklist audited \u2014 withheld states are data, never a publication act; fixture verdicts are never live-target claims"
+}
