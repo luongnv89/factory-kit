@@ -15,12 +15,22 @@ PRD §3.2 F01, §4.1 install flow, §6.1 integration ownership, §7.1
   host/Hermes/runtime/skill versions, cancellation, competing-owner and
   merge-precondition probes) and the ``setup_checked`` event path
 - :mod:`factory_kit.setup.ownership` — the kit-owned per-project ledger:
-  ownership checksums, remote-effect intents and the event trail
+  ownership checksums, remote-effect intents, the migration
+  boundary/checkpoint records and the event trail
+- :mod:`factory_kit.setup.upgrade` — reviewed versioned upgrade
+  (F10, issue #26): compatibility-checked upgrade plan, fenced
+  migration across durable stage boundaries, provenance pinning and
+  documented rollback
+- :mod:`factory_kit.setup.repair` — interrupted-migration recovery
+  (F10, issue #26): restores the validated checkpoint byte-for-byte or
+  parks with a specific conflict; dispatch never runs on a partially
+  migrated configuration
 - :mod:`factory_kit.setup.remove` — reviewed ownership-aware removal
   (F08, issue #19): uninstall plan, fenced authority settlement,
   explicit history choice, registration tombstone
 """
 
-from . import apply, ownership, plan, readiness, remove
+from . import apply, ownership, plan, readiness, remove, repair, upgrade
 
-__all__ = ["apply", "ownership", "plan", "readiness", "remove"]
+__all__ = ["apply", "ownership", "plan", "readiness", "remove",
+           "repair", "upgrade"]

@@ -20,6 +20,15 @@ file per managed project records:
 - **events** — the append-only ``setup_checked`` / ``setup_applied`` trail
   (§7.1 EVT01): project identity, version set, duration and
   per-prerequisite outcomes for every readiness run.
+- **migrations** — the F10 upgrade/repair boundary ledger (issue #26):
+  one durable row per accepted upgrade's committed stage
+  (``planned`` → ``fenced`` → ``checkpointed`` → ``files-migrated`` →
+  ``registration-migrated`` → ``validated`` → ``provenance-pinned`` →
+  ``complete``; terminal ``rolled-back``; halted ``parked``/``failed``
+  stay *open* so repair can retry them), carrying the pre-migration
+  checkpoint — owned-file bytes and the registration digests/effective
+  map — so an interrupted migration restores a validated state instead
+  of dispatching from a torn one (A3/A5).
 """
 
 from __future__ import annotations
@@ -79,6 +88,7 @@ class SetupStore:
                 "ownership": {},
                 "remote_effects": {},
                 "applied_plans": [],
+                "migrations": {},
                 "events": [],
             }
         except (json.JSONDecodeError, OSError) as exc:
@@ -88,6 +98,7 @@ class SetupStore:
                 not isinstance(data.get("ownership"), dict) or \
                 not isinstance(data.get("remote_effects", {}), dict) or \
                 not isinstance(data.get("applied_plans", []), list) or \
+                not isinstance(data.get("migrations", {}), dict) or \
                 not isinstance(data.get("events"), list):
             raise OwnershipError(
                 f"setup state {self.path} is not a valid ledger")
@@ -95,6 +106,7 @@ class SetupStore:
         data.setdefault("project_id", None)
         data.setdefault("remote_effects", {})
         data.setdefault("applied_plans", [])
+        data.setdefault("migrations", {})
         return data
 
     def _save(self):
@@ -222,6 +234,83 @@ class SetupStore:
             record["removal"]["detail"] = detail
         self._save()
         return True
+
+    # -- migrations (F10 — issue #26) --------------------------------------------
+
+    def record_migration(self, migration_id, record):
+        """Register one migration boundary record.
+
+        Idempotent on ``migration_id``: an existing row is returned, never
+        duplicated — a retried apply converges on the same durable record
+        rather than minting a second history.
+        """
+        existing = self._data["migrations"].get(migration_id)
+        if existing is not None:
+            return existing
+        record = dict(record)
+        record.setdefault("migration_id", migration_id)
+        record.setdefault("stage", "planned")
+        record.setdefault("stages", [])
+        record.setdefault("checkpoint", None)
+        record.setdefault("conflict", None)
+        record["created_at"] = record.get("created_at") or _utcnow()
+        record["updated_at"] = record["created_at"]
+        self._data["migrations"][migration_id] = record
+        self._save()
+        return record
+
+    def migration(self, migration_id):
+        """Return one migration record (a copy) or ``None``."""
+        record = self._data["migrations"].get(migration_id)
+        return dict(record) if record is not None else None
+
+    def migrations(self):
+        """Every recorded migration, keyed by migration id."""
+        return dict(self._data["migrations"])
+
+    def open_migrations(self):
+        """Migrations whose last committed stage is non-terminal —
+        ``complete``/``rolled-back`` seal a row; ``parked`` and
+        ``failed`` stay open so repair can retry them, and so a new
+        upgrade refuses to start while one is unresolved (A3)."""
+        return {mid: dict(record)
+                for mid, record in self._data["migrations"].items()
+                if record.get("stage") not in ("complete",
+                                               "rolled-back")}
+
+    def update_migration(self, migration_id, **fields):
+        """Set arbitrary fields on a migration row (checkpoint, target
+        digests) — one durable write per call."""
+        record = self._data["migrations"].get(migration_id)
+        if record is None:
+            raise OwnershipError(
+                f"no migration {migration_id!r} in setup state "
+                f"{self.path}")
+        record.update(fields)
+        record["updated_at"] = _utcnow()
+        self._save()
+        return dict(record)
+
+    def advance_migration(self, migration_id, stage, *, detail=None):
+        """Commit one migration boundary — the atomic stage transition
+        an interruption can only land *between* (F10 A3).
+
+        Each call is one ``_save``: a crash leaves the migration at the
+        last committed boundary with the stage history intact, which is
+        precisely what repair reads to decide restore-vs-park.
+        """
+        record = self._data["migrations"].get(migration_id)
+        if record is None:
+            raise OwnershipError(
+                f"no migration {migration_id!r} in setup state "
+                f"{self.path}")
+        record["stage"] = stage
+        record["stages"].append(
+            {"stage": stage, "at": _utcnow(),
+             **({"detail": detail} if detail else {})})
+        record["updated_at"] = _utcnow()
+        self._save()
+        return dict(record)
 
     # -- applied plans ----------------------------------------------------------
 

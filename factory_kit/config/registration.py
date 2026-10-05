@@ -139,6 +139,21 @@ class RegistrationStore:
                     f"{existing['removal'].get('begun_at')!r}) — "
                     "re-registration is only possible after the "
                     "reviewed removal completes")
+            if existing.get("upgrade"):
+                # ``begin_upgrade`` committed the dispatch fence — a
+                # readiness run cannot silently re-arm a registration
+                # mid-migration; the upgrade completes through
+                # ``finish_upgrade`` or the checkpoint rollback, then
+                # substantive readiness re-passes on the configuration
+                # now on disk (F10 A3: no dispatch from a partially
+                # migrated configuration).
+                raise RegistrationError(
+                    f"registration for {repo_id!r} is being upgraded "
+                    f"(migration begun at "
+                    f"{existing['upgrade'].get('begun_at')!r}) — "
+                    "readiness re-passes only after the migration "
+                    "completes or the checkpoint rollback restores the "
+                    "previous validated configuration")
             display = effective["identity"]
             changed = (existing["display"]["owner"] != display["owner"] or
                        existing["display"]["name"] != display["name"])
@@ -275,6 +290,108 @@ class RegistrationStore:
         self._data["registrations"][repo_id] = tombstone
         self._save()
         return {"outcome": "tombstoned", "tombstone": tombstone}
+
+    # -- upgrade fence (Task 4.2 / F10) ---------------------------------------
+    #
+    # Upgrade is a two-marker durable transition mirroring removal:
+    # ``begin_upgrade`` fences dispatch *first* — readiness verdict
+    # ``upgrading`` with ``dispatch: denied`` means intake denies every
+    # delivery for the duration, and active bound work parks so no
+    # attempt can bind mid-migration — *before* any owned file or
+    # generation is touched (A2/A3). ``finish_upgrade`` clears the marker
+    # into a still-denied terminal readiness — ``pending`` after a clean
+    # upgrade (enabled only when substantive readiness re-passes on the
+    # new generation), ``restored`` after a checkpoint rollback,
+    # ``parked`` when a specific conflict blocked repair — so a
+    # partially migrated configuration can never dispatch workers.
+
+    def begin_upgrade(self, repo_id, *, upgraded_by, now=None):
+        """Durably fence dispatch for a reviewed upgrade.
+
+        Commits *before* the migration touches files or generations
+        (F10 A2): from this write on, intake denies deliveries for the
+        repo and active bound work is parked (``upgrade-in-progress``).
+        A second ``begin_upgrade`` while a marker is open refuses — two
+        migrations never interleave under one registration.
+        """
+        record = self._registration(repo_id)
+        if record.get("upgrade"):
+            raise RegistrationError(
+                f"registration for {repo_id!r} already has an upgrade "
+                f"in progress (begun at "
+                f"{record['upgrade'].get('begun_at')!r} by "
+                f"{record['upgrade'].get('by')!r}) — repair or roll "
+                "back the open migration first")
+        record["readiness"] = {
+            "verdict": "upgrading",
+            "dispatch": "denied",
+            "detail": "reviewed upgrade in progress — intake denies "
+                      "every delivery until the new generation "
+                      "validates (F10 A2/A3)",
+        }
+        record["upgrade"] = {"begun_at": now or _utcnow(),
+                             "by": upgraded_by}
+        parked = []
+        for key, work in record["work"].items():
+            if work["state"] == "active":
+                work["state"] = "parked"
+                work["parked_reason"] = "upgrade-in-progress"
+                parked.append(key)
+        self._save()
+        return {"outcome": "upgrading", "repo_id": repo_id,
+                "parked_work": parked}
+
+    def finish_upgrade(self, repo_id, *, outcome, supported_versions=None,
+                       now=None):
+        """Close the upgrade fence into a still-denied readiness gate.
+
+        ``outcome`` is one of ``upgraded`` (new generation validated),
+        ``rolled-back`` (checkpoint restored) or ``parked`` (a specific
+        conflict blocked repair). Every terminal keeps
+        ``dispatch: denied``: dispatch resumes only when substantive
+        readiness passes on the configuration now on disk — never on a
+        partially migrated one (A3). ``supported_versions`` refreshes
+        the recorded pin set so the support matrix reflects what was
+        applied.
+        """
+        record = self._registration(repo_id)
+        details = {
+            "upgraded": "upgrade applied — enabled only after "
+                        "substantive readiness passes on the new "
+                        "generation (F10 A2)",
+            "rolled-back": "previous validated configuration restored "
+                           "— enabled only after substantive readiness "
+                           "re-passes on it (F10 A5)",
+            "parked": "migration parked on a specific conflict — "
+                      "dispatch stays denied; resolve the conflict "
+                      "and repair or roll back",
+        }
+        if outcome not in details:
+            raise RegistrationError(
+                f"unknown upgrade outcome {outcome!r} — expected one of "
+                f"{sorted(details)}")
+        upgrade = record.pop("upgrade", None)
+        if outcome == "parked":
+            # A parked migration stays open — the fence marker persists
+            # so ``register`` keeps refusing to re-arm dispatch until
+            # repair restores the checkpoint or rollback seals it (A3).
+            upgrade = dict(upgrade or {})
+            upgrade["parked_at"] = now or _utcnow()
+            record["upgrade"] = upgrade
+        record["readiness"] = {
+            "verdict": {"upgraded": "pending",
+                        "rolled-back": "restored",
+                        "parked": "parked"}[outcome],
+            "dispatch": "denied",
+            "detail": details[outcome],
+        }
+        if supported_versions is not None:
+            record["supported_versions"] = list(supported_versions)
+        record["upgrade_closed"] = {"outcome": outcome,
+                                    "at": now or _utcnow()}
+        self._save()
+        return {"outcome": outcome, "was": upgrade,
+                "repo_id": repo_id}
 
     # -- work binding ---------------------------------------------------------
 
