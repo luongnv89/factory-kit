@@ -1,0 +1,1378 @@
+{
+ "run_id": "pilot-evaluation-1791221620",
+ "version": "1.0.0",
+ "kind": "pilot-evaluation",
+ "mode": "archive-aggregation",
+ "generated_at": "2026-10-05T17:33:40Z",
+ "environment": {
+  "python": "3.14.7",
+  "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+  "machine": "arm64",
+  "manifest": "/Users/montimage/buildspace/luongnv89/factory-kit/.factory-kit.yml",
+  "manifest_effective_digest": "471800e23c5595c818afde9d59d627dc6800fba44ca6444430d072303433a372",
+  "source_identity": {
+   "v1_targets": {
+    "path": "/Users/montimage/buildspace/luongnv89/factory-kit/docs/measurements/v1-targets-2026-10-05.json",
+    "run_id": "4165fcc61cc5",
+    "verdict": "targets-passed"
+   },
+   "dogfood": {
+    "path": "/Users/montimage/buildspace/luongnv89/factory-kit/docs/measurements/dogfood-comparison-2026-10-05.json",
+    "run_id": "dogfood-cohort-1791217183",
+    "verdict": "cohort-run-complete"
+   },
+   "external": {
+    "path": "/Users/montimage/buildspace/luongnv89/factory-kit/docs/measurements/external-study-2026-10-05.json",
+    "run_id": "external-pilot-1791219456",
+    "verdict": "external-pilot-run-complete"
+   },
+   "fault_matrix": {
+    "path": "/Users/montimage/buildspace/luongnv89/factory-kit/docs/evidence/fault-matrix-2026-10-05.json",
+    "run_id": "d83b8d95",
+    "verdict": "fault-matrix-passed"
+   }
+  },
+  "reproduce": "python3 tools/probes/pilot_evaluation.py --write docs/measurements/pilot-evaluation-$(date +%F).json"
+ },
+ "evidence": {
+  "local": {
+   "verdict": "targets-passed",
+   "results": [
+    {
+     "name": "intake_p95",
+     "pass": true,
+     "measured": {
+      "p95_s": 0.011729340191232042,
+      "bound_s": 2.0,
+      "margin_s": 1.988270659808768,
+      "n": 300
+     }
+    },
+    {
+     "name": "duplicate_burst",
+     "pass": true,
+     "measured": {
+      "burst_wall_s": 0.05233337503159419,
+      "work_rows": 1,
+      "remote_prs": 0,
+      "outcomes": {
+       "reconciled": 50,
+       "deduplicated": 50
+      },
+      "window_s": 10.0
+     }
+    },
+    {
+     "name": "status_p95",
+     "pass": true,
+     "measured": {
+      "p95_s": 0.00023706638021394607,
+      "bound_s": 1.0,
+      "margin_s": 0.9997629336197861,
+      "n": 100
+     }
+    },
+    {
+     "name": "control_persist",
+     "pass": true,
+     "measured": {
+      "handler_p95_s": 0.003976610762765629,
+      "record_commit_p95_s": 0.0015499999999999971,
+      "bound_s": 5.0
+     }
+    },
+    {
+     "name": "cancel_window",
+     "pass": true,
+     "measured": {
+      "confirmed_wall_s": 0.002870415977668017,
+      "quarantined_wall_s": 0.0033604169730097055,
+      "bound_s": 30.0,
+      "termination_confirmed": "confirmed",
+      "termination_quarantined": "quarantined"
+     }
+    },
+    {
+     "name": "reconcile_discovery",
+     "pass": true,
+     "measured": {
+      "interval_s": 60.0,
+      "self_backoff_s": 1.0,
+      "discovery_latency_s": 1.0024853749782778,
+      "restored_pass_wall_s": 0.0024853749782778323,
+      "accepted": [
+       "gh:R_kgDOQncOdA#2100:g1"
+      ]
+     }
+    },
+    {
+     "name": "restart_recovery",
+     "pass": true,
+     "measured": {
+      "wall_s": 0.006050041993148625,
+      "duration_s": 0.0,
+      "deadline_s": 60.0,
+      "settled": 4,
+      "expected": 4
+     }
+    },
+    {
+     "name": "crash_zero_loss",
+     "pass": true,
+     "measured": {
+      "lost_acknowledged_tasks": 0,
+      "repetitions": 57
+     }
+    },
+    {
+     "name": "idle_zero_calls",
+     "pass": true,
+     "measured": {
+      "model_calls": 0,
+      "window_s": 1800.0
+     }
+    },
+    {
+     "name": "observability",
+     "pass": true,
+     "measured": {
+      "failed": [],
+      "checks": 10
+     }
+    }
+   ],
+   "failed": []
+  },
+  "cohort": {
+   "targets": [
+    {
+     "id": "preview_merge_ready",
+     "proposed": "at least 8 of 10 issues preview-verified and merge-ready",
+     "measured": 7,
+     "verdict": "fail",
+     "basis": "scripted-cohort-fixture",
+     "live_status": "pending-live-cohort",
+     "threshold": 8,
+     "denominator": 10
+    },
+    {
+     "id": "human_approved_merged_30d",
+     "proposed": "at least 3 human-approved and merged within 30 days of MVP release across two sequential registrations",
+     "measured": 4,
+     "verdict": "pass",
+     "basis": "scripted-cohort-fixture",
+     "live_status": "pending-live-cohort",
+     "threshold": 3,
+     "window_days": 30
+    },
+    {
+     "id": "intervention_reduction",
+     "proposed": "at least 25% lower median intervention minutes per issue than the ten-issue comparable baseline within the 30-day window",
+     "measured": 30.43,
+     "verdict": "inconclusive",
+     "basis": "scripted-cohort-fixture",
+     "live_status": "pending-live-cohort",
+     "threshold_pct": 25.0,
+     "cohort_median": 16.0,
+     "baseline_median": 23.0,
+     "missing_n": 1,
+     "baseline_comparable": true
+    }
+   ],
+   "metrics": {
+    "cohort_size": 10,
+    "intervention_minutes": {
+     "per_issue": {
+      "c1": 13.0,
+      "c2": 25.0,
+      "c3": 9.0,
+      "c4": 21.0,
+      "c5": 6.0,
+      "c6": 16.0,
+      "c7": 20.0,
+      "c8": 10.0,
+      "c9": null,
+      "c10": 17.0
+     },
+     "known_n": 9,
+     "missing_n": 1,
+     "missing_keys": [
+      "c9"
+     ],
+     "median": 16.0,
+     "median_successful": 13.0,
+     "median_unsuccessful": 18.5,
+     "successful_n": 6,
+     "unsuccessful_n": 4
+    },
+    "baseline": {
+     "n": 10,
+     "median": 23.0,
+     "per_issue": {
+      "b1": 22.0,
+      "b2": 35.0,
+      "b3": 27.0,
+      "b4": 14.0,
+      "b5": 18.0,
+      "b6": 41.0,
+      "b7": 19.0,
+      "b8": 24.0,
+      "b9": 31.0,
+      "b10": 16.0
+     },
+     "outcomes": {
+      "merged": 8,
+      "declined": 1,
+      "abandoned": 1
+     }
+    },
+    "intervention_reduction_pct": 30.43,
+    "overhead": {
+     "setup_minutes": {
+      "project-a": 25.0,
+      "project-b": 20.0
+     },
+     "maintenance_minutes": 30.0,
+     "total_overhead_minutes": 75.0,
+     "amortized_per_issue_minutes": 7.5,
+     "median_total_burden_minutes": 23.5
+    },
+    "waits": {
+     "queue_seconds": {
+      "measured_s": 150.0,
+      "unknown": 2
+     },
+     "model_execution_seconds": {
+      "measured_s": 8230.0,
+      "unknown": 2
+     },
+     "ci_wait_seconds": {
+      "measured_s": 1260.0,
+      "unknown": 2
+     },
+     "human_wait_seconds": {
+      "measured_s": 15360.0,
+      "unknown": 2
+     }
+    },
+    "usage": {
+     "attempts": 18,
+     "unknown": 2,
+     "known_tokens": 16,
+     "known_billed": 15,
+     "known_quota": 16
+    },
+    "intervention_categories_observed": [
+     "approval",
+     "cleanup",
+     "correction",
+     "investigation",
+     "monitoring"
+    ]
+   },
+   "baseline_comparability": {
+    "comparable": true,
+    "checks": {
+     "baseline_size_10": true,
+     "same_maintainer": true,
+     "endpoint_standard_recorded": true,
+     "collection_window_days": true,
+     "all_minutes_recorded": true
+    }
+   },
+   "audits": {
+    "one_active_task": {
+     "violations": [],
+     "samples": 22
+    },
+    "sequential_registrations": {
+     "order": [
+      "project-a",
+      "project-b"
+     ],
+     "sequential": true
+    },
+    "revision_evidence": {
+     "verified_revision": [
+      "c1",
+      "c2",
+      "c3",
+      "c4",
+      "c5",
+      "c6",
+      "c9"
+     ],
+     "explicit_terminal": [
+      "c7",
+      "c8",
+      "c10"
+     ],
+     "violations": []
+    },
+    "secret_scan": {
+     "outcome": "clean"
+    },
+    "denominator_integrity": {
+     "cohort_size": 10,
+     "accounted": 10,
+     "unaccounted": [],
+     "outcomes": {
+      "merged": 4,
+      "merge_ready": 2,
+      "declined": 1,
+      "failed": 1,
+      "canceled": 1,
+      "blocked": 1
+     },
+     "human_declines": [
+      "c4"
+     ]
+    }
+   },
+   "issues": [
+    {
+     "key": "c1",
+     "outcome": "merged",
+     "intervention_minutes": 13.0,
+     "measurement": "recorded",
+     "human_decision": null
+    },
+    {
+     "key": "c2",
+     "outcome": "merged",
+     "intervention_minutes": 25.0,
+     "measurement": "recorded",
+     "human_decision": null
+    },
+    {
+     "key": "c3",
+     "outcome": "merge_ready",
+     "intervention_minutes": 9.0,
+     "measurement": "recorded",
+     "human_decision": null
+    },
+    {
+     "key": "c4",
+     "outcome": "declined",
+     "intervention_minutes": 21.0,
+     "measurement": "recorded",
+     "human_decision": "declined"
+    },
+    {
+     "key": "c5",
+     "outcome": "merged",
+     "intervention_minutes": 6.0,
+     "measurement": "recorded",
+     "human_decision": null
+    },
+    {
+     "key": "c6",
+     "outcome": "merged",
+     "intervention_minutes": 16.0,
+     "measurement": "recorded",
+     "human_decision": null
+    },
+    {
+     "key": "c7",
+     "outcome": "failed",
+     "intervention_minutes": 20.0,
+     "measurement": "recorded",
+     "human_decision": null
+    },
+    {
+     "key": "c8",
+     "outcome": "canceled",
+     "intervention_minutes": 10.0,
+     "measurement": "recorded",
+     "human_decision": null
+    },
+    {
+     "key": "c9",
+     "outcome": "merge_ready",
+     "intervention_minutes": null,
+     "measurement": "missing-effort-record",
+     "human_decision": null
+    },
+    {
+     "key": "c10",
+     "outcome": "blocked",
+     "intervention_minutes": 17.0,
+     "measurement": "recorded",
+     "human_decision": null
+    }
+   ],
+   "q9_target_status": "proposed \u2014 pending owner acceptance (docs/decisions/q9-acceptance.md)",
+   "live_prerequisites": [
+    {
+     "id": "q9-adoption",
+     "blocker": "Q9 numerical targets are still proposed \u2014 owner acceptance pending (docs/decisions/q9-acceptance.md)"
+    },
+    {
+     "id": "second-project-registration",
+     "blocker": "no live second project registration with a live Hermes runtime exists \u2014 both cohort legs ran on scripted ports"
+    },
+    {
+     "id": "thirty-day-window",
+     "blocker": "the 30-day post-MVP-release observation window has not elapsed \u2014 merged/declined counts are fixture-recorded, not live-observed"
+    },
+    {
+     "id": "human-decisions",
+     "blocker": "approval/decline decisions were scripted fixture inputs through the real decision path, not maintainer judgments on real diffs"
+    },
+    {
+     "id": "baseline-collection",
+     "blocker": "baseline minutes come from the recorded fixture table \u2014 a live baseline needs ten comparable direct-IDD issues logged in the same window"
+    }
+   ]
+  },
+  "external": {
+   "targets": [
+    {
+     "id": "onboarding_completed_60d",
+     "proposed": "at least 3 external maintainers complete installation and a first run within 60 days of pilot opening",
+     "measured": 3,
+     "verdict": "pass",
+     "basis": "scripted-pilot-fixture",
+     "live_status": "pending-live-study",
+     "threshold": 3,
+     "denominator": 4,
+     "qualified": [
+      "obs-alpha",
+      "obs-beta",
+      "obs-gamma"
+     ],
+     "window_days": 60
+    },
+    {
+     "id": "independent_setup_2_in_45min",
+     "proposed": "at least 2 external maintainers complete setup in 45 minutes without author takeover",
+     "measured": 2,
+     "verdict": "pass",
+     "basis": "scripted-pilot-fixture",
+     "live_status": "pending-live-study",
+     "threshold": 2,
+     "denominator": 4,
+     "qualified": [
+      "obs-alpha",
+      "obs-beta"
+     ],
+     "takeover_excluded": [
+      "obs-gamma"
+     ],
+     "within_minutes": 45
+    },
+    {
+     "id": "repeat_use_2x4wk_90d",
+     "proposed": "at least 2 external maintainers complete one run per week for 4 consecutive weeks within 90 days of pilot opening",
+     "measured": 1,
+     "verdict": "fail",
+     "basis": "scripted-pilot-fixture",
+     "live_status": "pending-live-study",
+     "threshold": 2,
+     "denominator": 4,
+     "qualified": [
+      "obs-alpha"
+     ],
+     "window_days": 90,
+     "failed_runs_retained": 1
+    }
+   ],
+   "participants": [
+    {
+     "key": "obs-alpha",
+     "install_outcome": "completed",
+     "elapsed_minutes": 38.0,
+     "author_takeover": false,
+     "author_assistance": "none",
+     "install_blocker": null,
+     "first_run": "completed",
+     "repeat_use": {
+      "weeks_in_window": 4,
+      "longest_completed_streak": 4,
+      "qualified": true
+     },
+     "weekly_counts": {
+      "completed": 4,
+      "failed": 0,
+      "missing": 0
+     },
+     "dropout": null
+    },
+    {
+     "key": "obs-beta",
+     "install_outcome": "completed",
+     "elapsed_minutes": 44.0,
+     "author_takeover": false,
+     "author_assistance": "clarification",
+     "install_blocker": null,
+     "first_run": "completed",
+     "repeat_use": {
+      "weeks_in_window": 4,
+      "longest_completed_streak": 2,
+      "qualified": false
+     },
+     "weekly_counts": {
+      "completed": 3,
+      "failed": 1,
+      "missing": 0
+     },
+     "dropout": null
+    },
+    {
+     "key": "obs-gamma",
+     "install_outcome": "completed",
+     "elapsed_minutes": 55.0,
+     "author_takeover": true,
+     "author_assistance": "takeover",
+     "install_blocker": null,
+     "first_run": "completed",
+     "repeat_use": {
+      "weeks_in_window": 4,
+      "longest_completed_streak": 2,
+      "qualified": false
+     },
+     "weekly_counts": {
+      "completed": 2,
+      "failed": 0,
+      "missing": 2
+     },
+     "dropout": {
+      "after_week": 2,
+      "reason": "participant stopped reporting \u2014 labeled dropout, retained in denominators"
+     }
+    },
+    {
+     "key": "obs-delta",
+     "install_outcome": "blocked",
+     "elapsed_minutes": null,
+     "author_takeover": false,
+     "author_assistance": "none",
+     "install_blocker": "unsupported-version",
+     "first_run": "not-attempted",
+     "repeat_use": {
+      "weeks_in_window": 4,
+      "longest_completed_streak": 0,
+      "qualified": false
+     },
+     "weekly_counts": {
+      "completed": 0,
+      "failed": 0,
+      "missing": 4
+     },
+     "dropout": null
+    }
+   ],
+   "blocked": [
+    {
+     "key": "denied-wl",
+     "participant_hash": "3f218bf51df00ecc",
+     "attempted_phase": "install",
+     "reason": "admission-denied:unsupported-workload:runtime-mirror"
+    },
+    {
+     "key": "nonconsent",
+     "participant_hash": "6049752ae30d00a7",
+     "attempted_phase": "install",
+     "reason": "consent-missing"
+    }
+   ],
+   "weekly_totals": {
+    "completed": 9,
+    "failed": 1,
+    "missing": 6
+   },
+   "study_effort": {
+    "builder_active_minutes": 51.0,
+    "waits": {
+     "recruitment_wait_days": {
+      "obs-alpha": 8.0,
+      "obs-beta": 11.0,
+      "obs-gamma": 14.0,
+      "obs-delta": 9.0
+     },
+     "participant_wait_days": {
+      "obs-alpha": 30.0,
+      "obs-beta": 28.0,
+      "obs-gamma": 24.0,
+      "obs-delta": 6.0
+     }
+    },
+    "note": "active builder minutes are separated from calendar observation/recruitment and participant waits \u2014 waits never count as builder effort (A5)"
+   },
+   "audits": {
+    "admission_gate": {
+     "mismatches": []
+    },
+    "consent_ordering": {
+     "violations": [],
+     "consent_seqs": {
+      "7cd2887f1dd8b924": 3,
+      "bceae7914fd2076b": 4,
+      "886ba017d22c5928": 5,
+      "df3897f5e8d24d3f": 6
+     },
+     "observation_participants": [
+      "7cd2887f1dd8b924",
+      "886ba017d22c5928",
+      "bceae7914fd2076b",
+      "df3897f5e8d24d3f"
+     ],
+     "blocked_hashes_checked": [
+      "3f218bf51df00ecc",
+      "6049752ae30d00a7"
+     ]
+    },
+    "observation_minimization": {
+     "events": 28,
+     "violations": []
+    },
+    "secret_scan": {
+     "outcome": "clean"
+    },
+    "denominator_integrity": {
+     "recruited": 6,
+     "accounted": 6,
+     "unaccounted": [],
+     "classes": {
+      "obs-alpha": "install-completed",
+      "obs-beta": "install-completed",
+      "obs-gamma": "install-completed",
+      "obs-delta": "install-blocked",
+      "denied-wl": "blocked:admission-denied:unsupported-workload:runtime-mirror",
+      "nonconsent": "blocked:consent-missing"
+     }
+    }
+   },
+   "admissions": {
+    "obs-alpha": {
+     "outcome": "admitted",
+     "scope": "pilot-collection",
+     "workload_class": "observation",
+     "trust_class": "external-reviewed",
+     "boundary_evidence": null,
+     "participant_hash": "7cd2887f1dd8b924"
+    },
+    "obs-beta": {
+     "outcome": "admitted",
+     "scope": "pilot-collection",
+     "workload_class": "observation",
+     "trust_class": "external-reviewed",
+     "boundary_evidence": null,
+     "participant_hash": "bceae7914fd2076b"
+    },
+    "obs-gamma": {
+     "outcome": "admitted",
+     "scope": "pilot-collection",
+     "workload_class": "observation",
+     "trust_class": "external-reviewed",
+     "boundary_evidence": null,
+     "participant_hash": "886ba017d22c5928"
+    },
+    "obs-delta": {
+     "outcome": "admitted",
+     "scope": "pilot-collection",
+     "workload_class": "observation",
+     "trust_class": "external-reviewed",
+     "boundary_evidence": null,
+     "participant_hash": "df3897f5e8d24d3f"
+    },
+    "denied-wl": {
+     "outcome": "denied",
+     "scope": "pilot-collection",
+     "workload_class": "runtime-mirror",
+     "trust_class": "external-untrusted",
+     "boundary_evidence": null,
+     "blocker": "unsupported-workload:runtime-mirror",
+     "participant_hash": "3f218bf51df00ecc"
+    },
+    "nonconsent": {
+     "outcome": "never-presented"
+    }
+   },
+   "q9_target_status": "proposed \u2014 pending owner acceptance (docs/decisions/q9-acceptance.md)",
+   "live_prerequisites": [
+    {
+     "id": "q9-adoption",
+     "blocker": "Q9 numerical targets are still proposed \u2014 owner acceptance pending (docs/decisions/q9-acceptance.md)"
+    },
+    {
+     "id": "external-participants",
+     "blocker": "no real external maintainers were recruited \u2014 the cohort is scripted fixtures on simulated environments, so independence is fixture-recorded, not observed"
+    },
+    {
+     "id": "pilot-windows",
+     "blocker": "the 60-day onboarding and 90-day repeat-use windows have not elapsed \u2014 days are fixture-declared, not calendar-observed"
+    },
+    {
+     "id": "independent-timing",
+     "blocker": "elapsed setup minutes are fixture-recorded observations, not independently measured wall-clock on a participant host"
+    },
+    {
+     "id": "simulated-environments",
+     "blocker": "installations ran on disposable repositories with recorded readiness readings \u2014 distinct simulated hosts, never participant production environments with live Hermes"
+    },
+    {
+     "id": "live-repeat-use",
+     "blocker": "weekly run reports are scripted fixture inputs \u2014 four consecutive live reporting weeks remain unobserved"
+    }
+   ]
+  },
+  "fault_matrix": {
+   "verdict": "fault-matrix-passed",
+   "totals": {
+    "rows": 19,
+    "repetitions": 57,
+    "passed_repetitions": 57
+   },
+   "failed_rows": []
+  }
+ },
+ "targets": {
+  "order": [
+   "local.intake_p95",
+   "local.duplicate_burst",
+   "local.status_p95",
+   "local.control_persist",
+   "local.cancel_window",
+   "local.reconcile_discovery",
+   "local.restart_recovery",
+   "local.crash_zero_loss",
+   "local.idle_zero_calls",
+   "local.observability",
+   "cohort.preview_merge_ready",
+   "cohort.human_approved_merged_30d",
+   "cohort.intervention_reduction",
+   "pilot.onboarding_completed_60d",
+   "pilot.independent_setup_2_in_45min",
+   "pilot.repeat_use_2x4wk_90d"
+  ],
+  "results": [
+   {
+    "id": "local.intake_p95",
+    "scope": "internal-local",
+    "proposed": "durable intake accept/reject p95 \u2264 2 s at 1 ev/s \u00d7 5 min",
+    "measured": {
+     "p95_s": 0.011729340191232042,
+     "bound_s": 2.0,
+     "margin_s": 1.988270659808768,
+     "n": 300
+    },
+    "verdict": "pass",
+    "basis": "selected-host measured run",
+    "live_status": "measured-local \u2014 scripted ports, single host",
+    "window": "5 min sustained at 1 ev/s (paced 302.0 s wall)",
+    "denominator": "n=300 deliveries",
+    "missing": [],
+    "source": "docs/measurements/v1-targets-2026-10-05.json"
+   },
+   {
+    "id": "local.duplicate_burst",
+    "scope": "internal-local",
+    "proposed": "100 duplicate deliveries \u2264 10 s incl. restart \u2192 1 task, \u2264 1 PR",
+    "measured": {
+     "burst_wall_s": 0.05233337503159419,
+     "work_rows": 1,
+     "remote_prs": 0,
+     "outcomes": {
+      "reconciled": 50,
+      "deduplicated": 50
+     },
+     "window_s": 10.0
+    },
+    "verdict": "pass",
+    "basis": "selected-host measured run",
+    "live_status": "measured-local \u2014 scripted ports, single host",
+    "window": "10.0 s burst incl. store rebuild",
+    "denominator": "100 duplicate deliveries",
+    "missing": [],
+    "source": "docs/measurements/v1-targets-2026-10-05.json"
+   },
+   {
+    "id": "local.status_p95",
+    "scope": "internal-local",
+    "proposed": "local status p95 \u2264 1 s over persisted rows",
+    "measured": {
+     "p95_s": 0.00023706638021394607,
+     "bound_s": 1.0,
+     "margin_s": 0.9997629336197861,
+     "n": 100
+    },
+    "verdict": "pass",
+    "basis": "selected-host measured run",
+    "live_status": "measured-local \u2014 scripted ports, single host",
+    "window": null,
+    "denominator": "n=100 persisted-row queries",
+    "missing": [],
+    "source": "docs/measurements/v1-targets-2026-10-05.json"
+   },
+   {
+    "id": "local.control_persist",
+    "scope": "internal-local",
+    "proposed": "authorized pause/cancel + fence persist \u2264 5 s, Telegram-independent",
+    "measured": {
+     "handler_p95_s": 0.003976610762765629,
+     "record_commit_p95_s": 0.0015499999999999971,
+     "bound_s": 5.0
+    },
+    "verdict": "pass",
+    "basis": "selected-host measured run",
+    "live_status": "measured-local \u2014 scripted ports, single host",
+    "window": null,
+    "denominator": "n=30 control actions (pause/resume/cancel)",
+    "missing": [],
+    "source": "docs/measurements/v1-targets-2026-10-05.json"
+   },
+   {
+    "id": "local.cancel_window",
+    "scope": "internal-local",
+    "proposed": "worker/descendant exit or quarantine + local notify \u2264 30 s",
+    "measured": {
+     "confirmed_wall_s": 0.002870415977668017,
+     "quarantined_wall_s": 0.0033604169730097055,
+     "bound_s": 30.0,
+     "termination_confirmed": "confirmed",
+     "termination_quarantined": "quarantined"
+    },
+    "verdict": "pass",
+    "basis": "selected-host measured run",
+    "live_status": "measured-local \u2014 scripted ports, single host",
+    "window": "30 s bound on confirm-or-quarantine + notify",
+    "denominator": null,
+    "missing": [],
+    "source": "docs/measurements/v1-targets-2026-10-05.json"
+   },
+   {
+    "id": "local.reconcile_discovery",
+    "scope": "internal-local",
+    "proposed": "reconcile interval \u2264 60 s; dropped work found \u2264 120 s after GitHub returns",
+    "measured": {
+     "interval_s": 60.0,
+     "self_backoff_s": 1.0,
+     "discovery_latency_s": 1.0024853749782778,
+     "restored_pass_wall_s": 0.0024853749782778323,
+     "accepted": [
+      "gh:R_kgDOQncOdA#2100:g1"
+     ]
+    },
+    "verdict": "pass",
+    "basis": "selected-host measured run",
+    "live_status": "measured-local \u2014 scripted ports, single host",
+    "window": "interval \u2264 60 s / discovery \u2264 120 s bounds",
+    "denominator": null,
+    "missing": [],
+    "source": "docs/measurements/v1-targets-2026-10-05.json"
+   },
+   {
+    "id": "local.restart_recovery",
+    "scope": "internal-local",
+    "proposed": "recover/park all known active tasks \u2264 60 s of readiness",
+    "measured": {
+     "wall_s": 0.006050041993148625,
+     "duration_s": 0.0,
+     "deadline_s": 60.0,
+     "settled": 4,
+     "expected": 4
+    },
+    "verdict": "pass",
+    "basis": "selected-host measured run",
+    "live_status": "measured-local \u2014 scripted ports, single host",
+    "window": null,
+    "denominator": "4/4 known tasks settled",
+    "missing": [],
+    "source": "docs/measurements/v1-targets-2026-10-05.json"
+   },
+   {
+    "id": "local.crash_zero_loss",
+    "scope": "internal-local",
+    "proposed": "0 lost acknowledged tasks in defined crash tests",
+    "measured": {
+     "lost_acknowledged_tasks": 0,
+     "repetitions": 57
+    },
+    "verdict": "pass",
+    "basis": "selected-host measured run",
+    "live_status": "measured-local \u2014 scripted ports, single host",
+    "window": null,
+    "denominator": "57 fault-matrix repetitions",
+    "missing": [],
+    "source": "docs/measurements/v1-targets-2026-10-05.json"
+   },
+   {
+    "id": "local.idle_zero_calls",
+    "scope": "internal-local",
+    "proposed": "0 model calls in 30 idle minutes without work/exceptions",
+    "measured": {
+     "model_calls": 0,
+     "window_s": 1800.0
+    },
+    "verdict": "pass",
+    "basis": "selected-host measured run",
+    "live_status": "measured-local \u2014 scripted ports, single host",
+    "window": "30 idle minutes",
+    "denominator": null,
+    "missing": [],
+    "source": "docs/measurements/v1-targets-2026-10-05.json"
+   },
+   {
+    "id": "local.observability",
+    "scope": "internal-local",
+    "proposed": "A6 structural bounds \u2014 observable, no SLA claim, CI excluded, 24 h park, 5 min cap, stale remote explicit",
+    "measured": {
+     "failed": [],
+     "checks": 10
+    },
+    "verdict": "pass",
+    "basis": "selected-host measured run",
+    "live_status": "measured-local \u2014 scripted ports, single host",
+    "window": null,
+    "denominator": "10 mechanism checks",
+    "missing": [],
+    "source": "docs/measurements/v1-targets-2026-10-05.json"
+   },
+   {
+    "id": "cohort.preview_merge_ready",
+    "scope": "internal-cohort",
+    "proposed": "at least 8 of 10 issues preview-verified and merge-ready",
+    "measured": 7,
+    "verdict": "fail",
+    "basis": "scripted-cohort-fixture",
+    "live_status": "pending-live-cohort",
+    "window": "30-day post-MVP window",
+    "denominator": "10 cohort issues",
+    "missing": [],
+    "source": "docs/measurements/dogfood-comparison-2026-10-05.json"
+   },
+   {
+    "id": "cohort.human_approved_merged_30d",
+    "scope": "internal-cohort",
+    "proposed": "at least 3 human-approved and merged within 30 days of MVP release across two sequential registrations",
+    "measured": 4,
+    "verdict": "pass",
+    "basis": "scripted-cohort-fixture",
+    "live_status": "pending-live-cohort",
+    "window": "30 days",
+    "denominator": "10-issue cohort / 10-issue baseline",
+    "missing": [],
+    "source": "docs/measurements/dogfood-comparison-2026-10-05.json"
+   },
+   {
+    "id": "cohort.intervention_reduction",
+    "scope": "internal-cohort",
+    "proposed": "at least 25% lower median intervention minutes per issue than the ten-issue comparable baseline within the 30-day window",
+    "measured": 30.43,
+    "verdict": "inconclusive",
+    "basis": "scripted-cohort-fixture",
+    "live_status": "pending-live-cohort",
+    "window": "30-day post-MVP window",
+    "denominator": "10-issue cohort / 10-issue baseline",
+    "missing": [
+     {
+      "key": "c9",
+      "what": "operator effort record",
+      "effect": "median over n=9 known \u2014 reduction verdict stays inconclusive, never zero-filled"
+     }
+    ],
+    "source": "docs/measurements/dogfood-comparison-2026-10-05.json"
+   },
+   {
+    "id": "pilot.onboarding_completed_60d",
+    "scope": "external-pilot",
+    "proposed": "at least 3 external maintainers complete installation and a first run within 60 days of pilot opening",
+    "measured": 3,
+    "verdict": "pass",
+    "basis": "scripted-pilot-fixture",
+    "live_status": "pending-live-study",
+    "window": "60 days",
+    "denominator": "4 admitted participants",
+    "missing": [
+     {
+      "key": "obs-delta",
+      "what": "install blocked \u2014 unsupported-version",
+      "effect": "retained in denominator, excluded from numerator"
+     }
+    ],
+    "excluded": [
+     {
+      "key": "denied-wl",
+      "why": "admission-denied:unsupported-workload:runtime-mirror"
+     },
+     {
+      "key": "nonconsent",
+      "why": "consent-missing"
+     }
+    ],
+    "source": "docs/measurements/external-study-2026-10-05.json"
+   },
+   {
+    "id": "pilot.independent_setup_2_in_45min",
+    "scope": "external-pilot",
+    "proposed": "at least 2 external maintainers complete setup in 45 minutes without author takeover",
+    "measured": 2,
+    "verdict": "pass",
+    "basis": "scripted-pilot-fixture",
+    "live_status": "pending-live-study",
+    "window": null,
+    "denominator": "4 admitted participants",
+    "missing": [
+     {
+      "key": "obs-delta",
+      "what": "setup never completed",
+      "effect": "retained in denominator, excluded from numerator"
+     }
+    ],
+    "excluded": [
+     {
+      "key": "obs-gamma",
+      "why": "author takeover \u2014 counts toward onboarding, never toward independence"
+     }
+    ],
+    "source": "docs/measurements/external-study-2026-10-05.json"
+   },
+   {
+    "id": "pilot.repeat_use_2x4wk_90d",
+    "scope": "external-pilot",
+    "proposed": "at least 2 external maintainers complete one run per week for 4 consecutive weeks within 90 days of pilot opening",
+    "measured": 1,
+    "verdict": "fail",
+    "basis": "scripted-pilot-fixture",
+    "live_status": "pending-live-study",
+    "window": "90 days",
+    "denominator": "4 admitted participants",
+    "missing": [
+     {
+      "key": "obs-gamma",
+      "what": "2 weekly report(s) missing \u2014 dropout recorded",
+      "effect": "labeled absence \u2014 streaks never inferred"
+     },
+     {
+      "key": "obs-delta",
+      "what": "4 weekly report(s) missing",
+      "effect": "labeled absence \u2014 streaks never inferred"
+     }
+    ],
+    "excluded": [],
+    "source": "docs/measurements/external-study-2026-10-05.json",
+    "failed_runs_retained": 1
+   }
+  ]
+ },
+ "q9": {
+  "status": "proposed \u2014 pending owner acceptance (docs/decisions/q9-acceptance.md)",
+  "record": "docs/decisions/q9-acceptance.md",
+  "adjustments": [],
+  "note": "proposed targets/defaults stay *proposed* until the owner records a verdict \u2014 no retroactive baseline edits"
+ },
+ "burden": {
+  "cohort_median_intervention_minutes": 16.0,
+  "cohort_known_n": 9,
+  "cohort_missing": [
+   "c9"
+  ],
+  "baseline_median_minutes": 23.0,
+  "baseline_n": 10,
+  "baseline_comparable": true,
+  "reduction_pct": 30.43,
+  "reduction_verdict": "inconclusive",
+  "successful_median": 13.0,
+  "unsuccessful_median": 18.5,
+  "overhead": {
+   "setup_minutes": {
+    "project-a": 25.0,
+    "project-b": 20.0
+   },
+   "maintenance_minutes": 30.0,
+   "total_overhead_minutes": 75.0,
+   "amortized_per_issue_minutes": 7.5,
+   "median_total_burden_minutes": 23.5
+  },
+  "total_burden_median_minutes": 23.5,
+  "net_vs_baseline_minutes": 0.5,
+  "maintenance_erases_savings": true,
+  "external_builder_active_minutes": 51.0,
+  "external_waits": {
+   "recruitment_wait_days": {
+    "obs-alpha": 8.0,
+    "obs-beta": 11.0,
+    "obs-gamma": 14.0,
+    "obs-delta": 9.0
+   },
+   "participant_wait_days": {
+    "obs-alpha": 30.0,
+    "obs-beta": 28.0,
+    "obs-gamma": 24.0,
+    "obs-delta": 6.0
+   }
+  },
+  "usage": {
+   "attempts": 18,
+   "unknown": 2,
+   "known_tokens": 16,
+   "known_billed": 15,
+   "known_quota": 16
+  },
+  "waits": {
+   "queue_seconds": {
+    "measured_s": 150.0,
+    "unknown": 2
+   },
+   "model_execution_seconds": {
+    "measured_s": 8230.0,
+    "unknown": 2
+   },
+   "ci_wait_seconds": {
+    "measured_s": 1260.0,
+    "unknown": 2
+   },
+   "human_wait_seconds": {
+    "measured_s": 15360.0,
+    "unknown": 2
+   }
+  },
+  "uncertainty": [
+   "scripted-harness medians over n=9 known cohort issues vs n=10 recorded baseline \u2014 one missing effort record",
+   "scripted ports: no network/CI jitter in the measured path; live operators may differ",
+   "takeover and assistance minutes are fixture-recorded observations, not independently timed"
+  ]
+ },
+ "intervention_signals": {
+  "author_takeovers": [
+   "obs-gamma"
+  ],
+  "author_takeover_n": 1,
+  "admitted_participants": 4,
+  "assistance_events": [
+   "obs-beta",
+   "obs-gamma"
+  ],
+  "cohort_intervention_categories": [
+   "approval",
+   "cleanup",
+   "correction",
+   "investigation",
+   "monitoring"
+  ],
+  "cohort_unsuccessful_median_minutes": 18.5,
+  "cohort_successful_median_minutes": 13.0,
+  "repeated_author_intervention": true,
+  "note": "a takeover is excluded from the independence numerator but never hidden \u2014 it counts as an author-intervention signal"
+ },
+ "safety_admission": {
+  "clean": true,
+  "reasons": [],
+  "fault_matrix_verdict": "fault-matrix-passed",
+  "fault_matrix_totals": {
+   "rows": 19,
+   "repetitions": 57,
+   "passed_repetitions": 57
+  },
+  "pilot_audits": {
+   "admission_gate": {
+    "mismatches": []
+   },
+   "consent_ordering_violations": 0,
+   "minimization_violations": 0,
+   "denominator_integrity": {
+    "recruited": 6,
+    "accounted": 6,
+    "unaccounted": [],
+    "classes": {
+     "obs-alpha": "install-completed",
+     "obs-beta": "install-completed",
+     "obs-gamma": "install-completed",
+     "obs-delta": "install-blocked",
+     "denied-wl": "blocked:admission-denied:unsupported-workload:runtime-mirror",
+     "nonconsent": "blocked:consent-missing"
+    }
+   },
+   "secret_scan": "clean"
+  },
+  "cohort_audits_clean": {
+   "one_active_task": true,
+   "sequential": true,
+   "revision_evidence": true,
+   "denominator": true,
+   "secret_scan": true
+  }
+ },
+ "unresolved": [
+  {
+   "id": "q9-adoption",
+   "kind": "owner-decision",
+   "state": "proposed \u2014 pending owner acceptance (docs/decisions/q9-acceptance.md)",
+   "required": "owner accept/adjust/reject verdict in docs/decisions/q9-acceptance.md",
+   "rows": []
+  },
+  {
+   "id": "cohort.second-project-registration",
+   "kind": "next-observation",
+   "state": "no live second project registration with a live Hermes runtime exists \u2014 both cohort legs ran on scripted ports",
+   "required": "live cohort observation \u2014 see docs/measurements/dogfood-comparison.md",
+   "rows": []
+  },
+  {
+   "id": "cohort.thirty-day-window",
+   "kind": "next-observation",
+   "state": "the 30-day post-MVP-release observation window has not elapsed \u2014 merged/declined counts are fixture-recorded, not live-observed",
+   "required": "live cohort observation \u2014 see docs/measurements/dogfood-comparison.md",
+   "rows": []
+  },
+  {
+   "id": "cohort.human-decisions",
+   "kind": "next-observation",
+   "state": "approval/decline decisions were scripted fixture inputs through the real decision path, not maintainer judgments on real diffs",
+   "required": "live cohort observation \u2014 see docs/measurements/dogfood-comparison.md",
+   "rows": []
+  },
+  {
+   "id": "cohort.baseline-collection",
+   "kind": "next-observation",
+   "state": "baseline minutes come from the recorded fixture table \u2014 a live baseline needs ten comparable direct-IDD issues logged in the same window",
+   "required": "live cohort observation \u2014 see docs/measurements/dogfood-comparison.md",
+   "rows": []
+  },
+  {
+   "id": "pilot.external-participants",
+   "kind": "next-observation",
+   "state": "no real external maintainers were recruited \u2014 the cohort is scripted fixtures on simulated environments, so independence is fixture-recorded, not observed",
+   "required": "live pilot observation \u2014 see docs/measurements/external-study.md",
+   "rows": []
+  },
+  {
+   "id": "pilot.pilot-windows",
+   "kind": "next-observation",
+   "state": "the 60-day onboarding and 90-day repeat-use windows have not elapsed \u2014 days are fixture-declared, not calendar-observed",
+   "required": "live pilot observation \u2014 see docs/measurements/external-study.md",
+   "rows": []
+  },
+  {
+   "id": "pilot.independent-timing",
+   "kind": "next-observation",
+   "state": "elapsed setup minutes are fixture-recorded observations, not independently measured wall-clock on a participant host",
+   "required": "live pilot observation \u2014 see docs/measurements/external-study.md",
+   "rows": []
+  },
+  {
+   "id": "pilot.simulated-environments",
+   "kind": "next-observation",
+   "state": "installations ran on disposable repositories with recorded readiness readings \u2014 distinct simulated hosts, never participant production environments with live Hermes",
+   "required": "live pilot observation \u2014 see docs/measurements/external-study.md",
+   "rows": []
+  },
+  {
+   "id": "pilot.live-repeat-use",
+   "kind": "next-observation",
+   "state": "weekly run reports are scripted fixture inputs \u2014 four consecutive live reporting weeks remain unobserved",
+   "required": "live pilot observation \u2014 see docs/measurements/external-study.md",
+   "rows": []
+  },
+  {
+   "id": "missing.c9",
+   "kind": "missing-data",
+   "state": "operator effort record",
+   "required": "median over n=9 known \u2014 reduction verdict stays inconclusive, never zero-filled",
+   "rows": [
+    "cohort.intervention_reduction"
+   ]
+  },
+  {
+   "id": "missing.obs-delta",
+   "kind": "missing-data",
+   "state": "install blocked \u2014 unsupported-version",
+   "required": "retained in denominator, excluded from numerator",
+   "rows": [
+    "pilot.onboarding_completed_60d",
+    "pilot.independent_setup_2_in_45min",
+    "pilot.repeat_use_2x4wk_90d"
+   ]
+  },
+  {
+   "id": "missing.obs-gamma",
+   "kind": "missing-data",
+   "state": "2 weekly report(s) missing \u2014 dropout recorded",
+   "required": "labeled absence \u2014 streaks never inferred",
+   "rows": [
+    "pilot.repeat_use_2x4wk_90d"
+   ]
+  }
+ ],
+ "recommendation": {
+  "disposition": "narrow-consolidate",
+  "decision_status": "recorded \u2014 pending owner confirmation",
+  "continue_requires": "explicit owner decision against the assembled evidence (issue A3)",
+  "reasons": [
+   "cohort.preview_merge_ready: measured 7 \u2014 proposed at least 8 of 10 issues preview-verified and merge-ready",
+   "pilot.repeat_use_2x4wk_90d: measured 1 \u2014 proposed at least 2 external maintainers complete one run per week for 4 consecutive weeks within 90 days of pilot opening",
+   "integration overhead erases the per-issue saving: cohort median 16.0 min + amortized setup/maintenance 7.5 min = 23.5 min/issue vs baseline median 23.0 min (net +0.5 min)",
+   "author intervention required: takeover ['obs-gamma'] (1 of 4 admitted); recorded assistance ['obs-beta', 'obs-gamma']"
+  ],
+  "failed_targets": [
+   "cohort.preview_merge_ready",
+   "pilot.repeat_use_2x4wk_90d"
+  ],
+  "inconclusive_targets": [
+   "cohort.intervention_reduction"
+  ],
+  "scoped_followup": [
+   "consolidate the proven mechanics into the supported Hermes/IDD recipes \u2014 reviewed additive setup/readiness/removal, upgrade/repair/rollback, the revision-bound verification contract, one-use approval + guarded merge (docs/recipes/ is the package)",
+   "keep the one-active-task support limit \u2014 no concurrency or additional runtime/provider capability is admitted",
+   "task 5.1's optional-harness admission stays blocked \u2014 a narrow/consolidate outcome never authorizes \u00a78.4 expansion work",
+   "task 4.7 ships the recipe-scoped v1.1 deliverable under its A4 release-withheld path \u2014 evidence and support recipes publish, expansion claims do not"
+  ],
+  "never_authorized": [
+   "expansion beyond the v1.1 recipe scope (\u00a78.4 adapters, extra runtimes/preview providers, autonomous merge)",
+   "external data collection or participant recruitment beyond the admitted pilot scope",
+   "publication or distribution claims \u2014 Q8 rows stay unresolved",
+   "treating fixture verdicts as live-target attainment"
+  ],
+  "expansion": "not authorized"
+ },
+ "audits": {
+  "cell_crosscheck": {
+   "mismatches": []
+  },
+  "denominator_integrity": {
+   "expected_rows": 16,
+   "problems": []
+  },
+  "missing_data_coverage": {
+   "expected_named": [
+    "c9",
+    "denied-wl",
+    "nonconsent",
+    "obs-delta",
+    "obs-gamma"
+   ],
+   "named": [
+    "c9",
+    "denied-wl",
+    "nonconsent",
+    "obs-delta",
+    "obs-gamma"
+   ],
+   "uncovered": []
+  },
+  "takeover_retained": {
+   "takeovers": [
+    "obs-gamma"
+   ],
+   "independence_excluded": [
+    "obs-gamma"
+   ],
+   "hidden": []
+  },
+  "no_positive_claim_on_incomplete": {
+   "problems": [],
+   "positive_claim_blocked": true
+  },
+  "q9_recorded": {
+   "problems": []
+  },
+  "secret_scan": {
+   "outcome": "clean"
+  }
+ },
+ "breaches": [],
+ "instrumentation": "clean",
+ "verdict": "evaluation-complete",
+ "study_outcome": "recorded evidence aggregated \u2014 fixture verdicts are never live-target claims; the disposition is a measured recommendation pending owner confirmation"
+}
