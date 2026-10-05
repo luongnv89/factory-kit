@@ -24,6 +24,7 @@ Two implementations ship:
 from __future__ import annotations
 
 import json as _json
+import re
 import subprocess
 
 __all__ = [
@@ -36,7 +37,18 @@ __all__ = [
 
 
 class RemoteError(Exception):
-    """The remote refused or failed the operation (a clean answer)."""
+    """The remote refused or failed the operation (a clean answer).
+
+    ``retry_after`` carries upstream retry guidance in seconds when the
+    remote supplied it (``Retry-After`` / rate-limit reset hints); the
+    reconciler's bounded backoff honors it — including values beyond the
+    nominal 5-minute cap, which upstream guidance overrides (Task 2.8
+    A5, §5.1). ``None`` means no guidance was given.
+    """
+
+    def __init__(self, message="", retry_after=None):
+        super().__init__(message)
+        self.retry_after = retry_after
 
 
 class RemoteAmbiguity(RemoteError):
@@ -94,6 +106,24 @@ class RemotePort:
         raise NotImplementedError
 
 
+#: Upstream retry guidance the GitHub CLI surfaces on stderr — a
+#: ``Retry-After: N`` header echo or a "retry after N seconds" message.
+#: Parsed so the reconciler can honor server-directed backoff instead of
+#: guessing (§5.1/A5). Never raises; absent guidance returns ``None``.
+_RETRY_AFTER_RE = re.compile(
+    r"retry[- ]after[:\s]+(\d+)", re.IGNORECASE)
+
+
+def _retry_after_hint(text):
+    match = _RETRY_AFTER_RE.search(text or "")
+    if match is None:
+        return None
+    try:
+        return float(match.group(1))
+    except ValueError:
+        return None
+
+
 class GhCliRemote(RemotePort):
     """Thin adapter over the scoped ``gh``/``git`` credential — the only
     paved remote path (the spike's "scoped gh profile" transport).
@@ -122,7 +152,8 @@ class GhCliRemote(RemotePort):
         if proc.returncode != 0:
             raise RemoteError(
                 f"{' '.join(argv[:2])} exited {proc.returncode}: "
-                f"{proc.stderr.strip()[:200]}")
+                f"{proc.stderr.strip()[:200]}",
+                retry_after=_retry_after_hint(proc.stderr))
         try:
             return _json.loads(proc.stdout or "{}")
         except ValueError:
@@ -257,6 +288,18 @@ class ScriptedRemote(RemotePort):
         self.calls.append({"op": op, **{k: v for k, v in kw.items()
                                         if k != "identity"}})
         fault = self.faults.get(op)
+        # Fault values may also be dicts — ``{"kind": "rate-limit",
+        # "retry_after": N}`` injects the upstream-guidance path the
+        # bounded backoff must honor (Task 2.8 A5).
+        if isinstance(fault, dict):
+            kind = fault.get("kind")
+            if kind == "rate-limit":
+                raise RemoteError(
+                    f"{op} rate-limited by remote",
+                    retry_after=fault.get("retry_after"))
+            if kind == "down":
+                raise RemoteError(f"{op}: remote unreachable")
+            fault = fault.get("kind")
         if fault == "raise":
             raise RemoteError(f"{op} refused by remote")
         if fault == "crash-before-create":

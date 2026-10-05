@@ -81,6 +81,11 @@ Tables:
   references and the passing/stale/unknown reason. ``verified`` is a
   point-in-time observation bound to a SHA, never merge authority;
   later observations append new rows rather than rewriting history.
+- ``reconcile_watermark`` — the F06 reconciliation bookkeeping row
+  (Task 2.8): last GitHub observation attempt/success, consecutive
+  failures, the remote-state word, the stale-episode anchor and the
+  next scheduled pass. Durable so "last successful reconciliation"
+  and the 5-minute stale alert survive a controller restart.
 
 Durability rules honoured here:
 
@@ -343,6 +348,23 @@ CREATE TABLE IF NOT EXISTS verification_evidence(
     observed_at TEXT NOT NULL);
 CREATE INDEX IF NOT EXISTS evidence_by_work
     ON verification_evidence(work_key, observed_at);
+
+-- The reconciliation watermark (Task 2.8 / F06): one durable singleton
+-- row carrying last GitHub observation attempt/success, consecutive
+-- failure count, the remote-state word (fresh/unknown/stale), the
+-- stale episode anchor and the next scheduled pass. Persisted state —
+-- not process memory — so "last successful reconciliation" stays
+-- observable across a restart (§5.1) and the 5-minute stale rule (§7.3)
+-- cannot reset just because the controller died.
+CREATE TABLE IF NOT EXISTS reconcile_watermark(
+    id INTEGER PRIMARY KEY CHECK(id=1),
+    last_attempt_epoch REAL,
+    last_success_epoch REAL,
+    consecutive_failures INTEGER NOT NULL DEFAULT 0,
+    remote_state TEXT NOT NULL DEFAULT 'unknown',
+    stale_since_epoch REAL,
+    next_due_epoch REAL,
+    updated_at TEXT NOT NULL);
 """
 
 
@@ -937,20 +959,29 @@ class IntakeStore:
         descendants observed dead), ``quarantined`` (uncertain — blocks
         replacement eligibility), or ``resolved`` (operator cleared the
         quarantine)."""
+        with self.transact() as tx:
+            return tx.resolve_fence_tx(work_key, termination,
+                                       detail=detail)
+
+    def resolve_fence_tx(self, work_key, termination, detail=None):
+        """The resolve-write core, callable inside an enclosing
+        ``transact`` — restart recovery commits the orphan fence, the
+        uncertain-termination resolution, the quarantined work state
+        and the queue marker in ONE durable transaction, so a crash
+        mid-settle can never leave a fenced attempt looking resumable."""
         if termination not in ("confirmed", "quarantined", "resolved"):
             raise IntakeStoreError(
                 f"unknown termination state {termination!r}")
-        with self.transact() as tx:
-            fence = tx.fence_state(work_key)
-            if fence is None or not fence["fenced"]:
-                return {"outcome": "denied", "reason": "not-fenced"}
-            tx._q(
-                "UPDATE execution_fence SET termination=?,"
-                " termination_detail=?, updated_at=? WHERE work_key=?",
-                (termination, detail, _utcnow(), work_key))
-            tx.record_event("fence_resolved", work_key=work_key,
-                            reason=termination, detail=detail)
-            return {"outcome": termination, "work_key": work_key}
+        fence = self.fence_state(work_key)
+        if fence is None or not fence["fenced"]:
+            return {"outcome": "denied", "reason": "not-fenced"}
+        self._q(
+            "UPDATE execution_fence SET termination=?,"
+            " termination_detail=?, updated_at=? WHERE work_key=?",
+            (termination, detail, _utcnow(), work_key))
+        self.record_event("fence_resolved", work_key=work_key,
+                          reason=termination, detail=detail)
+        return {"outcome": termination, "work_key": work_key}
 
     def replacement_eligible(self, work_key):
         """True only when the generation's fence committed *and*
@@ -1431,6 +1462,49 @@ class IntakeStore:
         cols = [c[1] for c in
                 self._q("PRAGMA table_info(verification_evidence)")]
         return dict(zip(cols, row))
+
+    # -- reconciliation watermark (Task 2.8 / F06, §5.1, §7.3) ------------------
+
+    def reconcile_watermark(self):
+        """The singleton reconciliation bookkeeping row, or ``None``
+        before the first pass runs."""
+        row = self._q(
+            "SELECT last_attempt_epoch,last_success_epoch,"
+            "consecutive_failures,remote_state,stale_since_epoch,"
+            "next_due_epoch,updated_at FROM reconcile_watermark"
+            " WHERE id=1").fetchone()
+        if row is None:
+            return None
+        return {"last_attempt_epoch": row[0],
+                "last_success_epoch": row[1],
+                "consecutive_failures": row[2],
+                "remote_state": row[3],
+                "stale_since_epoch": row[4],
+                "next_due_epoch": row[5],
+                "updated_at": row[6]}
+
+    def update_reconcile_watermark(self, **fields):
+        """Upsert the singleton watermark row (inside ``transact``).
+
+        Only the named columns may be written — this is controller
+        bookkeeping, not a caller-influenced field bag."""
+        allowed = {"last_attempt_epoch", "last_success_epoch",
+                   "consecutive_failures", "remote_state",
+                   "stale_since_epoch", "next_due_epoch"}
+        unknown = set(fields) - allowed
+        if unknown:
+            raise IntakeStoreError(
+                f"unknown watermark fields {sorted(unknown)}")
+        self._q(
+            "INSERT OR IGNORE INTO reconcile_watermark"
+            "(id,updated_at) VALUES(1,?)", (_utcnow(),))
+        if not fields:
+            return
+        sets = ", ".join(f"{k}=?" for k in sorted(fields))
+        self._q(
+            f"UPDATE reconcile_watermark SET {sets}, updated_at=?"
+            " WHERE id=1",
+            [fields[k] for k in sorted(fields)] + [_utcnow()])
 
     # -- events (§7.1) ---------------------------------------------------------
 
