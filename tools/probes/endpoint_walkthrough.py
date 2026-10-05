@@ -1117,7 +1117,8 @@ class Walkthrough:
             "no_go_owners": {b: NO_GO_OWNERS.get(b) for b in named_blockers},
             "linked_identities": self.linked,
             "legs": self.legs,
-            "live": {k: v for k, v in self.live.items() if k != "pr"},
+            "live": {k: v for k, v in self.live.items()
+                     if k not in ("pr", "named_blockers")},
             "met01_note": "one assembled run; does not declare production "
                           "F02/F04/F11/F12 complete — per AC-A8",
             "store_dump": self.store.dump(),
@@ -1160,7 +1161,8 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="factory-kit endpoint walkthrough")
     ap.add_argument("--root", help="fixture root (default: tempdir)")
     ap.add_argument("--write", help="write evidence JSON")
-    ap.add_argument("--scenario", help="run one stage only")
+    ap.add_argument("--scenario",
+                    help="run the pipeline up to and including this stage")
     ap.add_argument("--fixture", help="re-evaluate a recorded run")
     ap.add_argument("--live-pr", action="store_true",
                     help=f"create a real bounded PR on {RECIPE_REPO}")
@@ -1211,7 +1213,8 @@ def main(argv=None) -> int:
     rep["no_go_owners"].update({b: NO_GO_OWNERS.get(b) for b in extra})
     # live telegram adapter absent → named no-go for the live message leg
     if live.get("telegram") and not live["telegram"].get("adapter_present"):
-        rep["named_blockers"].append("telegram-adapter-live")
+        rep["named_blockers"] = sorted(
+            set(rep["named_blockers"]) | {"telegram-adapter-live"})
         rep["no_go_owners"]["telegram-adapter-live"] = \
             NO_GO_OWNERS["telegram-adapter-live"]
 

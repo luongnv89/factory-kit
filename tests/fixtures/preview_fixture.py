@@ -20,8 +20,9 @@ What the fixture proves about the provider contract (issue AC-A3):
   produce *denied* verdicts that block approval-ready/merge — provider
   failure degrades the gate, never waves it through.
 - ``cleanup`` only removes deployments this registry owns; a foreign
-  deployment id is refused and *stays* in the backlog — provider outage
-  leaves visible backlog, never a false removal claim (F11).
+  deployment id is refused outright. An *owned* id under provider outage
+  is pushed to a visible backlog — never a false removal claim — and the
+  later successful cleanup drains that entry (F11).
 """
 
 from __future__ import annotations
@@ -178,6 +179,8 @@ class PreviewRegistry:
             return {"deployment_id": deployment_id, "removed": False,
                     "backlogged": True}
         del state["deployments"][deployment_id]
+        if deployment_id in state["cleanup_backlog"]:
+            state["cleanup_backlog"].remove(deployment_id)
         self.artifact_store.pop(deployment_id, None)
         ev = {"op": "preview-cleanup", "deployment_id": deployment_id,
               "actor": ctx.get("actor")}
