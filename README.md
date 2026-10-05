@@ -29,7 +29,14 @@ recipe (issue #23 / Task 3.9) lives in `docs/recipes/` — tested
 installation/removal commands, operations and recovery vocabulary, the
 backup/restore rehearsal and the tested-only support matrix — exercised
 end-to-end by `tests/recipes/` and `tests/recovery/test_backup_restore.py`.
-The full issue→preview→approved-merge endpoint run is Task 3.10 scope.
+The internal v1.0 evidence gate (issue #24 / Task 3.10) is assembled in
+`docs/evidence/v1.0-gate.md` — every Must-feature criterion and
+GATE-M01–M08 traced to reproducible evidence — and the owner acceptance
+record in `docs/decisions/v1.0-acceptance.md`. The audit reports
+**NO-GO pending owner decision**: GATE-M02 stays closed on the
+outstanding live endpoint legs (`base-unprotected` — verified live —
+`telegram-adapter-live`, `vercel-linkage`, `kanban-live-write`) and Q9
+acceptance is still pending; no gate was waived for schedule.
 
 ## Documents
 
@@ -39,6 +46,8 @@ The full issue→preview→approved-merge endpoint run is Task 3.10 scope.
 - [Development task plan](tasks.md)
 - [Spike evidence and boundary map](docs/spike/)
 - [Fault-matrix evidence](docs/evidence/fault-matrix.md)
+- [Internal v1.0 evidence gate](docs/evidence/v1.0-gate.md) — requirement-to-evidence audit, 7/8 gates open (M02 closed)
+- [v1.0 acceptance record](docs/decisions/v1.0-acceptance.md) — no-go pending owner decision
 - [§5.1 measured local targets](docs/measurements/v1-targets.md)
 - [Tested support recipe](docs/recipes/) — installation, operations, backup/restore, support matrix
 - [Decision records](docs/decisions/)
