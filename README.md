@@ -74,7 +74,22 @@ incomplete or failed evidence — per
 **narrow/consolidate** on measured reasons (7/10 merge-ready, 1/2
 repeat use, amortized overhead erasing the intervention saving, one
 author takeover), pending owner confirmation — `continue` stays the
-owner's act; see `docs/decisions/continue-narrow-stop.md`.
+owner's act; see `docs/decisions/continue-narrow-stop.md`. The
+conditional v1.1 release package (issue #31 / Task 4.7) ships
+recipe-scoped under `release-withheld` — evidence and support recipes
+reviewable, expansion claims not made — per
+`docs/releases/v1.1/release-checklist.md`. The F13 optional-harness
+admission assessment (issue #32 / Task 5.1, GATE-E04) then audits the
+pilot evidence plus the single documented candidate
+(`codex-cli 0.160.0` via `hermes codex-runtime`) through
+`tools/probes/harness_admission.py` and records **admission-deferred**:
+the narrow pilot outcome, the failed repeat-use target, the
+burden-erasing maintenance cost, insufficient documented demand and
+the candidate's unproven/no-go lifecycle integration each independently
+gate expansion — task 5.2 stays deferred with no adapter code
+executed until the owner explicitly adopts; see
+`docs/adapters/admission-assessment.md` and
+`docs/decisions/f13-admission.md`.
 
 ## Documents
 
@@ -94,6 +109,9 @@ owner's act; see `docs/decisions/continue-narrow-stop.md`.
 - [Tested support recipe](docs/recipes/) — installation, operations, backup/restore, upgrade/repair/rollback, support matrix
 - [Pilot consent and workload-trust admission](docs/pilot/consent-admission.md) — obligations record, consent gate, boundary probes, named blockers
 - [External-pilot observations](docs/pilot/observations.md) — per-participant minimized evidence log
+- [v1.1 release package](docs/releases/v1.1/) — conditional evidence + onboarding + release checklist; `release-withheld`, recipe-scoped
+- [F13 harness admission assessment](docs/adapters/admission-assessment.md) — GATE-E04 audit over pilot evidence + the single documented candidate; `admission-deferred`
+- [F13 admission record](docs/decisions/f13-admission.md) — deferred pending owner act; task 5.2 stays gated
 - [Decision records](docs/decisions/)
 - [Canonical manifest example](.factory-kit.yml)
 - [Reference diagram](assets/warp-ai-factory-reference.jpg)

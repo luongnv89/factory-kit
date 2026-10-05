@@ -1,0 +1,161 @@
+{
+  "schema": "factory-kit/harness-candidate@1",
+  "version": "1.0.0",
+  "recorded": "2026-10-05",
+  "issue": 32,
+  "task": "5.1",
+  "description": "The single documented additional-harness candidate assessed under task 5.1 / GATE-E04: codex-cli reached through `hermes codex-runtime` — the only migration path the Hermes boundary map documents (external CLI worker lanes are otherwise a recorded no-go). This file is the assessment's input record: identity, provenance, measured demand signals, incremental maintenance surface and the capability/authority matrix claims. It asserts no admission — the probe derives each claim's evidence state from the committed sources and any over-claim is an instrumentation breach.",
+  "candidate": {
+    "harness": "codex-cli",
+    "readings_key": "codex",
+    "harness_version": "0.160.0",
+    "integration_path": "hermes codex-runtime app-server migration",
+    "provenance": {
+      "host": {
+        "observed": "Darwin 27.0.0 arm64 (selected host)",
+        "binary_present": true,
+        "version_string": "codex-cli 0.160.0",
+        "source": "docs/spike/evidence/readiness-2026-10-05.json#readings.runtimes.codex"
+      },
+      "model": {
+        "provider": "openai-codex",
+        "model": "gpt-6-luna",
+        "auth": "Hermes pooled OAuth (hermes auth list includes openai-codex)",
+        "source": "readiness-2026-10-05.json#readings.hermes.auth_providers + docs/decisions/tested-recipe-selection.md"
+      },
+      "skill": {
+        "bundle": "IDD / skills v0.23.1-2-gd6a908f (pinned frontmatter versions)",
+        "source": "readiness-2026-10-05.json#readings.idd"
+      },
+      "docs": [
+        "docs/spike/hermes-boundary-map.md",
+        "docs/decisions/tested-recipe-selection.md",
+        "docs/recipes/support-matrix.md"
+      ]
+    },
+    "demand": {
+      "signals": [
+        {
+          "id": "denied-runtime-mirror-request",
+          "class": "external-workload-request",
+          "measured": "1 of 6 recruited pilot workloads requested a non-selected runtime (workload_class runtime-mirror); denied as unsupported-workload:runtime-mirror; zero observation events collected",
+          "source": "docs/measurements/external-study-2026-10-05.json#admissions.denied-wl",
+          "favorable": false
+        },
+        {
+          "id": "external-repeat-use",
+          "class": "retention",
+          "measured": "1 of the proposed 2 external maintainers held a 4-week completed streak on the *selected* recipe — repeat-use target failed, so no measured demand base exists for a second lane",
+          "source": "external-study-2026-10-05.json#targets.repeat_use_2x4wk_90d",
+          "favorable": false
+        },
+        {
+          "id": "internal-blockage",
+          "class": "dogfood-cohort",
+          "measured": "0 of 10 cohort issues were blocked or failed for want of a second harness; failures were verification-blocked / attempts-exhausted / canceled / declined",
+          "source": "docs/measurements/dogfood-comparison-2026-10-05.json#issues",
+          "favorable": false
+        }
+      ],
+      "requests_for_alternate_runtime": 1,
+      "note": "no repeated external request and no internal blockage attributable to the selected harness is on record"
+    },
+    "incremental_maintenance": {
+      "new_surfaces": [
+        "candidate version tracking + compatibility matrix per release",
+        "adapter-specific §8.2 fault-suite repetitions on top of the existing 19 rows × 57 reps",
+        "credential separation and isolation review per admitted lane",
+        "support-matrix row + recipe coverage for the second runtime"
+      ],
+      "estimated_setup_minutes": null,
+      "effort_class": "task-5.2 bound: ≤ 3 developer-days — hooks unproven, so the estimate cannot be grounded today",
+      "measured_context": "cohort setup+maintenance already amortizes to 7.5 min/issue, lifting total burden to 23.5 vs the 23.0 baseline — maintenance erases the per-issue saving before any second lane exists"
+    },
+    "capability_matrix": [
+      {
+        "capability": "readiness_auth",
+        "required": true,
+        "claim": "executable present + version pinned + model provider pooled; worker-lane readiness/authorization never probed",
+        "evidence_state": "conditional",
+        "evidence": ["readiness-2026-10-05.json#readings.runtimes.codex", "readiness-2026-10-05.json#readings.hermes.auth_providers"]
+      },
+      {
+        "capability": "start",
+        "required": true,
+        "claim": "kanban create/claim/dispatch proven for the Kanban profile worker; a codex-runtime worker lane has never been dispatched",
+        "evidence_state": "unproven",
+        "evidence": ["readiness-2026-10-05.json#report.operations.start", "hermes-boundary-map.md §6.5 start row"]
+      },
+      {
+        "capability": "liveness",
+        "required": true,
+        "claim": "heartbeat/runs/tail/watch supported for the profile worker; candidate lane liveness undemonstrated",
+        "evidence_state": "unproven",
+        "evidence": ["readiness-2026-10-05.json#report.operations.liveness"]
+      },
+      {
+        "capability": "structured_results",
+        "required": true,
+        "claim": "kanban complete/block/request-review + attach + pr_acceptance events proven for the profile worker only",
+        "evidence_state": "unproven",
+        "evidence": ["readiness-2026-10-05.json#report.operations.result"]
+      },
+      {
+        "capability": "independent_role_sessions",
+        "required": true,
+        "claim": "separate implement/review profiles exist on the selected lane; the candidate has never run an independent role session",
+        "evidence_state": "unproven",
+        "evidence": ["hermes-boundary-map.md §6.5 review handoff row"]
+      },
+      {
+        "capability": "cancel_descendants",
+        "required": true,
+        "claim": "kanban block+reclaim fences the profile worker generation; descendant exit accounting for an external CLI lane is undemonstrated",
+        "evidence_state": "unproven",
+        "evidence": ["readiness-2026-10-05.json#report.operations.cancel", "hermes-boundary-map.md §6.5 cancel row"]
+      },
+      {
+        "capability": "resume_steering",
+        "required": false,
+        "optional": true,
+        "claim": "unblock/reclaim/reassign exist on the selected lane; candidate resume is not presumed — checkpoint/restart is the fallback contract",
+        "evidence_state": "optional",
+        "evidence": ["hermes-boundary-map.md §6.5 resume/live-steering row (optional)"]
+      },
+      {
+        "capability": "live_steering",
+        "required": false,
+        "optional": true,
+        "claim": "live steering is a Should-tier capability, deferred by the boundary map; never presumed for any candidate",
+        "evidence_state": "optional",
+        "evidence": ["hermes-boundary-map.md §6.5 resume/live-steering row (optional)"]
+      }
+    ],
+    "probes": [
+      {
+        "probe": "current_generation_authorization",
+        "claim": "pooled openai-codex OAuth authorizes the model lane; no current-generation worker authorization exists for a codex-runtime lane",
+        "evidence_state": "unproven",
+        "evidence": ["readiness-2026-10-05.json#readings.hermes.auth_providers"]
+      },
+      {
+        "probe": "credential_separation",
+        "claim": "profile-scoped GH_CONFIG_DIR/GH_TOKEN is the documented credential boundary for kanban lanes; candidate worker credentials were never separated or fenced",
+        "evidence_state": "unproven",
+        "evidence": ["hermes-boundary-map.md 'Boundaries that must not be rebuilt' — credential broker row"]
+      },
+      {
+        "probe": "hermes_lifecycle_integration",
+        "claim": "external CLI worker lanes are not a paved path; only the hermes codex-runtime app-server migration is documented, and it has never been exercised against the kanban contract — a second scheduler remains forbidden",
+        "evidence_state": "no-go",
+        "evidence": ["hermes-boundary-map.md 'Named gaps / no-go list' — external CLI worker lanes + second scheduler rows"]
+      },
+      {
+        "probe": "endpoint_compatibility",
+        "claim": "the existing preview/human-approved merge endpoint was exercised only through the selected lane, which still carries open live blockers (base-unprotected, telegram-adapter-live, vercel-linkage, kanban-live-write); the candidate has never driven it",
+        "evidence_state": "unproven",
+        "evidence": ["release-gate-2026-10-05.json#gates.v1_0_gate", "docs/evidence/v1.0-gate.md"]
+      }
+    ]
+  }
+}
