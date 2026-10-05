@@ -12,6 +12,9 @@ record ``docs/decisions/package-config-contract.md``):
 - **Storage:** Hermes owns task/attempt/fence state in ``kanban.db``; the kit
   owns registration, delivery-dedup, control and approval rows (Q6 split),
   persisted as per-profile JSON that can never dispatch by itself.
+  ``factory_kit.durable`` carries the SQLite intake store (work identity,
+  delivery dedup, intake events); ``factory_kit.intake`` carries the
+  authorized webhook/reconciliation pipeline that converges on it (F02).
 """
 
 VERSION = "0.1.0"
