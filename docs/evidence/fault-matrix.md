@@ -94,7 +94,7 @@ authoritative state — never from the scenario's expectations:
 ## Recorded run
 
 `docs/evidence/fault-matrix-2026-10-05.json` — `fault-matrix-passed`,
-19 rows / 57 repetitions / 384 named assertions, all passed, zero audit
+19 rows / 57 repetitions / 387 named assertions, all passed, zero audit
 violations. The archive records per-repetition assertions with measured
 values, bound identities (work/attempt/intent/request/PR/preview/
 deployment/notification ids, merge SHAs), the audit detail, and the

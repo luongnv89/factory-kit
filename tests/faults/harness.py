@@ -491,14 +491,28 @@ def audit_world(world):
 
     # -- accepted fenced results: a result committed ``accepted`` whose
     #    work's generation fence predates the result's commit — the
-    #    "no stale completion" invariant, from durable rows.
+    #    "no stale completion" invariant, from durable rows. The fence's
+    #    commit time is the durable ``work_fenced`` event: the fence
+    #    row's ``updated_at`` moves again on resolve, so comparing
+    #    against it would hide a result accepted in the fence→resolve
+    #    window.
     fenced = {r["work_key"]: r for r in store._rows("execution_fence")
               if r["fenced"]}
+    fence_commits = {}
+    for ev in store.event_rows("work_fenced"):
+        wk = ev.get("work_key")
+        if wk and (wk not in fence_commits
+                   or str(ev["ts"]) < str(fence_commits[wk])):
+            fence_commits[wk] = ev["ts"]
     for res in store.result_rows():
         if not res["accepted"]:
             continue
         fence = fenced.get(res["work_key"])
-        if fence and str(res["ts"]) > str(fence["updated_at"]):
+        if fence is None:
+            continue
+        committed = fence_commits.get(res["work_key"],
+                                      fence["updated_at"])
+        if str(res["ts"]) > str(committed):
             counters["accepted_fenced_results"] += 1
             violations.append(
                 {"counter": "accepted_fenced_results",
@@ -631,8 +645,10 @@ def run_row(row_id, scenario, *, reps=REPS, world_kw=None):
             except Exception:
                 pass
         failed = [a["name"] for a in assertions if not a["pass"]]
-        rep_ok = not failed and not audit["violations"] and \
-            error is None
+        # A repetition carrying zero named assertions is not evidence —
+        # the gate fails closed rather than passing vacuously.
+        rep_ok = bool(assertions) and not failed and \
+            not audit["violations"] and error is None
         rep_reports.append({
             "rep": rep, "pass": rep_ok,
             "assertions": assertions,
