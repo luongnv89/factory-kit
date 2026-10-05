@@ -265,6 +265,33 @@ class TestExport(ReportFixture):
                          {"note": "edit observed <redacted>"})
         self.assertTrue(out["expanded"])
 
+    def test_expanded_export_redacts_string_detail_secret(self):
+        """A free-text detail (what callers like ``detail=str(exc)``
+        store) must still pass the secret scrub — a string root is not
+        a property bag, but it can still carry a credential (A5)."""
+        key = self._work(12)
+        self.store.record_event(
+            "work_updated", work_key=key,
+            detail="fetch failed, token " + CANARY)
+        out = report.export_diagnostics(self.store, expanded=True)
+        blob = json.dumps(out)
+        self.assertNotIn(CANARY, blob)
+        ev = [e for e in out["events"] if e["kind"] == "work_updated"]
+        self.assertEqual(ev[0]["detail"],
+                         "fetch failed, token <redacted>")
+
+    def test_expanded_export_redacts_list_detail_secret(self):
+        """A JSON-array detail is walked element-wise, not passed
+        through unscrubbed (A5)."""
+        key = self._work(13)
+        self.store.record_event(
+            "work_updated", work_key=key,
+            detail=json.dumps(["ok", "leak " + CANARY]))
+        out = report.export_diagnostics(self.store, expanded=True)
+        self.assertNotIn(CANARY, json.dumps(out))
+        ev = [e for e in out["events"] if e["kind"] == "work_updated"]
+        self.assertEqual(ev[0]["detail"], ["ok", "leak <redacted>"])
+
     def test_export_survives_reopen(self):
         key = self._work(9)
         self.store.record_operator_effort(
@@ -318,6 +345,25 @@ class TestPilotExport(ReportFixture):
         self.assertNotIn("chat_text", props)
         self.assertEqual(props["revision"], "abc123")
         self.assertEqual(out["agreement"]["scope"], "pilot-export")
+
+    def test_pilot_export_tolerates_non_dict_detail(self):
+        """A stored detail that parses to a JSON scalar/array is not
+        a property bag — it contributes nothing instead of crashing
+        the export."""
+        key = self._work(14)
+        self.store.record_event(
+            "work_updated", work_key=key, detail=json.dumps([1, 2]))
+        self.store.record_event(
+            "work_updated", work_key=key, detail="123")
+        self.store.record_participant_agreement(
+            "pilot-export", actor_ref="telegram:123")
+        out = report.pilot_export(self.store)
+        self.assertEqual(out["outcome"], "exported")
+        events = [e for e in out["events"]
+                  if e["kind"] == "work_updated"]
+        self.assertEqual(len(events), 2)
+        for ev in events:
+            self.assertEqual(ev["properties"]["work_key"], key)
 
 
 # ---------------------------------------------------------------------------

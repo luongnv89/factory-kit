@@ -429,7 +429,12 @@ def pilot_export(store, *, scope=_PILOT_EXPORT_SCOPE):
     for row in store.event_rows():
         props = {}
         if row.get("detail"):
-            props = _json_or_none(row["detail"]) or {}
+            parsed = _json_or_none(row["detail"])
+            # Only mapping details contribute properties — a stored
+            # scalar/array detail is not a property bag, and feeding
+            # it to dict.update would crash the export.
+            if isinstance(parsed, dict):
+                props = parsed
         merged = {"work_key": row["work_key"], "reason": row["reason"],
                   "config_digest": row["config_digest"]}
         merged.update(props)

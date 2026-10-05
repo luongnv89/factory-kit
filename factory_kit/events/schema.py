@@ -379,8 +379,15 @@ def redact_properties(properties):
     bodies/code/logs/chat/usernames/secrets — A5/A6). String values
     that still match :data:`SECRET_VALUE_RE` have the secret span
     rewritten to ``<redacted>`` — an *expanded* export still redacts
-    secrets (A5). Containers are walked recursively.
+    secrets (A5). Containers are walked recursively, and a non-dict
+    root is scrubbed the same way: a bare string detail is secret-
+    scanned, and a list/tuple root is walked element-wise, so a
+    free-text or array payload cannot bypass the boundary (A5).
     """
+    if isinstance(properties, str):
+        return _redact_string(properties)
+    if isinstance(properties, (list, tuple)):
+        return [_redact_value(v) for v in properties]
     if not isinstance(properties, dict):
         return properties
     out = {}
