@@ -1,0 +1,1451 @@
+{
+  "schema": "factory-kit/spike-faults@1",
+  "version": "1.0.0",
+  "run_id": "01427ea9",
+  "started": "2026-10-05T00:46:33Z",
+  "elapsed_s": 0.03,
+  "verdict": "fault-suite-passed",
+  "scenario": null,
+  "legs": [
+    {
+      "name": "duplicate-delivery",
+      "status": "pass",
+      "evidence": {
+        "legs": [
+          {
+            "name": "initial-accept",
+            "outcome": "accepted",
+            "reason": null,
+            "seq": 1,
+            "channel": "webhook",
+            "work_id": "wk-0001"
+          },
+          {
+            "name": "webhook-redelivery",
+            "outcome": "deduplicated",
+            "work_id": "wk-0001",
+            "original_outcome": "accepted",
+            "seq": 2,
+            "channel": "webhook"
+          },
+          {
+            "name": "reconciliation-overlap",
+            "outcome": "reconciled",
+            "reason": null,
+            "seq": 3,
+            "channel": "reconciliation",
+            "work_id": "wk-0001"
+          }
+        ],
+        "convergence": {
+          "work_rows": 1,
+          "task_rows": 1,
+          "delivery_rows": 2,
+          "work_id": "wk-0001"
+        },
+        "attempts": {
+          "first": {
+            "outcome": "active",
+            "attempt_id": "att-implementation-86541898",
+            "seq": 4
+          },
+          "second": {
+            "outcome": "denied",
+            "reason": "attempt-active",
+            "active": "att-implementation-86541898",
+            "seq": 5
+          },
+          "active_attempts": 1
+        },
+        "ack_vs_durable": {
+          "acknowledged": [
+            "accepted",
+            "deduplicated",
+            "reconciled"
+          ],
+          "recovered_rows": 2,
+          "note": "convergence computed from durable rows, not the acknowledged delivery set"
+        }
+      }
+    },
+    {
+      "name": "restart-recovery",
+      "status": "pass",
+      "evidence": {
+        "legs": [
+          {
+            "name": "pre-restart-accept",
+            "outcome": "reconciled",
+            "reason": null,
+            "seq": 6,
+            "channel": "webhook",
+            "work_id": "wk-0001"
+          },
+          {
+            "name": "post-restart-redelivery",
+            "outcome": "deduplicated",
+            "work_id": "wk-0001",
+            "original_outcome": "reconciled",
+            "seq": 7,
+            "channel": "webhook"
+          },
+          {
+            "name": "post-restart-new-delivery",
+            "outcome": "reconciled",
+            "reason": null,
+            "seq": 8,
+            "channel": "reconciliation",
+            "work_id": "wk-0001"
+          }
+        ],
+        "convergence": {
+          "work_rows": 1,
+          "delivery_rows": 4,
+          "work_id": "wk-0001"
+        }
+      }
+    },
+    {
+      "name": "pr-crash-reconcile",
+      "status": "pass",
+      "evidence": {
+        "legs": [
+          {
+            "name": "crash-after-pr-create",
+            "op_id": "op-pr-f1",
+            "outcome": "response-lost"
+          },
+          {
+            "name": "recovery-readback",
+            "op_id": "op-pr-f1",
+            "outcome": "reconciled",
+            "pr_number": 7,
+            "republished": false
+          },
+          {
+            "name": "crash-before-unreadable",
+            "op_id": "op-pr-f2",
+            "outcome": "response-lost"
+          },
+          {
+            "name": "recovery-unreadable",
+            "op_id": "op-pr-f2",
+            "outcome": "parked",
+            "reason": "remote-unreadable",
+            "republished": false
+          },
+          {
+            "name": "parked-then-recovered",
+            "op_id": "op-pr-f2",
+            "outcome": "reconciled",
+            "pr_number": 8,
+            "republished": false
+          }
+        ],
+        "prs_for_head": 1,
+        "total_pulls": 2
+      }
+    },
+    {
+      "name": "cancel-late-result",
+      "status": "pass",
+      "evidence": {
+        "legs": [
+          {
+            "name": "typed-cancel-committed",
+            "accepted": true,
+            "seq": 1,
+            "committed_at": "2026-10-05T00:46:33.827+00:00"
+          },
+          {
+            "name": "late-result-fenced",
+            "op_id": "res-f1",
+            "outcome": "denied",
+            "reason": "generation-fenced",
+            "detail": "the current generation is fenced (cancel/pause committed)"
+          },
+          {
+            "name": "late-effect-fenced",
+            "op_id": "eff-f1",
+            "outcome": "denied",
+            "reason": "generation-fenced",
+            "detail": "the current generation is fenced (cancel/pause committed)"
+          },
+          {
+            "name": "replacement-uncertain",
+            "allowed": false,
+            "reason": "termination-uncertain",
+            "quarantined": false
+          },
+          {
+            "name": "replacement-after-confirm",
+            "allowed": true,
+            "generation": 2
+          },
+          {
+            "name": "gen1-after-replacement",
+            "op_id": "eff-f2",
+            "outcome": "denied",
+            "reason": "superseded-generation",
+            "detail": "request names a generation that is no longer current"
+          }
+        ],
+        "generation_after": {
+          "generation": 2,
+          "state": "active",
+          "terminated": null
+        }
+      }
+    },
+    {
+      "name": "dead-worker-quarantine",
+      "status": "pass",
+      "evidence": {
+        "legs": [
+          {
+            "name": "expired-claim-result",
+            "result_id": "res-dead-1",
+            "outcome": "denied",
+            "reason": "attempt-expired",
+            "expired": [
+              "att-implementation-96558eaf"
+            ]
+          },
+          {
+            "name": "dead-worker-cancel",
+            "accepted": true,
+            "seq": 2,
+            "committed_at": "2026-10-05T00:46:33.831+00:00"
+          },
+          {
+            "name": "quarantined-no-replacement",
+            "allowed": false,
+            "reason": "termination-uncertain",
+            "quarantined": true
+          },
+          {
+            "name": "uncertain-remote",
+            "op_id": "op-pr-missing",
+            "outcome": "unknown-op",
+            "republished": false
+          },
+          {
+            "name": "quarantine-cleared",
+            "allowed": true,
+            "generation": 3
+          },
+          {
+            "name": "fresh-claim-result",
+            "result_id": "res-dead-2",
+            "outcome": "accepted",
+            "reason": null,
+            "attempt_id": "att-implementation-09d2e44f"
+          }
+        ]
+      }
+    },
+    {
+      "name": "approval-restart",
+      "status": "pass",
+      "evidence": {
+        "request": {
+          "request_id": "apr-ba6e251c69a5",
+          "state": "awaiting",
+          "expiry": 1791164793.832876
+        },
+        "restart_row": [
+          "77001",
+          "spike/disposable#7",
+          "approve-merge",
+          "a8aabeefbc8bba331d147902c5493975d8079f822256271534be68ea36797915",
+          "9bc030fccb71d3315c740147b74fe4a99683fb2516738b632412ae117a00da44",
+          "72993b6cb83904d39a8c73bd0651aa6251288ede5dbc2c7bcbdc54cc5bbf5d77",
+          1791164793.832876,
+          "awaiting"
+        ],
+        "attributable": true,
+        "legs": [
+          {
+            "name": "restart-attribution",
+            "actor": "77001",
+            "state": "awaiting"
+          }
+        ]
+      }
+    },
+    {
+      "name": "approval-single-use",
+      "status": "pass",
+      "evidence": {
+        "legs": [
+          {
+            "name": "first-consume",
+            "outcome": "consumed",
+            "reason": null,
+            "seq": 11,
+            "merge_intent": "mi-0011"
+          },
+          {
+            "name": "replay",
+            "outcome": "denied",
+            "reason": "replayed",
+            "seq": 12,
+            "merge_intents_for_request": 1
+          },
+          {
+            "name": "concurrent-approve",
+            "outcomes": [
+              "consumed",
+              "denied"
+            ],
+            "consumed": 1
+          },
+          {
+            "name": "expired-request",
+            "outcome": "denied",
+            "reason": "expired",
+            "seq": 15,
+            "merge_intents_for_request": 0
+          },
+          {
+            "name": "cancel-after-consume",
+            "gate": "merge-guard",
+            "pass": false,
+            "reasons": [
+              "task-fenced"
+            ]
+          }
+        ],
+        "merge_intents": {
+          "per_request": {
+            "apr-ba6e251c69a5": 1,
+            "apr-920c1afa6a15": 1
+          },
+          "pending": 0
+        }
+      }
+    },
+    {
+      "name": "approval-drift",
+      "status": "pass",
+      "evidence": {
+        "legs": [
+          {
+            "name": "in-contract",
+            "gate": "merge-guard",
+            "pass": true,
+            "reasons": []
+          },
+          {
+            "name": "head-changed",
+            "gate": "merge-guard",
+            "pass": false,
+            "reasons": [
+              "head-changed"
+            ]
+          },
+          {
+            "name": "base-changed",
+            "gate": "merge-guard",
+            "pass": false,
+            "reasons": [
+              "base-changed"
+            ]
+          },
+          {
+            "name": "check-drift",
+            "gate": "merge-guard",
+            "pass": false,
+            "reasons": [
+              "required-checks-not-green"
+            ]
+          },
+          {
+            "name": "stale-preview",
+            "gate": "merge-guard",
+            "pass": false,
+            "reasons": [
+              "stale-preview"
+            ]
+          },
+          {
+            "name": "policy-changed-reapprove",
+            "outcome": "denied",
+            "reason": "state-invalidated",
+            "seq": 16,
+            "merge_intents_for_request": 0
+          },
+          {
+            "name": "policy-changed-guard",
+            "gate": "merge-guard",
+            "pass": false,
+            "reasons": [
+              "approval-invalidated"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "merge-uncertainty",
+      "status": "pass",
+      "evidence": {
+        "legs": [
+          {
+            "name": "lost-response-reconcile",
+            "response_received": false,
+            "remote_state": "merged",
+            "reconciled_sha": "f1a1c0463fb90093b59714e3cf5e7af3533e03f5",
+            "matches_expected_head": true,
+            "retried": false,
+            "verdict": "reconciled-before-retry"
+          },
+          {
+            "name": "unreadable-remote-parks",
+            "remote_readable": false,
+            "verdict": "parked",
+            "blind_resend": false,
+            "false_success": false
+          },
+          {
+            "name": "post-restore-confirm",
+            "remote_state": "merged",
+            "merge_events": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "gate-ledger",
+      "status": "pass",
+      "evidence": {
+        "ledger": [
+          {
+            "gate": "GATE-S01",
+            "item": "probe readiness, select supported repo/runtime/model",
+            "owner_task": "1.1",
+            "status": "pass",
+            "supported_interface": "readiness probe + tested-recipe selection",
+            "versions": {
+              "spike_faults": "1.0.0",
+              "endpoint_walkthrough": "1.0.0",
+              "fenced_effects": "1.0.0",
+              "disposable_repo": "v1",
+              "preview_fixture": "v1"
+            },
+            "fixture_identity": {
+              "repository": "spike/disposable",
+              "remote": "DisposableRemote remote.json fixture",
+              "stores": "endpoint.db / fence.db (SQLite, BEGIN IMMEDIATE + synchronous=FULL)"
+            },
+            "evidence": [
+              "docs/spike/evidence/readiness-2026-10-05.json",
+              "docs/decisions/tested-recipe-selection.md"
+            ],
+            "evidence_present": [
+              true,
+              true
+            ],
+            "reproduce": "python3 tools/probes/spike_faults.py --write <out>.json"
+          },
+          {
+            "gate": "GATE-S02",
+            "item": "map durable primitives and boundary",
+            "owner_task": "1.1",
+            "status": "pass",
+            "supported_interface": "Hermes boundary map (kanban/typed actions/approvals)",
+            "versions": {
+              "spike_faults": "1.0.0",
+              "endpoint_walkthrough": "1.0.0",
+              "fenced_effects": "1.0.0",
+              "disposable_repo": "v1",
+              "preview_fixture": "v1"
+            },
+            "fixture_identity": {
+              "repository": "spike/disposable",
+              "remote": "DisposableRemote remote.json fixture",
+              "stores": "endpoint.db / fence.db (SQLite, BEGIN IMMEDIATE + synchronous=FULL)"
+            },
+            "evidence": [
+              "docs/spike/hermes-boundary-map.md"
+            ],
+            "evidence_present": [
+              true
+            ],
+            "reproduce": "python3 tools/probes/spike_faults.py --write <out>.json"
+          },
+          {
+            "gate": "GATE-S03",
+            "item": "preview provider \u2014 revision-to-deployment identity",
+            "owner_task": "1.3",
+            "status": "pass",
+            "supported_interface": "preview registry fixture + live Vercel deploy/inspect",
+            "versions": {
+              "spike_faults": "1.0.0",
+              "endpoint_walkthrough": "1.0.0",
+              "fenced_effects": "1.0.0",
+              "disposable_repo": "v1",
+              "preview_fixture": "v1"
+            },
+            "fixture_identity": {
+              "repository": "spike/disposable",
+              "remote": "DisposableRemote remote.json fixture",
+              "stores": "endpoint.db / fence.db (SQLite, BEGIN IMMEDIATE + synchronous=FULL)"
+            },
+            "evidence": [
+              "docs/spike/evidence/endpoint-2026-10-05.json",
+              "docs/spike/endpoint-demo.md"
+            ],
+            "evidence_present": [
+              true,
+              true
+            ],
+            "reproduce": "python3 tools/probes/spike_faults.py --write <out>.json"
+          },
+          {
+            "gate": "GATE-S04",
+            "item": "end-to-end happy path on real fixture projects",
+            "owner_task": "1.3",
+            "status": "pass",
+            "supported_interface": "endpoint walkthrough + live money-mind PR leg",
+            "versions": {
+              "spike_faults": "1.0.0",
+              "endpoint_walkthrough": "1.0.0",
+              "fenced_effects": "1.0.0",
+              "disposable_repo": "v1",
+              "preview_fixture": "v1"
+            },
+            "fixture_identity": {
+              "repository": "spike/disposable",
+              "remote": "DisposableRemote remote.json fixture",
+              "stores": "endpoint.db / fence.db (SQLite, BEGIN IMMEDIATE + synchronous=FULL)"
+            },
+            "evidence": [
+              "docs/spike/evidence/endpoint-2026-10-05.json",
+              "docs/spike/spike-traces.md"
+            ],
+            "evidence_present": [
+              true,
+              true
+            ],
+            "reproduce": "python3 tools/probes/spike_faults.py --write <out>.json"
+          },
+          {
+            "gate": "GATE-S05",
+            "item": "fault injection \u2014 Stage-0 fault subset",
+            "owner_task": "1.4",
+            "status": "pass",
+            "supported_interface": "this probe over the demonstrated slice",
+            "versions": {
+              "spike_faults": "1.0.0",
+              "endpoint_walkthrough": "1.0.0",
+              "fenced_effects": "1.0.0",
+              "disposable_repo": "v1",
+              "preview_fixture": "v1"
+            },
+            "fixture_identity": {
+              "repository": "spike/disposable",
+              "remote": "DisposableRemote remote.json fixture",
+              "stores": "endpoint.db / fence.db (SQLite, BEGIN IMMEDIATE + synchronous=FULL)"
+            },
+            "evidence": [
+              "docs/spike/evidence/faults-2026-10-05.json"
+            ],
+            "evidence_present": [
+              true
+            ],
+            "reproduce": "python3 tools/probes/spike_faults.py --write <out>.json"
+          },
+          {
+            "gate": "GATE-S06",
+            "item": "verify capability/credential boundary",
+            "owner_task": "1.2",
+            "status": "pass",
+            "supported_interface": "fenced-effects boundary + disposable remote",
+            "versions": {
+              "spike_faults": "1.0.0",
+              "endpoint_walkthrough": "1.0.0",
+              "fenced_effects": "1.0.0",
+              "disposable_repo": "v1",
+              "preview_fixture": "v1"
+            },
+            "fixture_identity": {
+              "repository": "spike/disposable",
+              "remote": "DisposableRemote remote.json fixture",
+              "stores": "endpoint.db / fence.db (SQLite, BEGIN IMMEDIATE + synchronous=FULL)"
+            },
+            "evidence": [
+              "docs/spike/evidence/fenced-effects-2026-10-05.json",
+              "docs/spike/authority-proof.md"
+            ],
+            "evidence_present": [
+              true,
+              true
+            ],
+            "reproduce": "python3 tools/probes/spike_faults.py --write <out>.json"
+          },
+          {
+            "gate": "GATE-S07",
+            "item": "record endpoint and data decisions",
+            "owner_task": "1.1",
+            "status": "pass",
+            "supported_interface": "tested-recipe decision record (Q1/Q2/Q10 preserved)",
+            "versions": {
+              "spike_faults": "1.0.0",
+              "endpoint_walkthrough": "1.0.0",
+              "fenced_effects": "1.0.0",
+              "disposable_repo": "v1",
+              "preview_fixture": "v1"
+            },
+            "fixture_identity": {
+              "repository": "spike/disposable",
+              "remote": "DisposableRemote remote.json fixture",
+              "stores": "endpoint.db / fence.db (SQLite, BEGIN IMMEDIATE + synchronous=FULL)"
+            },
+            "evidence": [
+              "docs/decisions/tested-recipe-selection.md"
+            ],
+            "evidence_present": [
+              true
+            ],
+            "reproduce": "python3 tools/probes/spike_faults.py --write <out>.json"
+          },
+          {
+            "gate": "GATE-S08",
+            "item": "approval persistence/single-use + enforced merge preconditions",
+            "owner_task": "1.3/1.4",
+            "status": "pass",
+            "supported_interface": "durable one-use approval + merge-guard + drift denies",
+            "versions": {
+              "spike_faults": "1.0.0",
+              "endpoint_walkthrough": "1.0.0",
+              "fenced_effects": "1.0.0",
+              "disposable_repo": "v1",
+              "preview_fixture": "v1"
+            },
+            "fixture_identity": {
+              "repository": "spike/disposable",
+              "remote": "DisposableRemote remote.json fixture",
+              "stores": "endpoint.db / fence.db (SQLite, BEGIN IMMEDIATE + synchronous=FULL)"
+            },
+            "evidence": [
+              "docs/spike/evidence/endpoint-2026-10-05.json",
+              "docs/spike/evidence/faults-2026-10-05.json"
+            ],
+            "evidence_present": [
+              true,
+              true
+            ],
+            "reproduce": "python3 tools/probes/spike_faults.py --write <out>.json"
+          }
+        ],
+        "spike_subset_counters": {
+          "duplicate_prs": 0,
+          "unauthorized_merges": 0,
+          "accepted_fenced_results": 0,
+          "_fenced_intents_total": 3,
+          "_privileged_intents_allowed": 0
+        },
+        "met03": "subset only \u2014 remaining \u00a78.2 rows and 3 reps per release row are explicit MVP work (tasks 3.6/3.7)"
+      }
+    }
+  ],
+  "gate_ledger": [
+    {
+      "gate": "GATE-S01",
+      "item": "probe readiness, select supported repo/runtime/model",
+      "owner_task": "1.1",
+      "status": "pass",
+      "supported_interface": "readiness probe + tested-recipe selection",
+      "versions": {
+        "spike_faults": "1.0.0",
+        "endpoint_walkthrough": "1.0.0",
+        "fenced_effects": "1.0.0",
+        "disposable_repo": "v1",
+        "preview_fixture": "v1"
+      },
+      "fixture_identity": {
+        "repository": "spike/disposable",
+        "remote": "DisposableRemote remote.json fixture",
+        "stores": "endpoint.db / fence.db (SQLite, BEGIN IMMEDIATE + synchronous=FULL)"
+      },
+      "evidence": [
+        "docs/spike/evidence/readiness-2026-10-05.json",
+        "docs/decisions/tested-recipe-selection.md"
+      ],
+      "evidence_present": [
+        true,
+        true
+      ],
+      "reproduce": "python3 tools/probes/spike_faults.py --write <out>.json"
+    },
+    {
+      "gate": "GATE-S02",
+      "item": "map durable primitives and boundary",
+      "owner_task": "1.1",
+      "status": "pass",
+      "supported_interface": "Hermes boundary map (kanban/typed actions/approvals)",
+      "versions": {
+        "spike_faults": "1.0.0",
+        "endpoint_walkthrough": "1.0.0",
+        "fenced_effects": "1.0.0",
+        "disposable_repo": "v1",
+        "preview_fixture": "v1"
+      },
+      "fixture_identity": {
+        "repository": "spike/disposable",
+        "remote": "DisposableRemote remote.json fixture",
+        "stores": "endpoint.db / fence.db (SQLite, BEGIN IMMEDIATE + synchronous=FULL)"
+      },
+      "evidence": [
+        "docs/spike/hermes-boundary-map.md"
+      ],
+      "evidence_present": [
+        true
+      ],
+      "reproduce": "python3 tools/probes/spike_faults.py --write <out>.json"
+    },
+    {
+      "gate": "GATE-S03",
+      "item": "preview provider \u2014 revision-to-deployment identity",
+      "owner_task": "1.3",
+      "status": "pass",
+      "supported_interface": "preview registry fixture + live Vercel deploy/inspect",
+      "versions": {
+        "spike_faults": "1.0.0",
+        "endpoint_walkthrough": "1.0.0",
+        "fenced_effects": "1.0.0",
+        "disposable_repo": "v1",
+        "preview_fixture": "v1"
+      },
+      "fixture_identity": {
+        "repository": "spike/disposable",
+        "remote": "DisposableRemote remote.json fixture",
+        "stores": "endpoint.db / fence.db (SQLite, BEGIN IMMEDIATE + synchronous=FULL)"
+      },
+      "evidence": [
+        "docs/spike/evidence/endpoint-2026-10-05.json",
+        "docs/spike/endpoint-demo.md"
+      ],
+      "evidence_present": [
+        true,
+        true
+      ],
+      "reproduce": "python3 tools/probes/spike_faults.py --write <out>.json"
+    },
+    {
+      "gate": "GATE-S04",
+      "item": "end-to-end happy path on real fixture projects",
+      "owner_task": "1.3",
+      "status": "pass",
+      "supported_interface": "endpoint walkthrough + live money-mind PR leg",
+      "versions": {
+        "spike_faults": "1.0.0",
+        "endpoint_walkthrough": "1.0.0",
+        "fenced_effects": "1.0.0",
+        "disposable_repo": "v1",
+        "preview_fixture": "v1"
+      },
+      "fixture_identity": {
+        "repository": "spike/disposable",
+        "remote": "DisposableRemote remote.json fixture",
+        "stores": "endpoint.db / fence.db (SQLite, BEGIN IMMEDIATE + synchronous=FULL)"
+      },
+      "evidence": [
+        "docs/spike/evidence/endpoint-2026-10-05.json",
+        "docs/spike/spike-traces.md"
+      ],
+      "evidence_present": [
+        true,
+        true
+      ],
+      "reproduce": "python3 tools/probes/spike_faults.py --write <out>.json"
+    },
+    {
+      "gate": "GATE-S05",
+      "item": "fault injection \u2014 Stage-0 fault subset",
+      "owner_task": "1.4",
+      "status": "pass",
+      "supported_interface": "this probe over the demonstrated slice",
+      "versions": {
+        "spike_faults": "1.0.0",
+        "endpoint_walkthrough": "1.0.0",
+        "fenced_effects": "1.0.0",
+        "disposable_repo": "v1",
+        "preview_fixture": "v1"
+      },
+      "fixture_identity": {
+        "repository": "spike/disposable",
+        "remote": "DisposableRemote remote.json fixture",
+        "stores": "endpoint.db / fence.db (SQLite, BEGIN IMMEDIATE + synchronous=FULL)"
+      },
+      "evidence": [
+        "docs/spike/evidence/faults-2026-10-05.json"
+      ],
+      "evidence_present": [
+        true
+      ],
+      "reproduce": "python3 tools/probes/spike_faults.py --write <out>.json"
+    },
+    {
+      "gate": "GATE-S06",
+      "item": "verify capability/credential boundary",
+      "owner_task": "1.2",
+      "status": "pass",
+      "supported_interface": "fenced-effects boundary + disposable remote",
+      "versions": {
+        "spike_faults": "1.0.0",
+        "endpoint_walkthrough": "1.0.0",
+        "fenced_effects": "1.0.0",
+        "disposable_repo": "v1",
+        "preview_fixture": "v1"
+      },
+      "fixture_identity": {
+        "repository": "spike/disposable",
+        "remote": "DisposableRemote remote.json fixture",
+        "stores": "endpoint.db / fence.db (SQLite, BEGIN IMMEDIATE + synchronous=FULL)"
+      },
+      "evidence": [
+        "docs/spike/evidence/fenced-effects-2026-10-05.json",
+        "docs/spike/authority-proof.md"
+      ],
+      "evidence_present": [
+        true,
+        true
+      ],
+      "reproduce": "python3 tools/probes/spike_faults.py --write <out>.json"
+    },
+    {
+      "gate": "GATE-S07",
+      "item": "record endpoint and data decisions",
+      "owner_task": "1.1",
+      "status": "pass",
+      "supported_interface": "tested-recipe decision record (Q1/Q2/Q10 preserved)",
+      "versions": {
+        "spike_faults": "1.0.0",
+        "endpoint_walkthrough": "1.0.0",
+        "fenced_effects": "1.0.0",
+        "disposable_repo": "v1",
+        "preview_fixture": "v1"
+      },
+      "fixture_identity": {
+        "repository": "spike/disposable",
+        "remote": "DisposableRemote remote.json fixture",
+        "stores": "endpoint.db / fence.db (SQLite, BEGIN IMMEDIATE + synchronous=FULL)"
+      },
+      "evidence": [
+        "docs/decisions/tested-recipe-selection.md"
+      ],
+      "evidence_present": [
+        true
+      ],
+      "reproduce": "python3 tools/probes/spike_faults.py --write <out>.json"
+    },
+    {
+      "gate": "GATE-S08",
+      "item": "approval persistence/single-use + enforced merge preconditions",
+      "owner_task": "1.3/1.4",
+      "status": "pass",
+      "supported_interface": "durable one-use approval + merge-guard + drift denies",
+      "versions": {
+        "spike_faults": "1.0.0",
+        "endpoint_walkthrough": "1.0.0",
+        "fenced_effects": "1.0.0",
+        "disposable_repo": "v1",
+        "preview_fixture": "v1"
+      },
+      "fixture_identity": {
+        "repository": "spike/disposable",
+        "remote": "DisposableRemote remote.json fixture",
+        "stores": "endpoint.db / fence.db (SQLite, BEGIN IMMEDIATE + synchronous=FULL)"
+      },
+      "evidence": [
+        "docs/spike/evidence/endpoint-2026-10-05.json",
+        "docs/spike/evidence/faults-2026-10-05.json"
+      ],
+      "evidence_present": [
+        true,
+        true
+      ],
+      "reproduce": "python3 tools/probes/spike_faults.py --write <out>.json"
+    }
+  ],
+  "zero_counters": {
+    "duplicate_prs": 0,
+    "unauthorized_merges": 0,
+    "accepted_fenced_results": 0,
+    "_fenced_intents_total": 3,
+    "_privileged_intents_allowed": 0
+  },
+  "named_blockers": [],
+  "linked_identities": {
+    "repository": "spike/disposable",
+    "issue": 0,
+    "pr_head": "f1a1c0463fb90093b59714e3cf5e7af3533e03f5",
+    "pr": 7
+  },
+  "met03_note": "spike subset only \u2014 the remaining \u00a78.2 fault rows and three repetitions per release row are explicit MVP work (tasks 3.6/3.7); MET03 is not claimed complete from this subset",
+  "day2": {
+    "checkpoint": "end of working day 2 from unscheduled T0 (PRD \u00a78.1 requires the checkpoint even without a start)",
+    "serial_estimate": "4 serial developer-days for tasks 1.1\u20131.4 (tasks.md)",
+    "observed": "complete evidence absent at the day-2 checkpoint \u2014 the two-working-day target is unmet and is recorded, not silently extended",
+    "disposition": "no-go for broad work until every spike gate passes AND the timing/scope replan is explicitly resolved",
+    "replan_owner": "Luong",
+    "open_replan_items": [
+      "schedule \u2014 rebase the solo 2\u20134-week window on measured serial velocity (4d for the 4 spike tasks)",
+      "base \u2014 money-mind:main protection blocker (base-unprotected, carried from Task 1.3)",
+      "primitive \u2014 delivery-dedup + one-active-attempt proven here at kit-row layer; must land in the controller intake path before broad work",
+      "primitive \u2014 telegram-adapter-live / kanban-live-write / vercel-linkage carried from Task 1.3"
+    ]
+  },
+  "store_dump": {
+    "events": [
+      {
+        "seq": 1,
+        "ts": "2026-10-05T00:46:33Z",
+        "delivery_id": "dlv-f1",
+        "repo": "spike/disposable",
+        "issue": 0,
+        "sig_ok": 1,
+        "outcome": "accepted",
+        "reason": null
+      },
+      {
+        "seq": 2,
+        "ts": "2026-10-05T00:46:33Z",
+        "delivery_id": "dlv-f1-recon",
+        "repo": "spike/disposable",
+        "issue": 0,
+        "sig_ok": 1,
+        "outcome": "reconciled",
+        "reason": null
+      },
+      {
+        "seq": 3,
+        "ts": "2026-10-05T00:46:33Z",
+        "delivery_id": "dlv-f2",
+        "repo": "spike/disposable",
+        "issue": 0,
+        "sig_ok": 1,
+        "outcome": "reconciled",
+        "reason": null
+      },
+      {
+        "seq": 4,
+        "ts": "2026-10-05T00:46:33Z",
+        "delivery_id": "dlv-f3",
+        "repo": "spike/disposable",
+        "issue": 0,
+        "sig_ok": 1,
+        "outcome": "reconciled",
+        "reason": null
+      }
+    ],
+    "work": [
+      {
+        "work_id": "wk-0001",
+        "repo": "spike/disposable",
+        "issue": 0,
+        "task_id": "task-0001",
+        "generation": 1,
+        "state": "accepted",
+        "created": "2026-10-05T00:46:33Z"
+      }
+    ],
+    "attempts": [],
+    "approvals": [
+      {
+        "request_id": "apr-ba6e251c69a5",
+        "actor": "77001",
+        "target": "spike/disposable#7",
+        "action": "approve-merge",
+        "revision_digest": "a8aabeefbc8bba331d147902c5493975d8079f822256271534be68ea36797915",
+        "evidence_digest": "9bc030fccb71d3315c740147b74fe4a99683fb2516738b632412ae117a00da44",
+        "policy_digest": "72993b6cb83904d39a8c73bd0651aa6251288ede5dbc2c7bcbdc54cc5bbf5d77",
+        "created": 1791161193.832876,
+        "expiry": 1791164793.832876,
+        "state": "consumed",
+        "consumed_seq": 11,
+        "merge_intent": "mi-0011"
+      },
+      {
+        "request_id": "apr-920c1afa6a15",
+        "actor": "77001",
+        "target": "apr-ba6e251c69a5-t",
+        "action": "approve-merge",
+        "revision_digest": "a8aabeefbc8bba331d147902c5493975d8079f822256271534be68ea36797915",
+        "evidence_digest": "9bc030fccb71d3315c740147b74fe4a99683fb2516738b632412ae117a00da44",
+        "policy_digest": "72993b6cb83904d39a8c73bd0651aa6251288ede5dbc2c7bcbdc54cc5bbf5d77",
+        "created": 1791161193.8344462,
+        "expiry": 1791164793.8344462,
+        "state": "consumed",
+        "consumed_seq": 13,
+        "merge_intent": "mi-0013"
+      },
+      {
+        "request_id": "apr-7e642d95eaed",
+        "actor": "77001",
+        "target": "spike/disposable#9",
+        "action": "approve-merge",
+        "revision_digest": "r",
+        "evidence_digest": "e",
+        "policy_digest": "p",
+        "created": 1791157533.839347,
+        "expiry": 1791161133.839347,
+        "state": "awaiting",
+        "consumed_seq": null,
+        "merge_intent": null
+      },
+      {
+        "request_id": "apr-bc404902e64b",
+        "actor": "77001",
+        "target": "spike/disposable#10",
+        "action": "approve-merge",
+        "revision_digest": "a8aabeefbc8bba331d147902c5493975d8079f822256271534be68ea36797915",
+        "evidence_digest": "9bc030fccb71d3315c740147b74fe4a99683fb2516738b632412ae117a00da44",
+        "policy_digest": "05d35c3cff576032c2ec020b80090de59407c157e924b1e1140f9d29a4833113",
+        "created": 1791161193.8418949,
+        "expiry": 1791164793.8418949,
+        "state": "invalidated",
+        "consumed_seq": null,
+        "merge_intent": null
+      }
+    ],
+    "merge_intents": [
+      {
+        "intent_id": "mi-0011",
+        "request_id": "apr-ba6e251c69a5",
+        "expected_head": "f1a1c0463fb90093b59714e3cf5e7af3533e03f5",
+        "method": "squash",
+        "state": "invalidated",
+        "reason": "task-fenced"
+      },
+      {
+        "intent_id": "mi-0013",
+        "request_id": "apr-920c1afa6a15",
+        "expected_head": "f1a1c0463fb90093b59714e3cf5e7af3533e03f5",
+        "method": "squash",
+        "state": "invalidated",
+        "reason": "task-fenced"
+      }
+    ],
+    "audit": [
+      {
+        "seq": 1,
+        "ts": "2026-10-05T00:46:33.817+00:00",
+        "actor": "intake",
+        "action": "deliver",
+        "target": "spike/disposable#0",
+        "outcome": "accepted",
+        "detail": "work_id=wk-0001 channel=webhook"
+      },
+      {
+        "seq": 2,
+        "ts": "2026-10-05T00:46:33.817+00:00",
+        "actor": "intake",
+        "action": "deliver",
+        "target": "spike/disposable#0",
+        "outcome": "deduplicated",
+        "detail": "delivery=dlv-f1"
+      },
+      {
+        "seq": 3,
+        "ts": "2026-10-05T00:46:33.818+00:00",
+        "actor": "intake",
+        "action": "deliver",
+        "target": "spike/disposable#0",
+        "outcome": "reconciled",
+        "detail": "work_id=wk-0001 channel=reconciliation"
+      },
+      {
+        "seq": 4,
+        "ts": "2026-10-05T00:46:33.818+00:00",
+        "actor": "worker",
+        "action": "begin-attempt",
+        "target": "wk-0001",
+        "outcome": "active",
+        "detail": "att-implementation-86541898"
+      },
+      {
+        "seq": 5,
+        "ts": "2026-10-05T00:46:33.819+00:00",
+        "actor": "worker",
+        "action": "begin-attempt",
+        "target": "wk-0001",
+        "outcome": "denied",
+        "detail": "attempt-active:att-implementation-86541898"
+      },
+      {
+        "seq": 6,
+        "ts": "2026-10-05T00:46:33.820+00:00",
+        "actor": "worker",
+        "action": "end-attempt",
+        "target": "att-implementation-86541898",
+        "outcome": "completed",
+        "detail": ""
+      },
+      {
+        "seq": 7,
+        "ts": "2026-10-05T00:46:33.820+00:00",
+        "actor": "intake",
+        "action": "deliver",
+        "target": "spike/disposable#0",
+        "outcome": "reconciled",
+        "detail": "work_id=wk-0001 channel=webhook"
+      },
+      {
+        "seq": 8,
+        "ts": "2026-10-05T00:46:33.821+00:00",
+        "actor": "intake",
+        "action": "deliver",
+        "target": "spike/disposable#0",
+        "outcome": "deduplicated",
+        "detail": "delivery=dlv-f2"
+      },
+      {
+        "seq": 9,
+        "ts": "2026-10-05T00:46:33.822+00:00",
+        "actor": "intake",
+        "action": "deliver",
+        "target": "spike/disposable#0",
+        "outcome": "reconciled",
+        "detail": "work_id=wk-0001 channel=reconciliation"
+      },
+      {
+        "seq": 10,
+        "ts": "2026-10-05T00:46:33.823+00:00",
+        "actor": "broker",
+        "action": "remote-op",
+        "target": "op-pr-f1",
+        "outcome": "dispatched",
+        "detail": "pr-publish head=f1a1c0463fb9"
+      },
+      {
+        "seq": 11,
+        "ts": "2026-10-05T00:46:33.824+00:00",
+        "actor": "broker",
+        "action": "remote-op",
+        "target": "op-pr-f1",
+        "outcome": "reconciled",
+        "detail": "existing PR discovered by read-back"
+      },
+      {
+        "seq": 12,
+        "ts": "2026-10-05T00:46:33.824+00:00",
+        "actor": "broker",
+        "action": "remote-op",
+        "target": "op-pr-f2",
+        "outcome": "dispatched",
+        "detail": "pr-publish head=b0b026e09e23"
+      },
+      {
+        "seq": 13,
+        "ts": "2026-10-05T00:46:33.825+00:00",
+        "actor": "broker",
+        "action": "remote-op",
+        "target": "op-pr-f2",
+        "outcome": "parked",
+        "detail": "remote-unreadable:JSONDecodeError"
+      },
+      {
+        "seq": 14,
+        "ts": "2026-10-05T00:46:33.826+00:00",
+        "actor": "broker",
+        "action": "remote-op",
+        "target": "op-pr-f2",
+        "outcome": "reconciled",
+        "detail": "existing PR discovered by read-back"
+      },
+      {
+        "seq": 15,
+        "ts": "2026-10-05T00:46:33.829+00:00",
+        "actor": "worker",
+        "action": "begin-attempt",
+        "target": "wk-0001",
+        "outcome": "active",
+        "detail": "att-implementation-96558eaf"
+      },
+      {
+        "seq": 16,
+        "ts": "2026-10-05T00:46:33.830+00:00",
+        "actor": "reaper",
+        "action": "expire-claims",
+        "target": "-",
+        "outcome": "expired",
+        "detail": "att-implementation-96558eaf"
+      },
+      {
+        "seq": 17,
+        "ts": "2026-10-05T00:46:33.830+00:00",
+        "actor": "worker",
+        "action": "submit-result",
+        "target": "att-implementation-96558eaf",
+        "outcome": "denied:attempt-expired",
+        "detail": "res-dead-1"
+      },
+      {
+        "seq": 18,
+        "ts": "2026-10-05T00:46:33.832+00:00",
+        "actor": "worker",
+        "action": "begin-attempt",
+        "target": "wk-0001",
+        "outcome": "active",
+        "detail": "att-implementation-09d2e44f"
+      },
+      {
+        "seq": 19,
+        "ts": "2026-10-05T00:46:33.832+00:00",
+        "actor": "worker",
+        "action": "submit-result",
+        "target": "att-implementation-09d2e44f",
+        "outcome": "accepted",
+        "detail": "res-dead-2"
+      },
+      {
+        "seq": 20,
+        "ts": "2026-10-05T00:46:33.832+00:00",
+        "actor": "77001",
+        "action": "request-approval",
+        "target": "spike/disposable#7",
+        "outcome": "awaiting",
+        "detail": "request_id=apr-ba6e251c69a5 expiry=+3600s"
+      },
+      {
+        "seq": 21,
+        "ts": "2026-10-05T00:46:33.833+00:00",
+        "actor": "77001",
+        "action": "approve",
+        "target": "apr-ba6e251c69a5",
+        "outcome": "consumed",
+        "detail": "merge_intent=mi-0011"
+      },
+      {
+        "seq": 22,
+        "ts": "2026-10-05T00:46:33.834+00:00",
+        "actor": "77001",
+        "action": "approve",
+        "target": "apr-ba6e251c69a5",
+        "outcome": "denied",
+        "detail": "replayed"
+      },
+      {
+        "seq": 23,
+        "ts": "2026-10-05T00:46:33.834+00:00",
+        "actor": "77001",
+        "action": "request-approval",
+        "target": "apr-ba6e251c69a5-t",
+        "outcome": "awaiting",
+        "detail": "request_id=apr-920c1afa6a15 expiry=+3600s"
+      },
+      {
+        "seq": 24,
+        "ts": "2026-10-05T00:46:33.837+00:00",
+        "actor": "77001",
+        "action": "approve",
+        "target": "apr-920c1afa6a15",
+        "outcome": "consumed",
+        "detail": "merge_intent=mi-0013"
+      },
+      {
+        "seq": 25,
+        "ts": "2026-10-05T00:46:33.838+00:00",
+        "actor": "77001",
+        "action": "approve",
+        "target": "apr-920c1afa6a15",
+        "outcome": "denied",
+        "detail": "replayed"
+      },
+      {
+        "seq": 26,
+        "ts": "2026-10-05T00:46:33.839+00:00",
+        "actor": "77001",
+        "action": "request-approval",
+        "target": "spike/disposable#9",
+        "outcome": "awaiting",
+        "detail": "request_id=apr-7e642d95eaed expiry=+3600s"
+      },
+      {
+        "seq": 27,
+        "ts": "2026-10-05T00:46:33.840+00:00",
+        "actor": "77001",
+        "action": "approve",
+        "target": "apr-7e642d95eaed",
+        "outcome": "denied",
+        "detail": "expired"
+      },
+      {
+        "seq": 28,
+        "ts": "2026-10-05T00:46:33.840+00:00",
+        "actor": "merge-owner",
+        "action": "invalidate-intent",
+        "target": "mi-0011",
+        "outcome": "invalidated",
+        "detail": "task-fenced"
+      },
+      {
+        "seq": 29,
+        "ts": "2026-10-05T00:46:33.841+00:00",
+        "actor": "merge-owner",
+        "action": "invalidate-intent",
+        "target": "mi-0013",
+        "outcome": "invalidated",
+        "detail": "task-fenced"
+      },
+      {
+        "seq": 30,
+        "ts": "2026-10-05T00:46:33.842+00:00",
+        "actor": "77001",
+        "action": "request-approval",
+        "target": "spike/disposable#10",
+        "outcome": "awaiting",
+        "detail": "request_id=apr-bc404902e64b expiry=+3600s"
+      },
+      {
+        "seq": 31,
+        "ts": "2026-10-05T00:46:33.842+00:00",
+        "actor": "merge-owner",
+        "action": "invalidate-approval",
+        "target": "apr-bc404902e64b",
+        "outcome": "invalidated",
+        "detail": "policy-changed"
+      },
+      {
+        "seq": 32,
+        "ts": "2026-10-05T00:46:33.843+00:00",
+        "actor": "77001",
+        "action": "approve",
+        "target": "apr-bc404902e64b",
+        "outcome": "denied",
+        "detail": "state-invalidated"
+      }
+    ]
+  },
+  "fence_dump": {
+    "generations": [
+      {
+        "repo": "spike/disposable",
+        "issue": 0,
+        "generation": 1,
+        "state": "superseded",
+        "fenced_seq": 1,
+        "terminated": "confirmed"
+      },
+      {
+        "repo": "spike/disposable",
+        "issue": 0,
+        "generation": 2,
+        "state": "superseded",
+        "fenced_seq": 2,
+        "terminated": "confirmed"
+      },
+      {
+        "repo": "spike/disposable",
+        "issue": 0,
+        "generation": 3,
+        "state": "active",
+        "fenced_seq": null,
+        "terminated": null
+      }
+    ],
+    "actors": [
+      {
+        "actor": "worker-profile",
+        "kind": "github",
+        "state": "allowed"
+      },
+      {
+        "actor": "77001",
+        "kind": "telegram",
+        "state": "allowed"
+      }
+    ],
+    "control": [
+      {
+        "seq": 1,
+        "ts": "2026-10-05T00:46:33.827+00:00",
+        "actor": "77001",
+        "chat": "ops",
+        "action": "cancel",
+        "target_generation": 1,
+        "outcome": "accepted"
+      },
+      {
+        "seq": 2,
+        "ts": "2026-10-05T00:46:33.830+00:00",
+        "actor": "77001",
+        "chat": "ops",
+        "action": "cancel",
+        "target_generation": 2,
+        "outcome": "accepted"
+      }
+    ],
+    "intents": [
+      {
+        "op_id": "res-f1",
+        "seq": null,
+        "ts": "2026-10-05T00:46:33.827+00:00",
+        "op": "submit-result",
+        "repo": "spike/disposable",
+        "generation": 1,
+        "actor": "worker-profile",
+        "outcome": "denied",
+        "reason": "generation-fenced"
+      },
+      {
+        "op_id": "eff-f1",
+        "seq": null,
+        "ts": "2026-10-05T00:46:33.827+00:00",
+        "op": "branch-publish",
+        "repo": "spike/disposable",
+        "generation": 1,
+        "actor": "worker-profile",
+        "outcome": "denied",
+        "reason": "generation-fenced"
+      },
+      {
+        "op_id": "eff-f2",
+        "seq": null,
+        "ts": "2026-10-05T00:46:33.828+00:00",
+        "op": "branch-publish",
+        "repo": "spike/disposable",
+        "generation": 1,
+        "actor": "worker-profile",
+        "outcome": "denied",
+        "reason": "superseded-generation"
+      }
+    ],
+    "results": [],
+    "audit": [
+      {
+        "seq": 1,
+        "ts": "2026-10-05T00:46:33.827+00:00",
+        "actor": "worker-profile",
+        "repo": "spike/disposable",
+        "generation": 1,
+        "op": "submit-result",
+        "decision": "denied",
+        "detail": "generation-fenced: {\"payload\": null, \"notes\": null}"
+      },
+      {
+        "seq": 2,
+        "ts": "2026-10-05T00:46:33.827+00:00",
+        "actor": "worker-profile",
+        "repo": "spike/disposable",
+        "generation": 1,
+        "op": "branch-publish",
+        "decision": "denied",
+        "detail": "generation-fenced: {\"payload\": {\"branch\": \"late-branch\", \"sha\": \"cafe\"}, \"notes\": null}"
+      },
+      {
+        "seq": 3,
+        "ts": "2026-10-05T00:46:33.829+00:00",
+        "actor": "worker-profile",
+        "repo": "spike/disposable",
+        "generation": 1,
+        "op": "branch-publish",
+        "decision": "denied",
+        "detail": "superseded-generation: {\"payload\": {\"branch\": \"old-branch\", \"sha\": \"beef\"}, \"notes\": null}"
+      }
+    ]
+  }
+}
