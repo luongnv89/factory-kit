@@ -146,7 +146,11 @@ steps/owners before any promotion procedure is considered.
 ## GATE-E04 — concurrency / parallel projects checklist
 
 §8.4: *"Reassess concurrency, cross-project isolation, maintenance cost
-and demand before broad runtime/provider support."* Issue A5.
+and demand before broad runtime/provider support."* Issue A5. The same
+§8.4 reassessment gated the F13 optional-harness question in task 5.1 —
+recorded `admission-deferred` on exactly the demand/cost rows below
+(`docs/adapters/admission-assessment.md`) — and task 5.3 applies it
+here to the concurrency/parallel-project class.
 
 | Checklist row | Required evidence | Recorded state |
 |---|---|---|
