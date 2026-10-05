@@ -266,7 +266,9 @@ class FaultStore(endpoint.EndpointStore):
                         "original_outcome": prior[1], "seq": seq,
                         "channel": channel}
             work_id = None
-            if not sig_ok:
+            if not delivery:
+                out, reason = "denied", "missing-delivery-id"
+            elif not sig_ok:
                 out, reason = "denied", "invalid-signature"
             elif repo != registered_repo:
                 out, reason = "denied", "wrong-repository"
