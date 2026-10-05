@@ -15,12 +15,15 @@ Restricted references (CFG02): actors and chats are *numeric* Telegram
 IDs rendered ``telegram:<digits>`` — a username string can never pass,
 matching the manifest schema where allowlists are numeric IDs only.
 
-Targets are explicit: mutating commands (pause/resume/cancel) require
-``repo_id`` + ``issue`` + ``generation`` — an ambiguous or missing
-target is rejected with an ask for a concrete one; ``status`` needs
-``repo_id`` + ``issue``; ``retry`` needs ``repo_id`` + ``issue`` (the
-retried generation is resolved durably, fresh authority comes from
-``authorized_by`` at commit time).
+Targets are explicit: mutating commands (pause/resume/cancel and the
+Task-3.2 ``approve``/``reject`` decisions) require ``repo_id`` +
+``issue`` + ``generation`` — an ambiguous or missing target is
+rejected with an ask for a concrete one; ``status`` needs ``repo_id``
++ ``issue``; ``retry`` needs ``repo_id`` + ``issue`` (the retried
+generation is resolved durably, fresh authority comes from
+``authorized_by`` at commit time). Button callbacks may additionally
+carry ``request_id`` — the durable approval request the decision
+binds (F12 A2).
 """
 
 from __future__ import annotations
@@ -35,11 +38,12 @@ __all__ = [
 ]
 
 #: The recognized control verbs (A1).
-ACTIONS = ("status", "pause", "resume", "cancel", "retry")
+ACTIONS = ("status", "pause", "resume", "cancel", "retry",
+           "approve", "reject")
 
 #: Commands that change execution state — they require the full
 #: explicit target: repository + task + generation (A1).
-MUTATING_ACTIONS = ("pause", "resume", "cancel")
+MUTATING_ACTIONS = ("pause", "resume", "cancel", "approve", "reject")
 
 #: Per-action required target fields. Everything else about the
 #: request shape is common: command_id, actor, chat.
@@ -49,6 +53,8 @@ _REQUIRED_TARGET = {
     "resume": ("repo_id", "issue", "generation"),
     "cancel": ("repo_id", "issue", "generation"),
     "retry": ("repo_id", "issue"),
+    "approve": ("repo_id", "issue", "generation"),
+    "reject": ("repo_id", "issue", "generation"),
 }
 
 _REF_RE = re.compile(r"^telegram:(-?\d+)$")
@@ -62,6 +68,8 @@ _NL_ACTION = (
     (re.compile(r"\b(resume|continue|unpause)\b", re.I), "resume"),
     (re.compile(r"\b(cancel|stop|abort)\b", re.I), "cancel"),
     (re.compile(r"\b(retry|rerun|re-?run)\b", re.I), "retry"),
+    (re.compile(r"\b(approve|accept|lgtm|ship)\b", re.I), "approve"),
+    (re.compile(r"\b(reject|decline)\b", re.I), "reject"),
 )
 _NL_REPO = re.compile(
     r"\b(?:repo(?:sitory)?|gh)[:# ]+([A-Za-z0-9_-]+)\b", re.I)
@@ -157,6 +165,9 @@ def validate(message):
         return {"ok": False, "reason": "target-required",
                 "missing": missing}
 
+    request_id = message.get("request_id")
+    request_id = str(request_id).strip() if request_id else None
+
     return {"ok": True, "value": {
         "command_id": command_id,
         "actor_ref": actor_ref,
@@ -165,6 +176,7 @@ def validate(message):
         "repo_id": repo_id,
         "issue": issue,
         "generation": generation,
+        "request_id": request_id,
         "received_text": message.get("text"),
     }}
 

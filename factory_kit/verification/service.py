@@ -88,11 +88,17 @@ class VerificationService:
       review records, evidence rows and ``evidence_checked`` events it
       persists are the §6.4/§7.1 trail.
     - ``now`` — epoch-seconds clock, injectable for deterministic tests.
+    - ``approval`` — optional :class:`ApprovalService`; when wired,
+      every new observation voids standing approvals whose bound
+      evidence set changed (F12 A5 — changed head/base, failed or
+      stale checks invalidate affected authority immediately, not on
+      a later sweep).
     """
 
-    def __init__(self, store, *, now=None):
+    def __init__(self, store, *, now=None, approval=None):
         self.store = store
         self._now = now or time.time
+        self._approval = approval
 
     # ------------------------------------------------------------------ #
     # A1 — the separate reviewer session's own durable record
@@ -345,6 +351,10 @@ class VerificationService:
                 if latest["artifacts"] else None,
                 contract_digest=latest["contract_digest"],
                 status="stale", reason=reason)
+        if self._approval is not None:
+            # F12 A5 — a stale observation is a *new* evidence set:
+            # approvals bound to the lapsed verified row die now.
+            self._approval.invalidate_for_evidence(work_key)
         return {"outcome": "stale", "reason": reason,
                 "evidence_id": out["evidence_id"]}
 
@@ -428,6 +438,12 @@ class VerificationService:
                                   reason=f"verification-{reason}")
                 tx.record_event("work_parked", work_key=work_key,
                                 reason=f"verification-{reason}")
+        if self._approval is not None:
+            # F12 A5 — every appended observation is a fresh evidence
+            # set: approvals bound to changed or now-failed/stale
+            # evidence invalidate immediately (identical re-verified
+            # content keeps them — unchanged evidence).
+            self._approval.invalidate_for_evidence(work_key)
         return {"status": status, "reason": reason,
                 "evidence_id": evidence_id,
                 "observed_at": out["observed_at"], "parked": park}
