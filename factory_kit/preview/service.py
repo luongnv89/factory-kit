@@ -253,7 +253,11 @@ class PreviewService:
         provider failure it lands ``cleanup-pending`` — the visible
         backlog, never a claimed removal (A5). A record with no
         recorded deployment id reconciles by identity first (a lost
-        deploy response may still have created one)."""
+        deploy response may still have created one); an outage during
+        that rediscovery is *unconfirmed*, never "nothing to remove",
+        so it parks in the same backlog rather than orphaning a
+        deployment the provider may hold."""
+        pending = False
         deployment_ids = [rec["deployment_id"]] \
             if rec.get("deployment_id") else []
         if not deployment_ids:
@@ -262,15 +266,29 @@ class PreviewService:
                     {"preview_id": rec["preview_id"],
                      "work_key": rec["work_key"]})
             except PreviewError:
-                found = []
-            deployment_ids = [d["deployment_id"] for d in found
-                              if d.get("deployment_id")]
-        if not deployment_ids:
+                found = None
+            if found is None:
+                # The provider could not be asked — an outage is not a
+                # negative answer, so the row parks in the visible
+                # backlog like an unacknowledged removal (A5).
+                pending = True
+            else:
+                deployment_ids = [d["deployment_id"] for d in found
+                                  if d.get("deployment_id")]
+        if not deployment_ids and not pending:
+            if rec["state"] == "cleanup-pending":
+                # Provider reachable and confirming *nothing* owned
+                # remains — a confirmed absence drains the backlog
+                # rather than leaving a row that can never settle.
+                with self.store.transact() as tx:
+                    tx.update_preview(
+                        rec["preview_id"], state="removed",
+                        removed_at=_utcnow())
+                return "removed"
             # Nothing the provider confirms as ours — the record keeps
             # its terminal state; ``removed`` is only ever written on a
             # confirmed removal, never on absence (A5).
             return "no-resource"
-        pending = False
         identity = {"preview_id": rec["preview_id"],
                     "work_key": rec["work_key"],
                     "generation": rec.get("generation")}
@@ -289,8 +307,9 @@ class PreviewService:
             self._alert("preview-cleanup-backlog", rec["work_key"],
                         "medium",
                         f"preview {rec['preview_id']} deployment "
-                        f"{','.join(deployment_ids)} removal unconfirmed "
-                        "— provider unreachable; backlog retained")
+                        f"{','.join(deployment_ids) or 'unresolved'} "
+                        "removal unconfirmed — provider unreachable; "
+                        "backlog retained")
         return state
 
     def _retire(self, rec, state, reason, *, work=None,

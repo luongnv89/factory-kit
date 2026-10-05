@@ -42,7 +42,7 @@ from factory_kit.durable import store as durable  # noqa: E402
 from factory_kit.events import schema as event_schema  # noqa: E402
 from factory_kit.intake import service  # noqa: E402
 from factory_kit.preview import (  # noqa: E402
-    PreviewService, ScriptedPreview, VercelCliPreview)
+    PreviewError, PreviewService, ScriptedPreview, VercelCliPreview)
 
 MANIFEST = ROOT / ".factory-kit.yml"
 READY = {"verdict": "ready", "dispatch": "allowed", "blockers": [],
@@ -347,7 +347,18 @@ class TestA3DenialConditions(PreviewFixture):
         self.assertEqual(self.store.get_work(work_key)["state"],
                          "blocked")
         rec = self.store.get_preview(out["preview_id"])
-        self.assertEqual(rec["state"], "failed")
+        # The deploy failure is terminal and blocks the work — but
+        # under the same outage the cleanup question is *unconfirmed*:
+        # the record parks in the visible backlog, never a false
+        # "nothing to remove" claim (A5).
+        self.assertEqual(rec["state"], "cleanup-pending")
+        self.assertEqual(rec["reason"], "provider-outage")
+        # Provider returns → the backlog drains on confirmed absence
+        # (the refused deploy created nothing).
+        self.provider.outage = False
+        self._service().sweep()
+        rec = self.store.get_preview(out["preview_id"])
+        self.assertEqual(rec["state"], "removed")
 
     def test_head_mismatch_fails(self):
         """A3: provider read-back head != bound head → mismatch."""
@@ -635,6 +646,37 @@ class TestA5LimitsCleanup(PreviewFixture):
                          self.provider.deployments)
         self.assertFalse(self.store.preview_cleanup_backlog())
 
+    def test_outage_during_cleanup_find_keeps_backlog(self):
+        """A5: a provider outage while rediscovering a deployment-less
+        record parks in ``cleanup-pending`` — an outage is never
+        flattened into a false "nothing to remove", and a reachable
+        empty find later drains the backlog on confirmed absence."""
+        work_key = self._accept()
+        self._verify(work_key)
+        out = self._deploy(work_key)
+        rec = self.store.get_preview(out["preview_id"])
+        # A record whose provider-side deployment id was lost — the
+        # cleanup path must rediscover by identity before it may
+        # conclude nothing exists.
+        with self.store.transact() as tx:
+            tx.update_preview(rec["preview_id"], state="deploying",
+                              deployment_id=None, url=None)
+        self.provider.faults["find"] = "down"
+        res = self._service().terminate(work_key)
+        self.assertEqual(res["outcome"], "terminated")
+        rec = self.store.get_preview(out["preview_id"])
+        # The outage is *unconfirmed* — the row parks in the visible
+        # backlog, never "no-resource".
+        self.assertEqual(rec["state"], "cleanup-pending")
+        self.assertTrue(self.store.preview_cleanup_backlog())
+        # Provider returns and confirms nothing owned remains — the
+        # backlog drains on confirmed absence, not an immortal row.
+        self.provider.faults.clear()
+        self._service().sweep()
+        rec = self.store.get_preview(out["preview_id"])
+        self.assertEqual(rec["state"], "removed")
+        self.assertFalse(self.store.preview_cleanup_backlog())
+
     def test_foreign_deployments_preserved(self):
         """A5: a deployment this factory never recorded is never
         removed — human-created provider resources are preserved."""
@@ -806,6 +848,33 @@ class TestPortContract(PreviewFixture):
                 self.assertNotIn("sekrit", str(arg))
         self.assertIn("VERCEL_TOKEN", calls[0]["env"])
         self.assertNotIn("sekrit", blob)
+
+    def test_vercel_find_propagates_provider_error(self):
+        """A5: the production adapter never flattens a provider
+        failure into an empty list — rediscovery callers distinguish
+        'none found' from 'could not ask' (a flat ``[]`` would orphan
+        an owned deployment the lifecycle then forgets)."""
+        def runner(argv, env=None, timeout=None, cwd=None):
+            class P:
+                returncode = 1
+                stdout = ""
+                stderr = "Error: network unreachable"
+            return P()
+
+        port = VercelCliPreview(runner=runner)
+        with self.assertRaises(PreviewError):
+            port.find_deployments({"preview_id": "p1"})
+        # A clean empty answer still returns [].
+        def empty(argv, env=None, timeout=None, cwd=None):
+            class P:
+                returncode = 0
+                stdout = "[]"
+                stderr = ""
+            return P()
+
+        port = VercelCliPreview(runner=empty)
+        self.assertEqual(
+            port.find_deployments({"preview_id": "p1"}), [])
 
 
 if __name__ == "__main__":

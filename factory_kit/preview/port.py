@@ -244,10 +244,12 @@ class VercelCliPreview(PreviewPort):
         if self.project:
             argv.append(str(self.project))
         argv += ["--json"]
-        try:
-            out = self._run_json(argv)
-        except PreviewError:
-            return []
+        # A provider error propagates: callers must distinguish "no
+        # deployments" (a clean empty list) from "could not ask"
+        # (PreviewError). Flattening an outage into [] would tell the
+        # lifecycle an owned deployment never existed — the false answer
+        # the rediscovery path exists to prevent (A5).
+        out = self._run_json(argv)
         rows = out if isinstance(out, list) else \
             out.get("deployments", [])
         wanted = {k: str(identity.get(k)) for k in _IDENTITY_META_KEYS
