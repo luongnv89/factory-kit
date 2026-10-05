@@ -282,3 +282,52 @@ class RegistrationStore:
             "parked_pending_rebind": affected,
             "pending_policy_was": pending,
         }
+
+    # -- operator retry (Task 2.4 / F03 A5) ------------------------------------
+
+    def authorize_generation(self, repo_id, effective, *, authorized_by,
+                             reason="operator-retry", now=None):
+        """Mint a new audited execution generation under *fresh*
+        authorization — the operator-retry path.
+
+        Unlike :meth:`apply_policy_change` this does not require a policy
+        drift: an explicit, attributable ``authorized_by`` is itself the
+        authority to supersede the current generation (the digests bind
+        to whatever effective configuration is supplied — unchanged
+        policy retries simply rebind the same digests under a new,
+        separately audited generation). Every prior generation row is
+        left byte-identical and every attempt/usage record under the old
+        work key stays visible — a retry never hides history (A5).
+
+        ``authorized_by`` is required and must be a non-empty principal:
+        there is no silent retry path.
+        """
+        if not isinstance(authorized_by, str) or not authorized_by.strip():
+            raise RegistrationError(
+                "a retry requires an explicit authorized_by principal — "
+                "fresh authorization is the point of the new generation")
+        record = self._registration(repo_id)
+        generation = self._active_generation(record)
+        affected = [key for key, work in record["work"].items()
+                    if work["state"] == "active"]
+        record["generations"].append({
+            "generation": generation["generation"] + 1,
+            "config_digest": schema.effective_digest(effective),
+            "policy_digest": schema.policy_digest(effective),
+            "authorized_by": authorized_by,
+            "authorized_reason": reason,
+            "created_at": now or _utcnow(),
+            "supersedes": generation["generation"],
+        })
+        record["active_generation"] = generation["generation"] + 1
+        for key in affected:
+            record["work"][key]["state"] = "parked"
+            record["work"][key]["parked_reason"] = \
+                "generation-superseded-awaiting-rebind"
+        self._save()
+        return {
+            "outcome": "new-generation",
+            "generation": generation["generation"] + 1,
+            "authorized_by": authorized_by,
+            "parked_pending_rebind": affected,
+        }

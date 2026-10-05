@@ -23,13 +23,37 @@ Tables:
   redacted ``work_rejected`` event.
 - ``events`` — the §7.1 intake event trail (``work_accepted`` /
   ``work_rejected`` / ``delivery_deduplicated`` / ``work_reconciled`` /
-  ``work_updated`` / ``work_parked`` / task-binding transitions). Rows
-  carry identity/delivery IDs, reason codes and digests — never issue
-  bodies, signatures or secrets.
+  ``work_updated`` / ``work_parked`` / task-binding transitions /
+  ``attempt_started`` / ``attempt_finished``). Rows carry
+  identity/delivery IDs, reason codes and digests — never issue bodies,
+  signatures or secrets.
 - ``attempt_ledger`` — at-most-one-active-attempt per work row, enforced
   by a partial unique index so the cap cannot be raced. The execution
   lane (Task 2.4) claims through it; intake only guarantees the
   structure.
+- ``lane_state`` — the single bounded execution lane's current occupant.
+  One row per lane ID (``main``); ``acquire_lane`` is atomic inside
+  ``transact`` so two dispatches can never overlap.
+- ``work_queue`` — durable queue position and the *visible* reason a
+  ready task is waiting (``lane-occupied:<work_key>``).
+- ``attempt_records`` — the §6.4 Attempt record: task/attempt/
+  generation, role, session, runtime/model, pinned skills, workspace,
+  config/policy digests, limits snapshot, heartbeat, verdict/usage
+  outcome.
+- ``attempt_liveness`` — heartbeat bookkeeping per attempt (last beat +
+  epoch), the input the 60-second fence sweep reads.
+- ``attempt_usage`` — per-attempt measured usage; ``active_seconds``
+  NULL means *unknown* — never zero-filled (§7.1 measured-or-unknown).
+- ``results`` — worker candidate-result intake, deduplicated by
+  ``result_id``; only a live (active, unfenced) attempt may have a
+  result accepted — late output is rejected durably.
+- ``execution_fence`` — per-work fence/termination state: fenced flag,
+  reason, and termination certainty (``pending`` → ``confirmed`` /
+  ``quarantined`` → operator ``resolved``). A replacement generation is
+  eligible only after fencing plus confirmed/resolved termination.
+- ``alerts`` — operator-visible alert rows deduplicated per
+  (kind, identity, severity) — heartbeat and budget alerts fire once per
+  identity at each severity transition (§7.3).
 
 Durability rules honoured here:
 
@@ -44,6 +68,7 @@ Durability rules honoured here:
 
 from __future__ import annotations
 
+import json as _json
 import sqlite3
 import threading
 from contextlib import contextmanager
@@ -124,6 +149,84 @@ CREATE TABLE IF NOT EXISTS attempt_ledger(
     ended TEXT);
 CREATE UNIQUE INDEX IF NOT EXISTS one_active_attempt_per_work
     ON attempt_ledger(work_key) WHERE state='active';
+
+CREATE TABLE IF NOT EXISTS lane_state(
+    lane TEXT PRIMARY KEY,
+    occupied_work TEXT,
+    occupied_task TEXT,
+    occupied_since TEXT);
+
+CREATE TABLE IF NOT EXISTS work_queue(
+    work_key TEXT PRIMARY KEY,
+    enqueued_seq INTEGER NOT NULL,
+    state TEXT NOT NULL,
+    reason TEXT,
+    detail TEXT);
+
+CREATE TABLE IF NOT EXISTS attempt_records(
+    attempt_id TEXT PRIMARY KEY,
+    work_key TEXT NOT NULL,
+    task_id TEXT,
+    generation INTEGER NOT NULL,
+    role TEXT NOT NULL,
+    session_id TEXT,
+    runtime TEXT,
+    model TEXT,
+    skills TEXT,
+    config_digest TEXT,
+    policy_digest TEXT,
+    workspace TEXT,
+    limits TEXT,
+    heartbeat_at TEXT,
+    heartbeat_epoch REAL,
+    beats INTEGER NOT NULL DEFAULT 0,
+    verdict TEXT,
+    outcome TEXT,
+    started TEXT NOT NULL,
+    ended TEXT,
+    duration_s REAL,
+    usage_state TEXT);
+
+CREATE TABLE IF NOT EXISTS attempt_liveness(
+    attempt_id TEXT PRIMARY KEY,
+    work_key TEXT NOT NULL,
+    last_beat TEXT NOT NULL,
+    last_beat_epoch REAL NOT NULL,
+    beats INTEGER NOT NULL DEFAULT 0);
+
+CREATE TABLE IF NOT EXISTS attempt_usage(
+    attempt_id TEXT PRIMARY KEY,
+    work_key TEXT NOT NULL,
+    role TEXT NOT NULL,
+    active_seconds REAL,
+    usage TEXT,
+    recorded_at TEXT NOT NULL);
+
+CREATE TABLE IF NOT EXISTS results(
+    result_id TEXT PRIMARY KEY,
+    attempt_id TEXT NOT NULL,
+    work_key TEXT,
+    accepted INTEGER NOT NULL,
+    reason TEXT,
+    ts TEXT NOT NULL);
+
+CREATE TABLE IF NOT EXISTS execution_fence(
+    work_key TEXT PRIMARY KEY,
+    generation INTEGER NOT NULL,
+    fenced INTEGER NOT NULL DEFAULT 0,
+    fence_reason TEXT,
+    termination TEXT NOT NULL DEFAULT 'none',
+    termination_detail TEXT,
+    updated_at TEXT NOT NULL);
+
+CREATE TABLE IF NOT EXISTS alerts(
+    alert_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    identity TEXT NOT NULL,
+    severity TEXT NOT NULL,
+    detail TEXT,
+    UNIQUE(kind, identity, severity));
 """
 
 
@@ -377,6 +480,429 @@ class IntakeStore:
             self._q(
                 "UPDATE attempt_ledger SET state=?, ended=?"
                 " WHERE attempt_id=?", (state, _utcnow(), attempt_id))
+
+    # -- execution lane (Task 2.4 / F03) ------------------------------------
+    #
+    # The lane claims through ``attempt_ledger`` (the one-active-attempt
+    # cap intake guaranteed) and records the full §6.4 Attempt shape in
+    # ``attempt_records``. Every multi-row transition below runs inside
+    # one ``transact`` so claim, liveness and the ``attempt_started`` /
+    # ``attempt_finished`` events commit together.
+
+    def lane(self, lane="main"):
+        """Current occupant of the named execution lane, or ``None``."""
+        row = self._q(
+            "SELECT lane,occupied_work,occupied_task,occupied_since"
+            " FROM lane_state WHERE lane=?", (lane,)).fetchone()
+        if row is None:
+            return None
+        return {"lane": row[0], "occupied_work": row[1],
+                "occupied_task": row[2], "occupied_since": row[3]}
+
+    def acquire_lane(self, work_key, task_id, lane="main"):
+        """Atomically occupy the lane for ``work_key``.
+
+        ``occupied`` is a verdict, never an exception — the caller marks
+        the would-be dispatch durably queued with the returned
+        ``occupied_by`` as its visible reason (A1).
+        """
+        with self.transact():
+            current = self.lane(lane)
+            if current is not None and current["occupied_work"]:
+                return {"outcome": "occupied", "lane": lane,
+                        "occupied_by": current["occupied_work"]}
+            self._q(
+                "INSERT OR REPLACE INTO lane_state VALUES(?,?,?,?)",
+                (lane, work_key, task_id, _utcnow()))
+            return {"outcome": "acquired", "lane": lane,
+                    "occupied_work": work_key}
+
+    def release_lane(self, lane="main", expected_work=None):
+        """Free the lane; returns the released occupant.
+
+        ``expected_work`` guards against a late release clearing another
+        task's occupancy — a mismatch is denied, never silently clears.
+        """
+        with self.transact():
+            current = self.lane(lane)
+            if current is None or not current["occupied_work"]:
+                return {"outcome": "idle", "lane": lane}
+            if expected_work is not None and \
+                    current["occupied_work"] != expected_work:
+                return {"outcome": "denied", "reason": "not-occupant",
+                        "occupied_by": current["occupied_work"]}
+            self._q(
+                "UPDATE lane_state SET occupied_work=NULL,"
+                " occupied_task=NULL, occupied_since=NULL WHERE lane=?",
+                (lane,))
+            return {"outcome": "released", "lane": lane,
+                    "released": current["occupied_work"]}
+
+    # -- durable queue -------------------------------------------------------
+
+    def enqueue_work(self, work_key, seq, state="queued", reason=None,
+                     detail=None):
+        """Upsert a durable queue row — the *visible* reason a ready task
+        waits (``lane-occupied:<occupant>``) survives restarts (A1)."""
+        self._q(
+            "INSERT INTO work_queue"
+            "(work_key,enqueued_seq,state,reason,detail)"
+            " VALUES(?,?,?,?,?)"
+            " ON CONFLICT(work_key) DO UPDATE SET"
+            " state=excluded.state, reason=excluded.reason,"
+            " detail=excluded.detail",
+            (work_key, int(seq), state, reason, detail))
+
+    def queue_entry(self, work_key):
+        row = self._q(
+            "SELECT work_key,enqueued_seq,state,reason,detail"
+            " FROM work_queue WHERE work_key=?", (work_key,)).fetchone()
+        if row is None:
+            return None
+        return {"work_key": row[0], "enqueued_seq": row[1],
+                "state": row[2], "reason": row[3], "detail": row[4]}
+
+    def queue_rows(self, state=None):
+        rows = [dict(zip(("work_key", "enqueued_seq", "state", "reason",
+                          "detail"), r))
+                for r in self._q(
+                    "SELECT work_key,enqueued_seq,state,reason,detail"
+                    " FROM work_queue ORDER BY enqueued_seq")]
+        if state is None:
+            return rows
+        return [r for r in rows if r["state"] == state]
+
+    def set_work_state(self, work_key, state, reason=None):
+        """Terminal/passive work states the lane drives: ``active``,
+        ``completed``, ``parked``, ``quarantined``, ``blocked``.
+
+        ``reason`` is recorded into ``parked_reason`` for parked and
+        quarantined rows so the block is always attributable.
+        """
+        if state not in ("pending", "active", "completed", "parked",
+                         "quarantined", "blocked"):
+            raise IntakeStoreError(f"unknown work state {state!r}")
+        if state in ("parked", "quarantined", "blocked"):
+            self._q(
+                "UPDATE work SET state=?, parked_reason=?, updated_at=?"
+                " WHERE work_key=?", (state, reason, _utcnow(), work_key))
+        else:
+            self._q(
+                "UPDATE work SET state=?, updated_at=? WHERE work_key=?",
+                (state, _utcnow(), work_key))
+
+    # -- execution attempts -----------------------------------------------------
+
+    def begin_execution_attempt(
+            self, work_key, *, attempt_id, role, task_id, generation,
+            session_id, runtime, model, skills, config_digest,
+            policy_digest, workspace, limits, now_epoch):
+        """Claim + record one role attempt atomically.
+
+        One commit carries: the one-active-attempt claim
+        (``attempt_ledger``), the §6.4 attempt record, the first
+        heartbeat liveness row and the ``attempt_started`` event — the
+        event can never describe an attempt that was not durably claimed
+        (A2/§7.1).
+        """
+        with self.transact() as tx:
+            work = tx.get_work(work_key)
+            if work is None:
+                return {"outcome": "denied", "reason": "unknown-work"}
+            if work["state"] != "active":
+                return {"outcome": "denied",
+                        "reason": f"work-{work['state']}"}
+            fence = tx.fence_state(work_key)
+            if fence and fence["fenced"]:
+                return {"outcome": "denied", "reason": "generation-fenced"}
+            open_row = tx._q(
+                "SELECT attempt_id FROM attempt_ledger WHERE work_key=?"
+                " AND state='active'", (work_key,)).fetchone()
+            if open_row:
+                return {"outcome": "denied", "reason": "attempt-active",
+                        "active": open_row[0]}
+            now = _utcnow()
+            tx._q(
+                "INSERT INTO attempt_ledger"
+                "(attempt_id,work_key,role,state,started,ended)"
+                " VALUES(?,?,?,?,?,NULL)",
+                (attempt_id, work_key, role, "active", now))
+            tx._q(
+                "INSERT INTO attempt_records VALUES"
+                "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (attempt_id, work_key, task_id, int(generation), role,
+                 session_id, runtime, model, skills, config_digest,
+                 policy_digest, workspace, limits, now, now_epoch, 1,
+                 None, None, now, None, None, None))
+            tx._q(
+                "INSERT INTO attempt_liveness VALUES(?,?,?,?,?)",
+                (attempt_id, work_key, now, now_epoch, 1))
+            tx.record_event(
+                "attempt_started", work_key=work_key,
+                config_digest=config_digest,
+                detail=_json.dumps({
+                    "task_id": task_id, "attempt_id": attempt_id,
+                    "generation": int(generation), "role": role,
+                    "runtime": runtime, "model": model,
+                    "session_id": session_id, "workspace": workspace},
+                    sort_keys=True))
+            return {"outcome": "active", "attempt_id": attempt_id}
+
+    def heartbeat(self, attempt_id, now_epoch):
+        """Record one liveness beat. Only a live (active, unfenced)
+        attempt may beat — a fenced attempt's heartbeat is denied so a
+        late worker can never appear alive (A6)."""
+        with self.transact() as tx:
+            row = tx._q(
+                "SELECT l.work_key, a.state FROM attempt_liveness l"
+                " JOIN attempt_ledger a ON a.attempt_id=l.attempt_id"
+                " WHERE l.attempt_id=?", (attempt_id,)).fetchone()
+            if row is None:
+                return {"outcome": "denied", "reason": "unknown-attempt"}
+            if row[1] != "active":
+                return {"outcome": "denied",
+                        "reason": f"attempt-{row[1]}"}
+            fence = tx.fence_state(row[0])
+            if fence and fence["fenced"]:
+                return {"outcome": "denied",
+                        "reason": "generation-fenced"}
+            now = _utcnow()
+            tx._q(
+                "UPDATE attempt_liveness SET last_beat=?,"
+                " last_beat_epoch=?, beats=beats+1 WHERE attempt_id=?",
+                (now, now_epoch, attempt_id))
+            tx._q(
+                "UPDATE attempt_records SET heartbeat_at=?,"
+                " heartbeat_epoch=?, beats=beats+1 WHERE attempt_id=?",
+                (now, now_epoch, attempt_id))
+            return {"outcome": "beat", "attempt_id": attempt_id}
+
+    def finish_execution_attempt(
+            self, attempt_id, *, verdict, outcome, active_seconds, usage,
+            duration_s):
+        """Close one attempt: ledger end + record outcome + usage row +
+        ``attempt_finished`` event, one commit (§7.1).
+
+        ``active_seconds=None`` and ``usage=None`` record *unknown* —
+        honest gaps, never zero-filled (A4/A7).
+        """
+        usage_state = "measured" if usage is not None else "unknown"
+        with self.transact() as tx:
+            row = tx._q(
+                "SELECT work_key, role, state FROM attempt_ledger"
+                " WHERE attempt_id=?", (attempt_id,)).fetchone()
+            if row is None:
+                return {"outcome": "denied", "reason": "unknown-attempt"}
+            work_key, role, state = row
+            if state != "active":
+                return {"outcome": "denied",
+                        "reason": f"attempt-{state}"}
+            now = _utcnow()
+            tx._q(
+                "UPDATE attempt_ledger SET state=?, ended=?"
+                " WHERE attempt_id=?", (outcome, now, attempt_id))
+            tx._q(
+                "UPDATE attempt_records SET verdict=?, outcome=?,"
+                " ended=?, duration_s=?, usage_state=?"
+                " WHERE attempt_id=?",
+                (verdict, outcome, now, duration_s, usage_state,
+                 attempt_id))
+            rec = tx._q(
+                "SELECT task_id, generation FROM attempt_records"
+                " WHERE attempt_id=?", (attempt_id,)).fetchone()
+            tx._q(
+                "INSERT OR REPLACE INTO attempt_usage"
+                "(attempt_id,work_key,role,active_seconds,usage,"
+                "recorded_at) VALUES(?,?,?,?,?,?)",
+                (attempt_id, work_key, role, active_seconds,
+                 _json.dumps(usage, sort_keys=True)
+                 if usage is not None else None, now))
+            tx.record_event(
+                "attempt_finished", work_key=work_key,
+                detail=_json.dumps({
+                    "task_id": rec[0] if rec else None,
+                    "attempt_id": attempt_id,
+                    "generation": rec[1] if rec else None,
+                    "role": role, "duration_s": duration_s,
+                    "verdict": verdict, "outcome": outcome,
+                    "usage": usage if usage is not None else "unknown"},
+                    sort_keys=True))
+            return {"outcome": outcome, "attempt_id": attempt_id,
+                    "work_key": work_key, "role": role}
+
+    # -- result intake (worker candidates commit nothing) ----------------------
+
+    def accept_result(self, result_id, attempt_id, detail=None):
+        """Record a worker's candidate result — deduplicated by
+        ``result_id``, accepted only for a live attempt on an unfenced
+        work row. Late output from a fenced/expired generation is
+        rejected with the durable reason (A6); the worker *requests*,
+        only the lane commits (A3)."""
+        with self.transact() as tx:
+            prior = tx._q(
+                "SELECT accepted, reason FROM results WHERE result_id=?",
+                (result_id,)).fetchone()
+            if prior:
+                return {"result_id": result_id, "outcome": "deduplicated",
+                        "accepted": bool(prior[0]), "reason": prior[1]}
+            row = tx._q(
+                "SELECT work_key, state FROM attempt_ledger"
+                " WHERE attempt_id=?", (attempt_id,)).fetchone()
+            accepted, reason, work_key = 0, "unknown-attempt", None
+            if row is not None:
+                work_key = row[0]
+                fence = tx.fence_state(work_key)
+                if fence and fence["fenced"]:
+                    reason = "generation-fenced"
+                elif row[1] != "active":
+                    reason = f"attempt-{row[1]}"
+                else:
+                    accepted, reason = 1, None
+            tx._q(
+                "INSERT INTO results VALUES(?,?,?,?,?,?)",
+                (result_id, attempt_id, work_key, accepted, reason,
+                 _utcnow()))
+            if not accepted:
+                tx.record_event(
+                    "result_rejected", work_key=work_key, reason=reason,
+                    detail=f"attempt={attempt_id}")
+            return {"result_id": result_id, "accepted": accepted,
+                    "outcome": "accepted" if accepted else "denied",
+                    "reason": reason}
+
+    # -- fencing (A5/A6) ---------------------------------------------------------
+
+    def fence_state(self, work_key):
+        row = self._q(
+            "SELECT work_key,generation,fenced,fence_reason,termination,"
+            "termination_detail,updated_at FROM execution_fence"
+            " WHERE work_key=?", (work_key,)).fetchone()
+        if row is None:
+            return None
+        return {"work_key": row[0], "generation": row[1],
+                "fenced": bool(row[2]), "fence_reason": row[3],
+                "termination": row[4], "termination_detail": row[5],
+                "updated_at": row[6]}
+
+    def fence_work(self, work_key, reason, generation):
+        """Fence the work's generation: flag the fence row
+        ``termination=pending`` and end any active attempt ``fenced`` —
+        the commit *precedes* any termination attempt, so an effect or
+        result racing the fence loses (A5/A6 ordering)."""
+        with self.transact() as tx:
+            now = _utcnow()
+            tx._q(
+                "INSERT INTO execution_fence"
+                "(work_key,generation,fenced,fence_reason,termination,"
+                "updated_at) VALUES(?,?,?,?,'pending',?)"
+                " ON CONFLICT(work_key) DO UPDATE SET"
+                " fenced=1, fence_reason=excluded.fence_reason,"
+                " termination='pending', updated_at=excluded.updated_at",
+                (work_key, int(generation), 1, reason, now))
+            tx._q(
+                "UPDATE attempt_ledger SET state='fenced', ended=?"
+                " WHERE work_key=? AND state='active'", (now, work_key))
+            tx.record_event("work_fenced", work_key=work_key,
+                            reason=reason)
+            return {"outcome": "fenced", "work_key": work_key,
+                    "termination": "pending"}
+
+    def resolve_fence(self, work_key, termination, detail=None):
+        """Record the termination outcome: ``confirmed`` (worker +
+        descendants observed dead), ``quarantined`` (uncertain — blocks
+        replacement eligibility), or ``resolved`` (operator cleared the
+        quarantine)."""
+        if termination not in ("confirmed", "quarantined", "resolved"):
+            raise IntakeStoreError(
+                f"unknown termination state {termination!r}")
+        with self.transact() as tx:
+            fence = tx.fence_state(work_key)
+            if fence is None or not fence["fenced"]:
+                return {"outcome": "denied", "reason": "not-fenced"}
+            tx._q(
+                "UPDATE execution_fence SET termination=?,"
+                " termination_detail=?, updated_at=? WHERE work_key=?",
+                (termination, detail, _utcnow(), work_key))
+            tx.record_event("fence_resolved", work_key=work_key,
+                            reason=termination, detail=detail)
+            return {"outcome": termination, "work_key": work_key}
+
+    def replacement_eligible(self, work_key):
+        """True only when the generation's fence committed *and*
+        termination is ``confirmed`` or quarantine ``resolved`` —
+        uncertain termination can never permit replacement authority
+        (A5/A6)."""
+        fence = self.fence_state(work_key)
+        if fence is None:
+            return False
+        return bool(fence["fenced"]) and \
+            fence["termination"] in ("confirmed", "resolved")
+
+    # -- usage + alerts ------------------------------------------------------------
+
+    def attempt_record_rows(self, work_key=None):
+        rows = self._rows("attempt_records")
+        if work_key is None:
+            return rows
+        return [r for r in rows if r["work_key"] == work_key]
+
+    def count_attempts(self, work_key, role=None):
+        rows = self.attempt_record_rows(work_key)
+        if role is None:
+            return len(rows)
+        return len([r for r in rows if r["role"] == role])
+
+    def work_active_seconds(self, work_key):
+        """(measured_seconds, unknown_count) across every role attempt —
+        unknown usage is counted *as unknown*, never as zero (A4)."""
+        rows = [r for r in self._rows("attempt_usage")
+                if r["work_key"] == work_key]
+        measured = sum(r["active_seconds"] for r in rows
+                       if r["active_seconds"] is not None)
+        unknown = sum(1 for r in rows if r["active_seconds"] is None)
+        return measured, unknown
+
+    def stale_active_attempts(self, max_age_s, now_epoch):
+        """Active attempts whose last heartbeat epoch is older than
+        ``max_age_s`` — the 60-second missed-liveness sweep input (A6)."""
+        rows = self._q(
+            "SELECT l.attempt_id, l.work_key, l.last_beat_epoch"
+            " FROM attempt_liveness l JOIN attempt_ledger a"
+            " ON a.attempt_id=l.attempt_id"
+            " WHERE a.state='active' AND l.last_beat_epoch < ?",
+            (now_epoch - max_age_s,)).fetchall()
+        return [{"attempt_id": r[0], "work_key": r[1],
+                 "last_beat_epoch": r[2]} for r in rows]
+
+    def emit_alert(self, kind, identity, severity, detail=None):
+        """Append one operator-visible alert, deduplicated per
+        (kind, identity, severity). A repeated signal reports
+        ``deduplicated``; a *severity transition* (medium→high) is a new
+        row so the escalation stays visible (§7.3)."""
+        with self.transact() as tx:
+            cur = tx._q(
+                "INSERT OR IGNORE INTO alerts(ts,kind,identity,severity,"
+                "detail) VALUES(?,?,?,?,?)",
+                (_utcnow(), kind, identity, severity, detail))
+            if cur.rowcount:
+                return {"outcome": "emitted", "kind": kind,
+                        "identity": identity, "severity": severity,
+                        "deduplicated": False}
+            return {"outcome": "deduplicated", "kind": kind,
+                    "identity": identity, "severity": severity,
+                    "deduplicated": True}
+
+    def alert_rows(self, kind=None):
+        rows = self._rows("alerts")
+        if kind is None:
+            return rows
+        return [r for r in rows if r["kind"] == kind]
+
+    def result_rows(self, attempt_id=None):
+        rows = self._rows("results")
+        if attempt_id is None:
+            return rows
+        return [r for r in rows if r["attempt_id"] == attempt_id]
 
     def link_pr(self, work_key, pr):
         """Set-once PR link — the "at most one linked PR" half of the
