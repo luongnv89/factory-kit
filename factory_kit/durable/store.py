@@ -86,6 +86,21 @@ Tables:
   failures, the remote-state word, the stale-episode anchor and the
   next scheduled pass. Durable so "last successful reconciliation"
   and the 5-minute stale alert survive a controller restart.
+- ``operator_effort`` — the §7.1 ``operator_effort_recorded`` rows
+  (Task 2.9 / F07 A2): task identity, the restricted actor reference,
+  operator-supplied ``active_minutes`` and the intervention
+  ``category`` from a fixed vocabulary. ``NULL`` minutes/category
+  mean *unknown* — never zero-filled. A correction appends a new row
+  carrying ``supersedes=<prior effort_id>``; the superseded row and
+  its event stay in the trail unrewritten (A1/A7).
+- ``participant_agreements`` — recorded participant agreement per
+  export scope (Task 2.9 / A6). An aggregate pilot export exists only
+  against a durable row here; it can never silently enable external
+  collection.
+
+The ``events`` table also carries ``supersedes`` (Task 2.9 / A1): a
+correction appends a new event pointing at the earlier row's seq —
+history is never rewritten.
 
 Durability rules honoured here:
 
@@ -103,8 +118,11 @@ from __future__ import annotations
 import json as _json
 import sqlite3
 import threading
+import uuid
 from contextlib import contextmanager
 from datetime import datetime, timezone
+
+from factory_kit.events import schema as _events_schema
 
 __all__ = ["IntakeStoreError", "IntakeStore", "work_key_for"]
 
@@ -170,7 +188,8 @@ CREATE TABLE IF NOT EXISTS events(
     work_key TEXT,
     reason TEXT,
     config_digest TEXT,
-    detail TEXT);
+    detail TEXT,
+    supersedes INTEGER);
 
 CREATE TABLE IF NOT EXISTS attempt_ledger(
     attempt_id TEXT PRIMARY KEY,
@@ -365,6 +384,35 @@ CREATE TABLE IF NOT EXISTS reconcile_watermark(
     stale_since_epoch REAL,
     next_due_epoch REAL,
     updated_at TEXT NOT NULL);
+
+-- Operator effort (Task 2.9 / §7.1 operator_effort_recorded, F07 A2):
+-- one append-only row per operator-supplied effort report. A NULL
+-- active_minutes/category is the honest *unknown* (A3); a correction
+-- is a new row whose ``supersedes`` names the earlier ``effort_id`` —
+-- the superseded row and its event are never rewritten (A1/A7).
+CREATE TABLE IF NOT EXISTS operator_effort(
+    effort_id TEXT PRIMARY KEY,
+    work_key TEXT NOT NULL,
+    actor_ref TEXT NOT NULL,
+    active_minutes REAL,
+    category TEXT,
+    source TEXT,
+    supersedes TEXT,
+    seq INTEGER NOT NULL,
+    event_seq INTEGER NOT NULL,
+    recorded_at TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS effort_by_work
+    ON operator_effort(work_key, recorded_at);
+
+-- Recorded participant agreement (Task 2.9 / A6): an aggregate pilot
+-- export exists only against a durable row here — external collection
+-- can never be silently enabled by a missing flag.
+CREATE TABLE IF NOT EXISTS participant_agreements(
+    scope TEXT PRIMARY KEY,
+    actor_ref TEXT NOT NULL,
+    detail TEXT,
+    seq INTEGER NOT NULL,
+    recorded_at TEXT NOT NULL);
 """
 
 
@@ -388,9 +436,20 @@ class IntakeStore:
             self.db.execute("PRAGMA synchronous=FULL")
             self.db.execute("PRAGMA busy_timeout=5000")
             self.db.executescript(_SCHEMA)
+            self._migrate()
         except sqlite3.Error as exc:
             raise IntakeStoreError(
                 f"cannot open intake store {path}: {exc}") from exc
+
+    def _migrate(self):
+        """In-place additive upgrades for databases created before a
+        column existed (``CREATE TABLE IF NOT EXISTS`` alone cannot add
+        one). Currently: ``events.supersedes`` (Task 2.9)."""
+        cols = {r[1] for r in
+                self.db.execute("PRAGMA table_info(events)")}
+        if "supersedes" not in cols:
+            self.db.execute(
+                "ALTER TABLE events ADD COLUMN supersedes INTEGER")
 
     def close(self):
         db = getattr(self, "db", None)
@@ -824,9 +883,15 @@ class IntakeStore:
         ``attempt_finished`` event, one commit (§7.1).
 
         ``active_seconds=None`` and ``usage=None`` record *unknown* —
-        honest gaps, never zero-filled (A4/A7).
+        honest gaps, never zero-filled (A4/A7). A present ``usage``
+        mapping is normalized through
+        :func:`factory_kit.events.schema.normalize_usage` first so
+        token/provider, billed-amount/currency, quota and the four
+        wait-class durations persist as separate fields (Task 2.9 A3).
         """
         usage_state = "measured" if usage is not None else "unknown"
+        usage = _events_schema.normalize_usage(usage) \
+            if usage is not None else None
         with self.transact() as tx:
             row = tx._q(
                 "SELECT work_key, role, state FROM attempt_ledger"
@@ -1218,6 +1283,16 @@ class IntakeStore:
              int(issue) if issue is not None else None,
              int(generation) if generation is not None else None,
              work_key, outcome, reason, detail, int(seq)))
+        # §7.1 ``control_recorded`` — the typed event twin of the row
+        # (Task 2.9 A2): restricted actor/chat references only, never
+        # the message text.
+        self.record_event(
+            "control_recorded", work_key=work_key, reason=reason,
+            detail=_json.dumps(
+                {"command_id": command_id, "actor_ref": actor_ref,
+                 "chat_ref": chat_ref, "action": action,
+                 "outcome": outcome,
+                 "recorded_at": committed_at}, sort_keys=True))
 
     def find_control(self, command_id):
         """Dedup lookup — a repeated command ID returns the recorded
@@ -1509,15 +1584,205 @@ class IntakeStore:
     # -- events (§7.1) ---------------------------------------------------------
 
     def record_event(self, kind, *, delivery_id=None, work_key=None,
-                     reason=None, config_digest=None, detail=None):
-        """Append one intake event. Carries identities, reason codes and
-        digests only — bodies, signatures and secrets never reach this
-        table by construction (callers pass reason codes, not content)."""
-        self._q(
+                     reason=None, config_digest=None, detail=None,
+                     supersedes=None):
+        """Append one intake event; returns the row's ``seq``.
+
+        Carries identities, reason codes and digests only — bodies,
+        signatures and secrets never reach this table by construction
+        (callers pass reason codes, not content). ``supersedes`` points
+        a correction at the earlier row's ``seq`` — the superseded row
+        is kept verbatim, so history is never rewritten (Task 2.9 A1).
+        """
+        cur = self._q(
             "INSERT INTO events(ts,kind,delivery_id,work_key,reason,"
-            "config_digest,detail) VALUES(?,?,?,?,?,?,?)",
+            "config_digest,detail,supersedes) VALUES(?,?,?,?,?,?,?,?)",
             (_utcnow(), kind, delivery_id, work_key, reason,
-             config_digest, detail))
+             config_digest, detail, supersedes))
+        return cur.lastrowid
+
+    def record_typed_event(self, kind, *, properties=None, work_key=None,
+                           delivery_id=None, reason=None,
+                           config_digest=None, supersedes=None):
+        """Append one event validated against the §7.1 contract.
+
+        ``properties`` are merged over the column identities and checked
+        against :data:`factory_kit.events.schema.EVENT_SCHEMAS` — an
+        unregistered kind or a missing required property raises
+        :class:`IntakeStoreError` (a producer defect, not a verdict).
+        Returns ``{"outcome": "recorded", "seq": …}``.
+        """
+        props = dict(properties or {})
+        merged = {"work_key": work_key, "delivery_id": delivery_id,
+                  "reason": reason, "config_digest": config_digest}
+        merged.update(props)
+        check = _events_schema.validate_event(kind, merged)
+        if not check["ok"]:
+            raise IntakeStoreError(
+                f"event {kind!r} rejected: {check['reason']}"
+                + (f" missing={check['missing']}"
+                   if check.get("missing") else ""))
+        seq = self.record_event(
+            kind, delivery_id=delivery_id, work_key=work_key,
+            reason=reason, config_digest=config_digest,
+            detail=_json.dumps(props, sort_keys=True)
+            if props else None,
+            supersedes=supersedes)
+        return {"outcome": "recorded", "seq": seq}
+
+    def event_superseded(self, seq):
+        """True when a later event's ``supersedes`` names ``seq`` —
+        the correction exists alongside the original, which stays in
+        the trail unrewritten (A1)."""
+        row = self._q(
+            "SELECT 1 FROM events WHERE supersedes=? LIMIT 1",
+            (seq,)).fetchone()
+        return row is not None
+
+    def current_events(self, kind=None):
+        """Events minus rows a later correction superseded — the view a
+        status/diagnostic surface must quote (A1)."""
+        rows = self.event_rows(kind)
+        superseded = {r["supersedes"] for r in self.event_rows()
+                      if r.get("supersedes") is not None}
+        return [r for r in rows if r["seq"] not in superseded]
+
+    # -- operator effort (Task 2.9 / §7.1 operator_effort_recorded, F07 A2) --
+
+    def record_operator_effort(self, work_key, *, actor_ref,
+                               active_minutes=None, category=None,
+                               source="operator", supersedes=None,
+                               effort_id=None):
+        """Persist one operator-effort record + its event, one commit.
+
+        ``active_minutes`` is the *operator-supplied* active time —
+        ``None`` records honest *unknown*, never zero (A2/A3).
+        ``category`` is the fixed intervention vocabulary
+        (:data:`factory_kit.events.schema.INTERVENTION_CATEGORIES`) so
+        no free text — and with it no private content — can enter the
+        trail. ``supersedes`` names the earlier ``effort_id`` this
+        record corrects: the new row *and* a new
+        ``operator_effort_recorded`` event pointing at the prior
+        event's seq are appended; history is never rewritten (A1).
+        """
+        if not work_key:
+            raise IntakeStoreError(
+                "operator effort requires a work_key")
+        if not actor_ref:
+            raise IntakeStoreError(
+                "operator effort requires a restricted actor_ref")
+        if active_minutes is not None:
+            try:
+                active_minutes = float(active_minutes)
+            except (TypeError, ValueError) as exc:
+                raise IntakeStoreError(
+                    f"active_minutes must be a number or None: {exc}"
+                ) from exc
+            if active_minutes < 0:
+                raise IntakeStoreError(
+                    "active_minutes cannot be negative")
+        if category is not None and category not in \
+                _events_schema.INTERVENTION_CATEGORIES:
+            raise IntakeStoreError(
+                f"unknown intervention category {category!r}")
+        effort_id = effort_id or f"eff-{uuid.uuid4().hex[:12]}"
+        now = _utcnow()
+        with self.transact() as tx:
+            prior_seq = None
+            if supersedes is not None:
+                row = tx._q(
+                    "SELECT event_seq FROM operator_effort"
+                    " WHERE effort_id=?", (supersedes,)).fetchone()
+                if row is None:
+                    raise IntakeStoreError(
+                        f"no operator effort row {supersedes!r}")
+                prior_seq = row[0]
+            seq = tx.next_seq()
+            event_seq = tx.record_event(
+                "operator_effort_recorded", work_key=work_key,
+                detail=_json.dumps(
+                    {"effort_id": effort_id, "work_key": work_key,
+                     "actor_ref": actor_ref,
+                     "active_minutes": active_minutes,
+                     "category": category, "source": source,
+                     "supersedes": supersedes, "recorded_at": now},
+                    sort_keys=True),
+                supersedes=prior_seq)
+            tx._q(
+                "INSERT INTO operator_effort"
+                "(effort_id,work_key,actor_ref,active_minutes,category,"
+                "source,supersedes,seq,event_seq,recorded_at)"
+                " VALUES(?,?,?,?,?,?,?,?,?,?)",
+                (effort_id, work_key, actor_ref, active_minutes,
+                 category, source, supersedes, seq, event_seq, now))
+            return {"outcome": "recorded", "effort_id": effort_id,
+                    "event_seq": event_seq, "recorded_at": now}
+
+    def effort_rows(self, work_key=None, *, current_only=False):
+        rows = self._rows("operator_effort")
+        if work_key is not None:
+            rows = [r for r in rows if r["work_key"] == work_key]
+        if current_only:
+            superseded = {r["supersedes"] for r in rows
+                          if r.get("supersedes") is not None}
+            rows = [r for r in rows
+                    if r["effort_id"] not in superseded]
+        return rows
+
+    def work_effort_minutes(self, work_key):
+        """(measured_minutes, unknown_count) over the *current* effort
+        records — superseded rows stay in the table but do not count,
+        and unknown effort is counted as unknown, never zero (A2/A4)."""
+        rows = self.effort_rows(work_key, current_only=True)
+        measured = sum(r["active_minutes"] for r in rows
+                       if r["active_minutes"] is not None)
+        unknown = sum(1 for r in rows if r["active_minutes"] is None)
+        return measured, unknown
+
+    # -- participant agreement (Task 2.9 / A6) -------------------------------
+
+    def record_participant_agreement(self, scope, *, actor_ref,
+                                     detail=None):
+        """Record participant agreement for an export ``scope`` (e.g.
+        ``"pilot-export"``). The row is the durable proof an aggregate
+        export checks — it can never be enabled silently (A6)."""
+        if not scope:
+            raise IntakeStoreError(
+                "participant agreement requires a scope")
+        if not actor_ref:
+            raise IntakeStoreError(
+                "participant agreement requires a restricted actor_ref")
+        now = _utcnow()
+        with self.transact() as tx:
+            seq = tx.next_seq()
+            tx._q(
+                "INSERT INTO participant_agreements"
+                "(scope,actor_ref,detail,seq,recorded_at)"
+                " VALUES(?,?,?,?,?)"
+                " ON CONFLICT(scope) DO UPDATE SET"
+                " actor_ref=excluded.actor_ref,"
+                " detail=excluded.detail, seq=excluded.seq,"
+                " recorded_at=excluded.recorded_at",
+                (scope, actor_ref, detail, seq, now))
+            tx.record_event(
+                "participant_agreement_recorded",
+                detail=_json.dumps(
+                    {"scope": scope, "actor_ref": actor_ref,
+                     "recorded_at": now}, sort_keys=True))
+            return {"outcome": "recorded", "scope": scope,
+                    "recorded_at": now}
+
+    def participant_agreement(self, scope="pilot-export"):
+        """The recorded agreement row for ``scope``, or ``None`` — the
+        gate an aggregate pilot export must pass (A6)."""
+        row = self._q(
+            "SELECT scope,actor_ref,detail,seq,recorded_at"
+            " FROM participant_agreements WHERE scope=?",
+            (scope,)).fetchone()
+        if row is None:
+            return None
+        return {"scope": row[0], "actor_ref": row[1], "detail": row[2],
+                "seq": row[3], "recorded_at": row[4]}
 
     # -- read accessors (inspectability + tests) --------------------------------
 
