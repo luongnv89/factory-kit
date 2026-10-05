@@ -70,11 +70,12 @@ class ControlService:
     """Authorized durable control over the execution lane."""
 
     def __init__(self, store, lane, registrations, configs, *,
-                 alert_sink=None, now=None):
+                 preview=None, alert_sink=None, now=None):
         self.store = store
         self.lane = lane
         self.registrations = registrations
         self.configs = dict(configs)
+        self.preview = preview
         self._alerts = alert_sink if alert_sink is not None else []
         self._now = now or time.time
 
@@ -362,6 +363,18 @@ class ControlService:
         # ack above vs resolve_fence's confirmed/quarantined below.
         term = self.lane.terminate_work(
             work_key, reason="cancel", deadline_s=30.0)
+        # Confirmed task termination starts the preview cleanup window
+        # (F11 A5): owned deployments are removed under the configured
+        # deadline; a provider outage leaves a visible backlog entry —
+        # never a removal claim.
+        preview_cleanup = None
+        if self.preview is not None:
+            try:
+                preview_cleanup = self.preview.terminate(
+                    work_key, reason="cancel")
+            except Exception as exc:
+                preview_cleanup = {"outcome": "error",
+                                   "reason": type(exc).__name__}
         state_word = ("CANCELED" if term["termination"] == "confirmed"
                       else "QUARANTINED")
         committed = self._committed_links(work_key)
@@ -374,6 +387,7 @@ class ControlService:
         return {"ok": True, "outcome": "accepted",
                 "command_id": cmd["command_id"], "work_key": work_key,
                 "termination": term["termination"],
+                "preview_cleanup": preview_cleanup,
                 "text": self._ack_text(
                     cmd, work,
                     f"{state_word} - work {work_key}, generation "

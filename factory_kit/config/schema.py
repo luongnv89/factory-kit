@@ -42,6 +42,8 @@ __all__ = [
     "SECRET_REF_SCHEMES",
     "DEFAULT_LIMITS",
     "LIMIT_BOUNDS",
+    "PREVIEW_VISIBILITIES",
+    "DEFAULT_PREVIEW",
     "authority_key",
     "effective_digest",
     "policy_digest",
@@ -151,6 +153,22 @@ _ENDPOINT_BOUNDS = {
     "max_smoke_age_minutes": (1, 30),
 }
 
+#: Preview deployment contract (F11): the recipe's recorded values —
+#: link-unlisted visibility, ≤24 h maximum lifetime and removal within
+#: 60 minutes of confirmed task termination. Each stays *configurable*
+#: inside its bound: a longer TTL or a slower cleanup target fails
+#: validation rather than silently widening the resource window.
+PREVIEW_VISIBILITIES = ("unlisted", "protected", "public")
+DEFAULT_PREVIEW = {
+    "visibility": "unlisted",
+    "ttl_hours": 24,
+    "cleanup_minutes": 60,
+}
+_PREVIEW_BOUNDS = {
+    "ttl_hours": (1, 72),
+    "cleanup_minutes": (5, 240),
+}
+
 #: Every key the schema knows, per group. Anything outside these sets is an
 #: unknown field and fails (A2) — including would-be escape hatches such as
 #: ``endpoint.production_deploy`` or ``skills.auto_discover: true`` (handled
@@ -189,7 +207,9 @@ _SUB_KEYS = {
     "verification.required_checks": {"provider", "contexts", "conclusions"},
     "evidence.export": {"aggregate_only", "redact"},
     "evidence.tombstones": {"retain_until_registration_removal"},
-    "endpoint.preview": {"provider", "environment"},
+    "endpoint.preview": {"provider", "environment", "visibility",
+                         "ttl_hours", "cleanup_minutes", "smoke"},
+    "endpoint.preview.smoke": {"command", "expect", "marker"},
     "endpoint.merge": {
         "method", "approval_expiry_minutes", "max_smoke_age_minutes",
     },
@@ -527,6 +547,38 @@ def _v_endpoint(problems, node):
             _err(problems, "endpoint.preview.environment",
                  "must be 'preview' — production deployment is disabled "
                  "for the MVP endpoint")
+        visibility = preview.get(
+            "visibility", DEFAULT_PREVIEW["visibility"])
+        if visibility not in PREVIEW_VISIBILITIES:
+            _err(problems, "endpoint.preview.visibility",
+                 f"unsupported visibility {visibility!r} — supported: "
+                 f"{', '.join(PREVIEW_VISIBILITIES)}")
+        _check_bounded(problems, preview, "endpoint.preview",
+                       DEFAULT_PREVIEW, _PREVIEW_BOUNDS)
+        # F11/A2: the smoke contract is *required* — a deployment that
+        # no configured probe verifies can never produce the meaningful
+        # evidence an approval request needs.
+        smoke = _require_map(problems, preview.get("smoke"),
+                             "endpoint.preview.smoke")
+        if smoke is not None:
+            _check_unknown(problems, smoke, "endpoint.preview.smoke",
+                           _SUB_KEYS["endpoint.preview.smoke"])
+            command = _require_str(problems, smoke.get("command"),
+                                   "endpoint.preview.smoke.command")
+            if command is not None and "{url}" not in command:
+                _err(problems, "endpoint.preview.smoke.command",
+                     "must contain '{url}' — the smoke probe must run "
+                     "against the recorded deployment URL")
+            expect = smoke.get("expect")
+            if not isinstance(expect, str) or not expect.strip():
+                _err(problems, "endpoint.preview.smoke.expect",
+                     "must be a non-empty string — the expected smoke "
+                     "result the probe output is compared against")
+            marker = smoke.get("marker")
+            if marker is not None and \
+                    (not isinstance(marker, str) or not marker.strip()):
+                _err(problems, "endpoint.preview.smoke.marker",
+                     "must be a non-empty string when declared")
     merge = _require_map(problems, node.get("merge"), "endpoint.merge")
     if merge is not None:
         _check_unknown(problems, merge, "endpoint.merge",
@@ -675,10 +727,23 @@ def _eff_evidence(node):
 
 def _eff_endpoint(node):
     merge = node["merge"]
+    preview = node["preview"]
+    smoke = preview["smoke"]
     return {
         "preview": {
-            "provider": node["preview"]["provider"],
-            "environment": node["preview"].get("environment", "preview"),
+            "provider": preview["provider"],
+            "environment": preview.get("environment", "preview"),
+            "visibility": preview.get(
+                "visibility", DEFAULT_PREVIEW["visibility"]),
+            "ttl_hours": preview.get(
+                "ttl_hours", DEFAULT_PREVIEW["ttl_hours"]),
+            "cleanup_minutes": preview.get(
+                "cleanup_minutes", DEFAULT_PREVIEW["cleanup_minutes"]),
+            "smoke": {
+                "command": smoke["command"],
+                "expect": smoke["expect"],
+                "marker": smoke.get("marker"),
+            },
         },
         "merge": {
             "method": merge["method"],

@@ -172,12 +172,23 @@ EVENT_SCHEMAS = {
         "required": ("notification_id", "destination_ref", "reason"),
         "nullable": ("retries",),
     },
+    # Task 3.1 — revision-bound preview lifecycle (F11). ``verified``
+    # always names the provider-correlated deployment identity; a
+    # ``failed`` row may legitimately carry no ``deployment_id`` (the
+    # deploy call never returned one — e.g. provider outage), so the
+    # durable ``preview_id`` is the alternative identity.
     "preview_verified": {
         "required": ("deployment_id", "head_sha", "observed_at"),
+        "nullable": ("preview_id", "provider", "url", "base_sha",
+                     "artifact_identity", "expires_epoch",
+                     "cleanup_deadline_epoch"),
     },
     "preview_failed": {
-        "required": ("deployment_id", "head_sha", "observed_at",
-                     "reason"),
+        "required": ("head_sha", "observed_at", "reason"),
+        "required_any": ("deployment_id", "preview_id"),
+        "nullable": ("provider", "url", "base_sha",
+                     "artifact_identity", "expires_epoch",
+                     "cleanup_deadline_epoch"),
     },
     "approval_decided": {
         "required": ("request_id", "actor_ref", "action", "outcome"),
