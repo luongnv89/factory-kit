@@ -22,6 +22,7 @@ import sys
 import tempfile
 import time
 import unittest
+from unittest import mock
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -348,6 +349,65 @@ class TestLifecycle(DriverWorld):
 
 class TestBuildRefusals(unittest.TestCase):
 
+    def _repo(self, manifest_text=None):
+        """A temp clone carrying ``manifest_text`` (or the shipped
+        manifest) plus a ready registration in a temp state dir."""
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        repo = Path(tmp.name) / "repo"
+        repo.mkdir()
+        if manifest_text is not None:
+            (repo / ".factory-kit.yml").write_text(manifest_text)
+        else:
+            import shutil
+            shutil.copy(MANIFEST, repo / ".factory-kit.yml")
+        state = Path(tmp.name) / "state"
+        state.mkdir()
+        eff = schema.load_manifest_file(repo / ".factory-kit.yml")
+        regs = registration.RegistrationStore(
+            state / "registrations.json")
+        regs.register(eff, readiness=READY,
+                      supported_versions=VERSIONS)
+        args = type("A", (), {"repo": str(repo),
+                              "state_dir": str(state),
+                              "profile": "default",
+                              "board": None})()
+        return eff, args
+
+    _PAGES_MANIFEST = None
+
+    @classmethod
+    def _pages_manifest(cls):
+        if cls._PAGES_MANIFEST is None:
+            cls._PAGES_MANIFEST = MANIFEST.read_text().replace(
+                "provider: vercel", "provider: github-pages").replace(
+                "    smoke:",
+                "    build:\n"
+                "      commands: [\"npm ci\", \"npm run build\"]\n"
+                "      output_dir: dist\n"
+                "      base_env: SITE_BASE\n"
+                "    smoke:", 1)
+        return cls._PAGES_MANIFEST
+
+    def _build(self, eff, args, *, pages=None):
+        fake_remote = mock.Mock()
+        fake_remote.repository_identity.return_value = {
+            "repo_id": eff["identity"]["repo_id"],
+            "full_name": "o/r"}
+        patches = [
+            mock.patch.object(run_cli, "GhCliRemote",
+                              return_value=fake_remote),
+            mock.patch.object(run_cli, "_preflight_readings",
+                              return_value=READINGS),
+        ]
+        if pages is not None:
+            patches.append(mock.patch.object(
+                run_cli, "GitHubPagesPreview", pages))
+        for patch in patches:
+            patch.start()
+            self.addCleanup(patch.stop)
+        return run_cli.build(args, recover=False)
+
     def test_registration_not_enabled(self):
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
@@ -366,6 +426,57 @@ class TestBuildRefusals(unittest.TestCase):
             run_cli.build(args, recover=False)
         self.assertEqual(cm.exception.reason,
                          "registration-not-enabled")
+
+    def test_github_pages_provider_selects_pages_port(self):
+        eff, args = self._repo(self._pages_manifest())
+        captured = {}
+
+        class FakePages:
+            def __init__(self, **kw):
+                captured.update(kw)
+
+            def provider_name(self):
+                return "github-pages"
+
+            def _site(self):
+                return "https://o.github.io/r/"
+
+        self._build(eff, args, pages=FakePages)
+        self.assertEqual(captured["base_env"], "SITE_BASE")
+        self.assertEqual(captured["output_dir"], "dist")
+        self.assertEqual(tuple(captured["build_commands"]),
+                         ("npm ci", "npm run build"))
+        self.assertIn("/pages/", captured["worktree_dir"])
+        self.assertEqual(captured["repo_root"], args.repo)
+        self.assertEqual(
+            captured["full_name"],
+            f"{eff['identity']['owner']}/{eff['identity']['name']}")
+
+    def test_pages_not_configured_refusal(self):
+        eff, args = self._repo(self._pages_manifest())
+
+        class FakePages:
+            def __init__(self, **kw):
+                pass
+
+            def provider_name(self):
+                return "github-pages"
+
+            def _site(self):
+                from factory_kit.preview.port import PreviewError
+                raise PreviewError(
+                    "pages-not-configured: serves 'main':'/docs'")
+
+        with self.assertRaises(run_cli.Refusal) as cm:
+            self._build(eff, args, pages=FakePages)
+        self.assertEqual(cm.exception.reason, "pages-not-configured")
+
+    def test_vercel_provider_still_requires_link(self):
+        eff, args = self._repo()          # shipped manifest → vercel
+        with self.assertRaises(run_cli.Refusal) as cm:
+            self._build(eff, args)
+        self.assertEqual(cm.exception.reason,
+                         "vercel-project-unlinked")
 
 
 class TestCheckGrace(DriverWorld):

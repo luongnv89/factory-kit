@@ -49,7 +49,8 @@ from factory_kit.config.registration import RegistrationStore
 from factory_kit.config.schema import ConfigError, load_manifest_file
 from factory_kit.durable.store import IntakeStore
 from factory_kit.execution.worker import HermesKanbanWorker
-from factory_kit.preview.port import VercelCliPreview
+from factory_kit.preview.pages import GitHubPagesPreview
+from factory_kit.preview.port import PreviewError, VercelCliPreview
 from factory_kit.publication.remote import GhCliRemote, RemoteError
 from factory_kit.recovery.poller import GhIssuePoller
 from factory_kit.setup import readiness as readiness_mod
@@ -182,20 +183,39 @@ def build(args, *, log=None, recover=True):
                     f"role {role}: {home} does not exist")
             profiles[role] = profile
 
-    link = Path(repo) / ".vercel" / "project.json"
-    project_id = org_id = None
-    if link.is_file():
+    preview_cfg = ((effective.get("endpoint") or {})
+                   .get("preview") or {})
+    provider = preview_cfg.get("provider")
+    if provider == "github-pages":
+        build_cfg = preview_cfg.get("build") or {}
+        preview_port = GitHubPagesPreview(
+            repo_root=repo, full_name=full_name,
+            worktree_dir=os.path.join(
+                state_dir, "pages", effective["identity"]["name"]),
+            build_commands=build_cfg.get("commands") or (),
+            output_dir=build_cfg.get("output_dir"),
+            base_env=build_cfg.get("base_env"))
         try:
-            link_json = json.loads(
-                link.read_text(encoding="utf-8"))
-            project_id = link_json.get("projectId")
-            org_id = link_json.get("orgId")
-        except (OSError, json.JSONDecodeError):
-            pass
-    if not project_id or not org_id:
-        raise Refusal(
-            "vercel-project-unlinked",
-            f"{link} lacks projectId/orgId — run `vercel link`")
+            preview_port._site()
+        except PreviewError as exc:
+            raise Refusal("pages-not-configured", str(exc))
+    else:
+        link = Path(repo) / ".vercel" / "project.json"
+        project_id = org_id = None
+        if link.is_file():
+            try:
+                link_json = json.loads(
+                    link.read_text(encoding="utf-8"))
+                project_id = link_json.get("projectId")
+                org_id = link_json.get("orgId")
+            except (OSError, json.JSONDecodeError):
+                pass
+        if not project_id or not org_id:
+            raise Refusal(
+                "vercel-project-unlinked",
+                f"{link} lacks projectId/orgId — run `vercel link`")
+        preview_port = VercelCliPreview(repo, project_id=project_id,
+                                        org_id=org_id)
 
     store = _open_store(state_dir)
     workspace_root = os.path.join(state_dir, "workspaces",
@@ -206,8 +226,6 @@ def build(args, *, log=None, recover=True):
         repo, full_name, profiles, board=args.board,
         acceptance_commands=((effective.get("verification") or {})
                              .get("acceptance_commands") or ()))
-    preview_port = VercelCliPreview(repo, project_id=project_id,
-                                    org_id=org_id)
     issue_source = GhIssuePoller(repo_id, full_name)
     services = compose(
         store=store, registrations=registrations, effective=effective,
