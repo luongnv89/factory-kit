@@ -10,7 +10,7 @@
 | Component | Origin | License/notice | Trust review |
 |---|---|---|---|
 | `factory_kit.*` (setup, durable, intake, execution, recovery, publication, approval, notification, preview, verification, config) | This repository, first-party | **No root LICENSE file today** — all rights reserved by default; a Q8 blocker | Authored in-repo; full unittest coverage under `tests/` |
-| `skills/factory-setup` SKILL.md | This repository | MIT (front-matter `license: MIT`) | Versioned 0.1.0, authored Luong NGUYEN |
+| `skills/factory-setup` SKILL.md | This repository | MIT (front-matter `license: MIT`) | Versioned 0.3.1, authored Luong NGUYEN |
 | IDD skill pins `issue-resolver: 0.19.0`, `issue-pr-review: 0.19.0` | Luong's IDD skill bundle (`~/.agents/skills/`) | Internal skill bundle | Pinned revision enforced by readiness (`skill-version-mismatch`); never auto-discovered (`skills.auto_discover: false`) |
 | Hermes (`hermes-kanban`) | External runtime, ≥ 0.21.5 tested | Vendor terms | Probed live by readiness; boundary map in `docs/spike/hermes-boundary-map.md` |
 | Python 3.14.7 stdlib | PSF | PSF license | No third-party Python dependencies — the kit is stdlib-only by construction |
