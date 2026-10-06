@@ -332,6 +332,36 @@ class EndpointPolicyTests(unittest.TestCase):
         self.assertIn("endpoint.preview.environment",
                       paths(problems_of(mutate)))
 
+    def test_approval_channels_defaults_to_telegram(self):
+        effective = schema.load_manifest_file(MANIFEST)
+        self.assertEqual(
+            effective["endpoint"]["merge"]["approval_channels"],
+            ["telegram"])
+
+    def test_approval_channels_operator_cli(self):
+        raw = load_valid()
+        raw["endpoint"]["merge"]["approval_channels"] = [
+            "operator-cli"]
+        effective = schema.validate(raw)
+        self.assertEqual(
+            effective["endpoint"]["merge"]["approval_channels"],
+            ["operator-cli"])
+
+    def test_approval_channels_unknown_member_rejected(self):
+        def mutate(raw):
+            raw["endpoint"]["merge"]["approval_channels"] = [
+                "telegram", "sms"]
+        self.assertIn("endpoint.merge.approval_channels[1]",
+                      paths(problems_of(mutate)))
+
+    def test_approval_channels_empty_rejected(self):
+        def mutate(raw):
+            raw["endpoint"]["merge"]["approval_channels"] = []
+        problems = problems_of(mutate)
+        self.assertTrue(any(
+            p["path"].startswith("endpoint.merge.approval_channels")
+            for p in problems))
+
 
 class RetentionSecretTests(unittest.TestCase):
     """A5 — CFG07/CFG08."""

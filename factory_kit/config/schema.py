@@ -37,6 +37,7 @@ __all__ = [
     "SUPPORTED_RUNTIMES",
     "SUPPORTED_PREVIEW_PROVIDERS",
     "SUPPORTED_MERGE_METHODS",
+    "APPROVAL_CHANNELS",
     "REQUIRED_ROLES",
     "REQUIRED_DISABLED",
     "SECRET_REF_SCHEMES",
@@ -212,8 +213,16 @@ _SUB_KEYS = {
     "endpoint.preview.smoke": {"command", "expect", "marker"},
     "endpoint.merge": {
         "method", "approval_expiry_minutes", "max_smoke_age_minutes",
+        "approval_channels",
     },
 }
+
+#: The approval decision channels a manifest may enable (Task 3.2 +
+#: operator-CLI addition). ``telegram`` is the original decision
+#: transport; ``operator-cli`` authorizes a verified GitHub actor
+#: deciding from the local driver CLI. The effective set is inside the
+#: policy digest, so enabling a channel rekeys every contract.
+APPROVAL_CHANNELS = ("telegram", "operator-cli")
 
 _REVISION_RE = re.compile(
     r"^(v?[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.\-]+)?|[0-9a-f]{40})$")
@@ -590,6 +599,17 @@ def _v_endpoint(problems, node):
                  f"{', '.join(SUPPORTED_MERGE_METHODS)}")
         _check_bounded(problems, merge, "endpoint.merge",
                        DEFAULT_ENDPOINT, _ENDPOINT_BOUNDS)
+        channels = merge.get("approval_channels",
+                             list(APPROVAL_CHANNELS[:1]))
+        channels = _require_list(
+            problems, channels, "endpoint.merge.approval_channels")
+        if channels is not None:
+            for i, item in enumerate(channels):
+                if item not in APPROVAL_CHANNELS:
+                    _err(problems,
+                         f"endpoint.merge.approval_channels[{i}]",
+                         f"unsupported channel {item!r} — supported: "
+                         f"{', '.join(APPROVAL_CHANNELS)}")
     disabled = node.get("disabled", list(REQUIRED_DISABLED))
     disabled = _require_list(problems, disabled, "endpoint.disabled",
                              allow_empty=True)
@@ -753,6 +773,8 @@ def _eff_endpoint(node):
             "max_smoke_age_minutes": merge.get(
                 "max_smoke_age_minutes",
                 DEFAULT_ENDPOINT["max_smoke_age_minutes"]),
+            "approval_channels": list(
+                merge.get("approval_channels", ["telegram"])),
         },
         "disabled": sorted(
             set(node.get("disabled", REQUIRED_DISABLED)) |

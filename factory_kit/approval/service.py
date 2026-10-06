@@ -52,6 +52,8 @@ from __future__ import annotations
 
 import hashlib
 import json as _json
+import re
+import socket
 import time
 import uuid
 from datetime import datetime, timezone
@@ -68,6 +70,30 @@ APPROVE_ACTION = "merge"
 
 #: Typed decision verdicts the surface accepts.
 DECISION_VERDICTS = ("approve", "reject")
+
+#: GitHub's login shape — 1–39 chars, alnum or single interior hyphens.
+_GITHUB_LOGIN_RE = re.compile(
+    r"^[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}$")
+
+
+def _sanitize_host(host):
+    """The ``cli:<host>`` chat ref's host token — hostname characters
+    only, bounded; anything else collapses to a denyable ref."""
+    cleaned = re.sub(r"[^A-Za-z0-9._-]", "", str(host or ""))[:64]
+    return cleaned or None
+
+
+def _telegram_id(ref):
+    """``telegram:<id>`` → int, or ``None`` for any other ref — group
+    chat ids are negative (``-100…``), so this parses with ``int``,
+    never ``isdigit``. A non-Telegram or malformed ref is ``None``:
+    the caller denies it as forged rather than crashing."""
+    if not isinstance(ref, str) or not ref.startswith("telegram:"):
+        return None
+    try:
+        return int(ref.split(":", 1)[1])
+    except ValueError:
+        return None
 
 
 def _digest(node) -> str:
@@ -377,9 +403,9 @@ class ApprovalService:
                                  detail=detail)
         effective = self.configs.get(work["repo_id"])
         authz = (effective or {}).get("authorization", {})
-        user = int(actor.split(":", 1)[1])
-        chat_id = int(chat.split(":", 1)[1])
-        if effective is None or \
+        user = _telegram_id(actor)
+        chat_id = _telegram_id(chat)
+        if effective is None or user is None or \
                 user not in authz.get("telegram_users", []):
             return self._deny_tx(tx, decision_id, request, work_key,
                                  command_id, actor, chat, verdict,
@@ -396,7 +422,21 @@ class ApprovalService:
                                  command_id, actor, chat, verdict,
                                  received, decided_at, "not-authorized",
                                  detail=detail)
+        return self._decide_authorized_tx(
+            tx, decision_id, request, work, command_id, actor,
+            chat, verdict, received, decided_at, now, effective,
+            detail=detail)
 
+    def _decide_authorized_tx(self, tx, decision_id, request, work,
+                              command_id, actor, chat, verdict,
+                              received, decided_at, now, effective, *,
+                              detail=None):
+        """The post-authorization tail every decision channel shares:
+        replay/state, expiry, the A5 lapse recheck, the human-reject
+        path, the approve CAS and the durable decision rows. Channel
+        callers differ only in *how* actor/chat authority was proved —
+        what a proven decision may do is identical."""
+        work_key = work["work_key"]
         # The request's own state — exactly one decision may move it
         # (A4). ``approved``/``consumed`` replays name themselves.
         state = request["state"]
@@ -483,6 +523,97 @@ class ApprovalService:
                 "merge_method": request["merge_method"],
                 "expires_epoch": request["expires_epoch"],
                 "expires_iso": _iso(request["expires_epoch"])}
+
+    # ------------------------------------------------------------------ #
+    # operator-cli channel — a verified GitHub login deciding from the
+    # local driver CLI (endpoint.merge.approval_channels entry
+    # "operator-cli")
+    # ------------------------------------------------------------------ #
+
+    def decide_operator(self, *, request_id, github_login,
+                        verified_login, verdict, host=None,
+                        received_at=None, detail=None):
+        """Commit one typed decision from the operator CLI channel.
+
+        The deciding actor is the *verified* GitHub login —
+        ``actor_ref="github:<login>"``, ``chat_ref="cli:<host>"``
+        (hostname default :func:`socket.gethostname`, sanitized).
+        Only an explicit ``request_id`` resolves — a dead or forged
+        ID can never slide onto the work's live request (A2).
+        Denials: ``no-actor`` (empty/malformed login),
+        ``unknown-request``, ``channel-not-enabled`` (``operator-cli``
+        absent from ``approval_channels``), ``forged-actor`` (login
+        differs from ``verified_login`` or is off ``github_actors``),
+        ``not-authorized`` (the CFG02 permit check), then exactly the
+        shared post-authorization tail (:meth:`decide_tx`)."""
+        received = received_at or _utcnow()
+        decided_at = _utcnow()
+        now = self._now()
+        decision_id = f"dec-{uuid.uuid4().hex[:12]}"
+        host = _sanitize_host(host or socket.gethostname())
+        chat = f"cli:{host}" if host else None
+        login = str(github_login or "").strip()
+
+        with self.store.transact() as tx:
+            if chat is None:
+                return self._deny_tx(
+                    tx, decision_id, None, None, None, "-", "-",
+                    verdict, received, decided_at, "no-chat",
+                    detail=detail)
+            if not _GITHUB_LOGIN_RE.match(login):
+                return self._deny_tx(
+                    tx, decision_id, None, None, None, "-", chat,
+                    verdict, received, decided_at, "no-actor",
+                    detail=detail)
+            actor = f"github:{login}"
+            if verdict not in DECISION_VERDICTS:
+                return self._deny_tx(
+                    tx, decision_id, None, None, None, actor, chat,
+                    verdict, received, decided_at, "unknown-verdict",
+                    detail=detail)
+            request = tx.get_approval_request(request_id)
+            if request is None:
+                return self._deny_tx(
+                    tx, decision_id, None, None, None, actor, chat,
+                    verdict, received, decided_at, "unknown-request",
+                    detail=detail, presented=request_id)
+            work_key = request["work_key"]
+            work = tx.get_work(work_key)
+            if work is None:
+                tx.invalidate_approval_tx(request, "work-missing")
+                return self._deny_tx(
+                    tx, decision_id, request, work_key, None, actor,
+                    chat, verdict, received, decided_at,
+                    "unknown-work", detail=detail)
+            effective = self.configs.get(work["repo_id"])
+            channels = (((effective or {}).get("endpoint") or {})
+                        .get("merge") or {}).get("approval_channels",
+                                                 ["telegram"])
+            if "operator-cli" not in channels:
+                return self._deny_tx(
+                    tx, decision_id, request, work_key, None, actor,
+                    chat, verdict, received, decided_at,
+                    "channel-not-enabled", detail=detail)
+            authz = (effective or {}).get("authorization", {})
+            allowlisted = any(
+                str(a).lower() == login.lower()
+                for a in authz.get("github_actors", []))
+            if effective is None or not allowlisted or \
+                    login.lower() != str(verified_login or "").lower():
+                return self._deny_tx(
+                    tx, decision_id, request, work_key, None, actor,
+                    chat, verdict, received, decided_at,
+                    "forged-actor", detail=detail)
+            if not schema.is_execution_authorized(
+                    effective, github_actor=login):
+                return self._deny_tx(
+                    tx, decision_id, request, work_key, None, actor,
+                    chat, verdict, received, decided_at,
+                    "not-authorized", detail=detail)
+            return self._decide_authorized_tx(
+                tx, decision_id, request, work, None, actor, chat,
+                verdict, received, decided_at, now, effective,
+                detail=detail)
 
     def _record_decision_tx(self, tx, decision_id, request, command_id,
                             actor, chat, verdict, outcome, received,
@@ -745,14 +876,25 @@ class ApprovalService:
             actor = (decision or {}).get("actor_ref") \
                 or req.get("actor_ref")
             chat = (decision or {}).get("chat_ref")
-            user = int(actor.split(":", 1)[1]) if actor and \
-                actor.startswith("telegram:") else None
-            chat_id = int(chat.split(":", 1)[1]) if chat and \
-                chat.startswith("telegram:") else None
-            if user is None or not schema.is_execution_authorized(
-                    effective, telegram_user=user,
-                    telegram_chat=chat_id):
-                return "actor-revoked"
+            if actor and actor.startswith("github:"):
+                # An operator-CLI grant holds only while the deciding
+                # GitHub login is still authorized *and* the channel
+                # itself is still enabled — either lapsing revokes it.
+                login = actor.split(":", 1)[1]
+                channels = (((effective or {}).get("endpoint") or {})
+                            .get("merge") or {}).get(
+                                "approval_channels", ["telegram"])
+                if "operator-cli" not in channels or \
+                        not schema.is_execution_authorized(
+                            effective, github_actor=login):
+                    return "actor-revoked"
+            else:
+                user = _telegram_id(actor)
+                chat_id = _telegram_id(chat)
+                if user is None or not schema.is_execution_authorized(
+                        effective, telegram_user=user,
+                        telegram_chat=chat_id):
+                    return "actor-revoked"
         if schema.effective_digest(effective) != req["config_digest"] \
                 or schema.policy_digest(effective) != \
                 req["policy_digest"]:
