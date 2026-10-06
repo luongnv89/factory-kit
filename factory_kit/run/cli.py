@@ -290,14 +290,19 @@ def cmd_watch(args):
 
 
 def cmd_status(args):
-    driver = build(args)
+    # Status is a read-only second process — it must never run the
+    # recovery pass a live ``watch`` already owns under the run lock.
+    driver = build(args, recover=False)
     print(json.dumps(driver.status(), indent=2, sort_keys=True,
                      default=str))
     return 0
 
 
 def _decide(args, verdict):
-    driver = build(args)
+    # Approve/reject run in a second process alongside ``watch`` —
+    # recovery is the driver's once-per-process duty under the run
+    # lock, never the decision CLI's.
+    driver = build(args, recover=False)
     try:
         verified = (driver.remote.actor_identity() or {}).get("login")
     except RemoteError:
@@ -321,8 +326,9 @@ def cmd_reject(args):
 
 def cmd_retry(args):
     """Operator-authorized generation retry — the same verified-login
-    binding as approve/reject, then the lane's attributable retry."""
-    driver = build(args)
+    binding as approve/reject, then the lane's attributable retry.
+    Recovery stays the running driver's duty (see _decide)."""
+    driver = build(args, recover=False)
     try:
         verified = (driver.remote.actor_identity() or {}).get("login")
     except RemoteError:

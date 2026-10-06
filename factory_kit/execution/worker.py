@@ -183,7 +183,7 @@ class HermesKanbanWorker(WorkerPort):
                  base_ref="origin/main", poll_interval_s=15.0,
                  dispatch_grace_s=600.0, timeout_s=60,
                  acceptance_commands=(), runner=None, sleep=None,
-                 clock=None, on_poll=None):
+                 clock=None, on_poll=None, log=None):
         self.repo_root = os.path.abspath(repo_root)
         self.full_name = full_name
         self.profiles = dict(profiles or {})
@@ -200,6 +200,11 @@ class HermesKanbanWorker(WorkerPort):
         self._sleep = sleep or time.sleep
         self._clock = clock or time.time
         self._on_poll = on_poll
+        #: Optional progress sink — the driver wires its logger so a
+        # ``watch`` run shows dispatch, status transitions and the
+        # terminal verdict instead of sitting silent for the whole
+        # attempt.
+        self.log = log
         self._starts = 0
         self._live = {}            # attempt_id -> dispatch bookkeeping
         self._results = {}         # attempt_id -> terminal result cache
@@ -234,6 +239,10 @@ class HermesKanbanWorker(WorkerPort):
                 f"{getattr(proc, 'returncode', '?')}: "
                 f"{(getattr(proc, 'stderr', '') or '').strip()[:200]}")
         return getattr(proc, "stdout", "") or ""
+
+    def _emit(self, msg):
+        if self.log is not None:
+            self.log(msg)
 
     def _hermes(self, *argv):
         return self._invoke(self._argv(*argv))
@@ -499,6 +508,8 @@ class HermesKanbanWorker(WorkerPort):
         self._starts += 1
         self._live[ctx.attempt_id] = {
             "ctx": ctx, "task_id": str(task_id), "branch": branch}
+        self._emit(f"dispatched {ctx.role} attempt {ctx.attempt_id} "
+                   f"→ kanban {task_id} (profile {profile})")
         return SessionHandle(session_id=ctx.session_id,
                              attempt_id=ctx.attempt_id,
                              role=ctx.role,
@@ -625,10 +636,15 @@ class HermesKanbanWorker(WorkerPort):
         max_wait = runtime_minutes * 60 + self.dispatch_grace_s
         deadline = self._clock() + max_wait
         grace_deadline = self._clock() + self.dispatch_grace_s
+        last_status = None
         while True:
             out = self._show(task_id)
             task, runs, _ = self._task_fields(out)
             status = str(task.get("status") or "").lower()
+            if last_status is not None and status != last_status:
+                self._emit(f"{handle.role} attempt {handle.attempt_id}:"
+                           f" kanban {task_id} → {status}")
+            last_status = status
             if status in _RUNNING_STATES:
                 if self._on_poll is not None:
                     self._on_poll(handle)
@@ -710,6 +726,8 @@ class HermesKanbanWorker(WorkerPort):
             except WorkerError:
                 observed_head = None
         task, _, _ = self._task_fields(out)
+        self._emit(f"{handle.role} attempt {handle.attempt_id} "
+                   f"finished: {verdict} ({str(detail or '')[:120]})")
         result = WorkerResult(verdict=verdict,
                               detail=str(detail or "")[:400],
                               active_seconds=active_seconds,

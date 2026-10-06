@@ -31,9 +31,11 @@ import json
 import os
 import subprocess
 import time
+from datetime import datetime, timezone
 from types import SimpleNamespace
 
 from factory_kit.approval import ApprovalService
+from factory_kit.config import schema
 from factory_kit.durable.store import _iso_to_epoch
 from factory_kit.execution import ExecutionLane
 from factory_kit.intake import service as intake_service
@@ -67,6 +69,30 @@ def _null_transport(dest, text):
     channel here; durable outbox rows still commit (§7.1) but nothing
     is pushed anywhere."""
     return None
+
+
+def _err_tail(exc):
+    """A diagnosable one-line cause for operator logs — the message's
+    first 200 characters with every secret canary from the manifest
+    schema's table rewritten to ``[redacted]`` (logs never carry
+    secrets; redact before truncating so a boundary can never split a
+    canary and leak its prefix)."""
+    text = str(exc)
+    for pattern in schema.SECRET_CANARY_RES:
+        text = pattern.sub("[redacted]", text)
+    return text[:200]
+
+
+def _watermark_since_iso(wm):
+    """Best-effort ISO timestamp for ``remote <state> since <iso>`` —
+    the stale-episode anchor when one exists, else the last attempt,
+    else the row's own update time."""
+    epoch = wm.get("stale_since_epoch") or \
+        wm.get("last_attempt_epoch")
+    if epoch is not None:
+        return datetime.fromtimestamp(
+            float(epoch), timezone.utc).isoformat(timespec="seconds")
+    return str(wm.get("updated_at") or "unknown")
 
 
 def compose(*, store, registrations, effective, worker, remote,
@@ -137,6 +163,14 @@ class Driver:
         self.check_grace_s = check_grace_s
         self._now = now or time.time
         self._log = log or (lambda msg: None)
+        # Lane progress rides the driver's logger when the worker port
+        # exposes the ``log`` seam (HermesKanbanWorker does; fixture
+        # ports may not).
+        if getattr(self.worker, "log", self._log) is None:
+            try:
+                self.worker.log = self._log
+            except AttributeError:
+                pass
 
     # ------------------------------------------------------------------ #
     # one pass
@@ -156,7 +190,24 @@ class Driver:
             report["recovery"] = self.services.recovery.tick()
         except Exception as exc:
             report["errors"].append(
-                {"stage": "recovery", "error": type(exc).__name__})
+                {"stage": "recovery", "error": type(exc).__name__,
+                 "detail": _err_tail(exc)})
+            self._log(f"recovery tick failed: "
+                      f"{type(exc).__name__}: {_err_tail(exc)}")
+
+        # The reconciliation watermark gates every post-lane stage and
+        # the lane dispatch: while the remote is not provably fresh a
+        # stage can still succeed on a reachable API — but the next
+        # reconcile marks the evidence it minted stale and invalidates
+        # any request bound to it (the verify → request → invalidate
+        # flap seen live). Pause until a pass observes the remote.
+        watermark = self.store.reconcile_watermark() or {}
+        remote_state = watermark.get("remote_state")
+        if remote_state != "fresh":
+            self._log(f"remote {remote_state or 'unknown'} since "
+                      f"{_watermark_since_iso(watermark)} — evidence "
+                      f"stages paused until reconciliation succeeds")
+            return report
 
         in_flight = self._post_lane_rows()
         for row in in_flight:
@@ -168,7 +219,8 @@ class Driver:
                     max_dispatch=1)
             except Exception as exc:
                 report["errors"].append(
-                    {"stage": "lane", "error": type(exc).__name__})
+                    {"stage": "lane", "error": type(exc).__name__,
+                     "detail": _err_tail(exc)})
                 report["lane"] = None
             for work_key in (report["lane"] or {}).get("dispatched",
                                                       []):
@@ -203,10 +255,15 @@ class Driver:
         except Exception as exc:
             # A stage that cannot commit/report surfaces in the tick
             # report — the durable rows decide the next pass.
+            tail = _err_tail(exc)
             stages.append({"stage": "error",
-                           "error": type(exc).__name__})
+                           "error": type(exc).__name__,
+                           "detail": tail})
             report["errors"].append(
-                {"work_key": work_key, "error": type(exc).__name__})
+                {"work_key": work_key, "error": type(exc).__name__,
+                 "detail": tail})
+            self._log(f"{work_key}: stage error "
+                      f"{type(exc).__name__}: {tail}")
 
     def _stages(self, work, stages):
         work_key = work["work_key"]
@@ -386,6 +443,37 @@ class Driver:
         if live["state"] == "awaiting":
             stages.append({"stage": "approval", "outcome": "awaiting",
                            "request_id": live["request_id"]})
+            smoke_deadline = self._smoke_deadline(work_key)
+            if smoke_deadline is not None and \
+                    self._now() >= smoke_deadline:
+                # The smoke evidence has already aged past
+                # max_smoke_age — this request can no longer merge, so
+                # re-keying it loses nothing, and a verified re-smoke
+                # pushes the deadline a full window out (at most once
+                # per smoke window). Only an ``awaiting`` request may
+                # be re-keyed: an ``approved`` grant is the operator's
+                # and is never touched here. Re-observe the deployment:
+                # the fresh smoke rewrites the preview digest, this
+                # request dies preview-moved, and a fresh one is minted
+                # + presented.
+                re = self.services.preview.resmoke(work_key)
+                stages.append({"stage": "resmoke",
+                               "outcome": re.get("outcome"),
+                               "reason": re.get("reason")})
+                if re.get("outcome") == "verified":
+                    req = self.services.approval.request_approval(
+                        work_key)
+                    stages.append({"stage": "approval",
+                                   "outcome": req.get("outcome"),
+                                   "request_id":
+                                       req.get("request_id"),
+                                   "fresh": True})
+                    if req.get("outcome") in ("requested",
+                                              "converged"):
+                        self._log(f"{work_key}: smoke evidence "
+                                  f"expiring — re-smoked the preview "
+                                  f"and requested a fresh approval")
+                        self._present_approval(work, req)
             return
 
         # (g) — the guarded merge owner.
@@ -439,11 +527,11 @@ class Driver:
             return True               # verify() reports its own gate
         try:
             runs = self.remote.check_runs(head)
-        except RemoteError:
+        except RemoteError as exc:
             stages.append({"stage": "verify", "status": "waiting",
                            "reason": "remote-unavailable"})
             self._log(f"{work_key}: waiting for checks "
-                      f"(remote unavailable)")
+                      f"(remote unavailable: {_err_tail(exc)})")
             return False
         by_name = {}
         for run in runs or []:
@@ -488,8 +576,10 @@ class Driver:
         full_name = f"{ident.get('owner')}/{ident.get('name')}"
         try:
             actor = (self.remote.actor_identity() or {}).get("login")
-        except Exception:
+        except Exception as exc:
             actor = None
+            self._log(f"{work_key}: actor identity unreadable "
+                      f"({type(exc).__name__}: {_err_tail(exc)})")
         if not actor:
             stages.append({"stage": "publish", "outcome": "waiting",
                            "reason": "actor-unresolved"})
@@ -545,12 +635,42 @@ class Driver:
             return None
         return source.observe_issue(issue)
 
+    def _smoke_deadline(self, work_key):
+        """Epoch when the preview's smoke observation ages out under
+        ``endpoint.merge.max_smoke_age_minutes`` — ``None`` while no
+        observation exists, so the caller has no deadline to race."""
+        observed = (self.services.preview.status(work_key) or {}) \
+            .get("observed_at")
+        if not observed:
+            return None
+        merge_cfg = ((self.effective.get("endpoint") or {})
+                     .get("merge") or {})
+        max_age_s = float(merge_cfg.get(
+            "max_smoke_age_minutes",
+            schema.DEFAULT_ENDPOINT["max_smoke_age_minutes"])) * 60.0
+        return _iso_to_epoch(observed) + max_age_s
+
     def _present_approval(self, work, req):
         """Render the committed request — the full presentation plus
-        the exact approve/reject commands the operator runs."""
+        the exact approve/reject commands the operator runs. The
+        approve-before line names the earlier of the request expiry
+        and the smoke-evidence deadline so an operator never approves
+        into already-dead evidence."""
         presentation = req.get("presentation") or {}
         self._log(presentation.get("text") or
                   f"approval requested: {req['request_id']}")
+        expires = presentation.get("expires_epoch")
+        if expires is None:
+            row = self.store.get_approval_request(
+                req.get("request_id")) if req.get("request_id") \
+                else None
+            expires = (row or {}).get("expires_epoch")
+        smoke_deadline = self._smoke_deadline(work["work_key"])
+        before = min([t for t in (expires, smoke_deadline)
+                      if t is not None], default=None)
+        if before is not None:
+            self._log(f"  approve before "
+                      f"{time.strftime('%H:%M:%S UTC', time.gmtime(before))}")
         self._log(f"  approve: python3 -m factory_kit.run approve "
                   f"--repo {self.repo} --request {req['request_id']}")
         self._log(f"  reject:  python3 -m factory_kit.run reject "

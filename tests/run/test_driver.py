@@ -36,7 +36,9 @@ from factory_kit.execution.worker import (  # noqa: E402
     SessionHandle, WorkerResult, WorkerPort)
 from factory_kit.intake import service as intake_service  # noqa: E402
 from factory_kit.preview import ScriptedPreview  # noqa: E402
-from factory_kit.publication.remote import ScriptedRemote  # noqa: E402
+from factory_kit.preview.port import PreviewError  # noqa: E402
+from factory_kit.publication.remote import (  # noqa: E402
+    RemoteError, ScriptedRemote)
 from factory_kit.recovery.poller import ScriptedIssueSource  # noqa: E402
 from factory_kit.run import cli as run_cli  # noqa: E402
 from factory_kit.run.driver import Driver, compose  # noqa: E402
@@ -572,6 +574,226 @@ class TestResmoke(DriverWorld):
         self.driver.tick()
         self.assertEqual(work["state"] if False else
                          self.store.get_work(work_key)["state"],
+                         "completed")
+
+
+class TestRemoteWatermarkGate(DriverWorld):
+    """While the reconcile watermark is not ``fresh`` the driver runs
+    no post-lane stage and dispatches nothing — the verify → request →
+    invalidate flap observed live during a ~25-minute outage."""
+
+    def _to_reviewed(self):
+        work_key = self._accept(42)
+        self.driver.tick()           # dispatch + publish; checks wait
+        self.assertTrue(
+            self.store.get_work(work_key)["linked_pr"])
+        return work_key
+
+    def _go_stale(self):
+        """Mark the watermark the way a >5-minute outage leaves it and
+        keep every remote read failing so reconcile cannot refresh."""
+        stale_since = self.clock[0] - 400.0
+        with self.store.transact() as tx:
+            tx.update_reconcile_watermark(
+                remote_state="stale",
+                last_attempt_epoch=stale_since,
+                stale_since_epoch=stale_since)
+        self.source.faults["poll"] = "down"
+        self.source.faults["observe"] = "down"
+        import collections
+        self.remote.faults = collections.defaultdict(lambda: "raise")
+
+    def test_stale_watermark_pauses_then_fresh_resumes(self):
+        work_key = self._to_reviewed()
+        self.remote.checks[self._head(work_key)] = list(GREEN)
+        self._go_stale()
+
+        report = self.driver.tick()
+        # Paused: no verification row, no approval request, no lane
+        # dispatch, no stages — one log line per tick instead.
+        self.assertIsNone(self.store.latest_evidence(work_key))
+        self.assertEqual(
+            self.store.approval_request_rows(work_key), [])
+        self.assertEqual(report["stages"], {})
+        self.assertIsNone(report["lane"])
+        self.assertTrue(
+            any("evidence stages paused" in line and
+                "remote stale" in line for line in self.logs),
+            self.logs)
+        self.assertEqual(len(self.worker.started), 2)   # impl+review
+
+        # The remote answers again: the next due reconcile marks the
+        # watermark fresh and the pipeline resumes where it stopped.
+        self.source.faults.clear()
+        self.remote.faults = {}
+        self.clock[0] += 61          # past next_due (interval ≤60s)
+        self.driver.tick()
+        ev = self.store.latest_evidence(work_key)
+        self.assertEqual(ev["status"], "verified")
+        live = self.services.approval.status(
+            work_key)["live_request"]
+        self.assertIsNotNone(live)
+        self.assertEqual(live["state"], "awaiting")
+
+
+class TestErrorTails(DriverWorld):
+    """Remote failures surface a redacted 200-char cause — bare
+    ``remote unavailable`` was undiagnosable during the live outage."""
+
+    _CANARY = "ghp_" + "x" * 24        # schema.SECRET_CANARY_RES hit
+
+    def test_checks_gate_logs_redacted_tail(self):
+        work_key = self._accept(42)
+        self.driver.tick()
+
+        def boom(sha):
+            raise RemoteError(
+                f"check-runs: HTTP 401 — credential {self._CANARY} "
+                f"rejected by api.github.com")
+        self.remote.check_runs = boom
+        self.driver.tick()
+        line = next(l for l in self.logs
+                    if "remote unavailable" in l)
+        self.assertIn("HTTP 401", line)
+        self.assertIn("[redacted]", line)
+        self.assertNotIn(self._CANARY, line)
+
+    def test_stage_error_reports_redacted_tail(self):
+        work_key = self._accept(42)
+        self.driver.tick()
+        self.remote.checks[self._head(work_key)] = list(GREEN)
+
+        def boom(*a, **kw):
+            raise PreviewError(
+                f"deploy refused: auth {self._CANARY} invalid")
+        self.services.preview.deploy_preview = boom
+        report = self.driver.tick()
+        self.assertTrue(report["errors"])
+        detail = report["errors"][0]["detail"]
+        self.assertIn("[redacted]", detail)
+        self.assertNotIn(self._CANARY, detail)
+        self.assertLessEqual(len(detail), 200)
+        self.assertTrue(any("[redacted]" in l for l in self.logs))
+
+
+class TestCliNoRecover(unittest.TestCase):
+    """approve/reject/status/retry run as second processes beside a
+    live ``watch`` — they build with ``recover=False`` so the running
+    driver stays recovery's only owner (seen live: an approve printed
+    ``recovery_completed``)."""
+
+    def _args(self):
+        return type("A", (), {
+            "repo": "/x", "state_dir": "/x/state", "profile": "d",
+            "board": None, "request": "apr-1", "actor": "u",
+            "reason": "r", "issue": 3})()
+
+    def _driver(self):
+        driver = mock.MagicMock()
+        driver.status.return_value = {"repo": "/x", "work": []}
+        driver.remote.actor_identity.return_value = {"login": "u"}
+        driver.services.approval.decide_operator.return_value = {
+            "outcome": "approved"}
+        driver.services.lane.request_retry.return_value = {
+            "outcome": "retry-authorized"}
+        driver.effective = {"identity": {"repo_id": "R_x"}}
+        return driver
+
+    def test_decide_status_retry_never_recover(self):
+        for cmd in (run_cli.cmd_status, run_cli.cmd_approve,
+                    run_cli.cmd_reject, run_cli.cmd_retry):
+            driver = self._driver()
+            with mock.patch.object(run_cli, "build",
+                                   return_value=driver) as build:
+                cmd(self._args())
+            self.assertIs(build.call_args.kwargs.get("recover"),
+                          False, cmd.__name__)
+
+
+class TestSmokeAwareApproval(DriverWorld):
+    """The presented request names its approve-before deadline. An
+    awaiting request is re-smoked and re-minted ONLY once its smoke
+    evidence has already aged past max_smoke_age — the request can no
+    longer merge by then, so re-keying loses nothing, and the fresh
+    observation pushes the deadline a full window out (at most once
+    per window). Inside the window the request id is stable, so an
+    operator's ``approve --request <id>`` never hits a rotated id.
+    An ``approved`` grant is never touched."""
+
+    def _to_awaiting(self):
+        work_key = self._accept(42)
+        self.driver.tick()
+        self.remote.checks[self._head(work_key)] = list(GREEN)
+        self.driver.tick()
+        live = self.services.approval.status(
+            work_key)["live_request"]
+        assert live is not None and live["state"] == "awaiting", live
+        return work_key, live
+
+    def _smokes(self):
+        return [c for c in self.provider.calls
+                if c["op"] == "smoke"]
+
+    def test_presentation_logs_approve_before(self):
+        work_key, live = self._to_awaiting()
+        deadline = self.driver._smoke_deadline(work_key)
+        expect = time.strftime(
+            "%H:%M:%S UTC",
+            time.gmtime(min(float(live["expires_epoch"]), deadline)))
+        self.assertTrue(
+            any(f"approve before {expect}" in line
+                for line in self.logs), self.logs)
+
+    def test_awaiting_request_is_stable_inside_the_window(self):
+        """The default 10-minute window: several ticks below the smoke
+        deadline keep the same request id — zero resmokes."""
+        work_key, live = self._to_awaiting()
+        before = len(self._smokes())
+        for _ in range(3):
+            self.clock[0] += 60.0    # 180s into the 600s window
+            self.driver.tick()
+            cur = self.services.approval.status(
+                work_key)["live_request"]
+            self.assertEqual(cur["request_id"], live["request_id"])
+        self.assertEqual(len(self._smokes()), before)
+        self.assertFalse(any("re-smoked" in l for l in self.logs))
+
+    def test_expired_smoke_resmokes_once_and_mints_fresh_request(self):
+        work_key, live = self._to_awaiting()
+        before = len(self._smokes())
+        self.clock[0] += 601.0       # past observed_at + 600s
+        self.driver.tick()
+        self.assertEqual(len(self._smokes()), before + 1)
+        old = self.store.get_approval_request(live["request_id"])
+        self.assertNotEqual(old["state"], "awaiting")
+        fresh = self.services.approval.status(
+            work_key)["live_request"]
+        self.assertIsNotNone(fresh)
+        self.assertNotEqual(fresh["request_id"], live["request_id"])
+        self.assertEqual(fresh["state"], "awaiting")
+        self.assertTrue(any("re-smoked" in l for l in self.logs),
+                        self.logs)
+        # The fresh observation reset the deadline — the next tick
+        # does not resmoke again (at most once per smoke window).
+        self.clock[0] += 30.0
+        self.driver.tick()
+        self.assertEqual(len(self._smokes()), before + 1)
+        self.assertEqual(
+            self.services.approval.status(
+                work_key)["live_request"]["request_id"],
+            fresh["request_id"])
+
+    def test_approved_request_is_never_resmoked(self):
+        work_key, live = self._to_awaiting()
+        dec = self.services.approval.decide_operator(
+            request_id=live["request_id"], github_login="luongnv89",
+            verified_login="luongnv89", verdict="approve", host="t")
+        assert dec["outcome"] == "approved", dec
+        self.clock[0] += 30.0
+        before = len(self._smokes())
+        self.driver.tick()
+        self.assertEqual(len(self._smokes()), before)
+        self.assertEqual(self.store.get_work(work_key)["state"],
                          "completed")
 
 
