@@ -7,3 +7,6 @@ __pycache__/
 
 # OS noise
 .DS_Store
+
+# skill-creator retrofit artifacts — local only
+.asm-improver/

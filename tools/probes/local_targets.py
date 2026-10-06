@@ -190,7 +190,7 @@ def host_block(world):
             "M1 — macOS arm64, Python 3.14 (recorded "
             "in docs/decisions/tested-recipe-selection.md)"
         ),
-        "manifest": str(ROOT / ".factory-kit.yml"),
+        "manifest": str(ROOT / "docs" / "examples" / "reference.factory-kit.yml"),
         "manifest_effective_digest": schema.effective_digest(eff),
         "policy_digest": schema.policy_digest(eff),
         "repository": world.full_name,

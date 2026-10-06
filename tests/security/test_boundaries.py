@@ -101,10 +101,19 @@ class TestNonIsolation(unittest.TestCase):
 # A3 — the probe suite under a simulated mechanism
 # ---------------------------------------------------------------------------
 
+def _host_which(name):
+    """Pretend the mechanism binary exists — the scripted runner stands
+    in for it, so these verdict tests run the same on any CI host
+    (without it, Linux has no ``sandbox-exec`` and every probe is
+    honestly ``inconclusive``)."""
+    return f"/usr/bin/{name}"
+
+
 class TestProbeSuite(unittest.TestCase):
 
     def test_all_denied_is_verified(self):
-        ev = boundary.run_probes("seatbelt", runner=_denying_runner)
+        ev = boundary.run_probes("seatbelt", runner=_denying_runner,
+                                 which=_host_which)
         self.assertEqual(ev["outcome"], "verified")
         self.assertIsNone(ev["blocker"])
         for name in boundary.PROBE_NAMES:
@@ -124,7 +133,8 @@ class TestProbeSuite(unittest.TestCase):
                 return _Proc(stdout="PROBE:ALLOWED\n")
             return _Proc(stdout="PROBE:DENIED:EPERM\n")
 
-        ev = boundary.run_probes("seatbelt", runner=allowing_one)
+        ev = boundary.run_probes("seatbelt", runner=allowing_one,
+                                 which=_host_which)
         self.assertEqual(ev["outcome"], "failed")
         self.assertEqual(ev["blocker"], "boundary-breach:net-egress")
         self.assertFalse(boundary.verify_boundary(ev)["ok"])
@@ -132,7 +142,8 @@ class TestProbeSuite(unittest.TestCase):
     def test_inconclusive_probe_is_not_verified(self):
         """A probe whose result cannot be determined is not proof —
         the blocker names the inconclusive fixture (A4)."""
-        ev = boundary.run_probes("seatbelt", runner=_garbage_runner)
+        ev = boundary.run_probes("seatbelt", runner=_garbage_runner,
+                                 which=_host_which)
         self.assertEqual(ev["outcome"], "unverified")
         self.assertTrue(ev["blocker"].startswith(
             "boundary-probe-inconclusive:"))
@@ -155,7 +166,7 @@ class TestProbeSuite(unittest.TestCase):
         """A workload environment carrying controller/provider tokens
         is a credential-scope breach — absence is demonstrated (A3)."""
         ev = boundary.run_probes(
-            "seatbelt", runner=_denying_runner,
+            "seatbelt", runner=_denying_runner, which=_host_which,
             env={"PATH": "/usr/bin", "GH_TOKEN": "x",
                  "AWS_SECRET_ACCESS_KEY": "y"})
         self.assertEqual(ev["outcome"], "failed")

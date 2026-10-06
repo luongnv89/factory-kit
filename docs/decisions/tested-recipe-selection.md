@@ -71,6 +71,19 @@ Selection: **scoped existing credentials**, not a GitHub App for the spike.
 | Cleanup | ≤24 h TTL per preview, cleanup ≤60 min after task termination (F11 defaults) |
 | Merge method | **Squash merge via `gh pr merge --squash`** by the human-approved merge owner with expected-head recheck; repo permits squash (`allow_squash_merge: true`), auto-merge disabled (`allow_auto_merge: false`) |
 
+**Amendment (2026-10-06) — declared no-preview contract.** A project with
+nothing to deploy (factory-kit itself, a library) may declare
+`endpoint.preview: {provider: none}` — that key alone; any other preview
+key is rejected. It is reviewed policy bound into the effective/policy
+digests, never inferred from a missing preview row: approval binds the
+constant `schema.NO_PREVIEW_BINDING`, the merge guard accepts it only when
+the bound config says `none` and no preview row exists, and every other
+combination fails closed (`preview-unexpected`, `preview-contract-mismatch`,
+`preview-moved`). Approval and merge then rest on the required checks and
+the independent review alone. Pilot admission (`privacy/consent.py`) still
+requires a smoke-verified preview. Tests: `tests/test_config_no_preview.py`,
+`tests/run/test_no_preview.py`.
+
 ## Unresolved selections — owners and blocking relationships
 
 | Open item | Owner | Blocks |

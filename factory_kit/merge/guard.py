@@ -24,6 +24,8 @@ the approval could not see:
   base/check race and the merge is *unsupported* (A4);
 - the bound preview still holds: verified, unexpired, smoke observed
   *passing* and younger than ``endpoint.merge.max_smoke_age_minutes``
+  — or, under a declared ``endpoint.preview.provider: none``, the request
+  binds exactly ``schema.NO_PREVIEW_BINDING`` and no preview row exists
   (A2).
 
 The gate answers ``{"ok", "reason", "blockers", "bound"}`` — every
@@ -106,7 +108,18 @@ def evaluate_merge_guard(*, request, work, effective, fence, pause,
         blockers.append("evidence-not-current")
     elif not evidence.get("review_id"):
         blockers.append("independent-review-missing")
-    if preview is None or \
+    if effective is not None and not schema.preview_required(effective):
+        # Declared no-preview contract: passes only when the request
+        # binds exactly "no preview" and no preview row exists — a row
+        # appearing or a request minted under another contract fails
+        # closed. Smoke freshness has nothing to measure here.
+        if preview is not None:
+            blockers.append("preview-unexpected")
+        elif request.get("preview_id") is not None or \
+                request.get("preview_digest") != \
+                schema.NO_PREVIEW_BINDING:
+            blockers.append("preview-contract-mismatch")
+    elif preview is None or \
             preview.get("preview_id") != request.get("preview_id"):
         blockers.append("preview-moved")
     elif preview.get("state") != "verified":

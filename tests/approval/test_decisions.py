@@ -50,7 +50,7 @@ from factory_kit.preview import (  # noqa: E402
 from factory_kit.verification import (  # noqa: E402
     VerificationService)
 
-MANIFEST = ROOT / ".factory-kit.yml"
+MANIFEST = ROOT / "docs" / "examples" / "reference.factory-kit.yml"
 READY = {"verdict": "ready", "dispatch": "allowed", "blockers": [],
          "checked_at": "2026-10-05T00:00:00Z"}
 VERSIONS = ["factory-kit/0.1.0", "manifest/1", "hermes/0.21.5"]

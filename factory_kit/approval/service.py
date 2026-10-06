@@ -246,13 +246,15 @@ class ApprovalService:
                     denied = "task-paused"
             if denied is None:
                 evidence = tx.latest_evidence(work_key)
-                preview = tx.active_preview(work_key)
+                bound = self._bound_preview(
+                    effective, work, evidence,
+                    tx.active_preview(work_key))
                 if not self._evidence_ready(evidence):
                     denied = "evidence-not-current"
                 elif evidence.get("pr_number") in (None, ""):
                     denied = "no-linked-pr"
-                elif not self._preview_ready(work, evidence, preview):
-                    denied = "preview-not-current"
+                elif not bound["ok"]:
+                    denied = bound["reason"]
             if denied is None:
                 live = tx.live_approval_request(work_key)
                 if live is not None and \
@@ -260,8 +262,7 @@ class ApprovalService:
                         live["base_sha"] == evidence["base_sha"] and \
                         live["evidence_digest"] == \
                         _evidence_digest(evidence) and \
-                        live["preview_digest"] == \
-                        _preview_digest(preview) and \
+                        live["preview_digest"] == bound["digest"] and \
                         live["config_digest"] == \
                         schema.effective_digest(effective) and \
                         live["policy_digest"] == \
@@ -291,9 +292,9 @@ class ApprovalService:
                     base_name=evidence.get("base_name"),
                     base_sha=evidence.get("base_sha"),
                     evidence_id=evidence.get("evidence_id"),
-                    preview_id=preview.get("preview_id"),
+                    preview_id=bound["id"],
                     evidence_digest=_evidence_digest(evidence),
-                    preview_digest=_preview_digest(preview),
+                    preview_digest=bound["digest"],
                     config_digest=schema.effective_digest(effective),
                     policy_digest=schema.policy_digest(effective),
                     merge_method=method,
@@ -766,17 +767,17 @@ class ApprovalService:
         is no longer the work's verified, unexpired active preview."""
         with self.store.transact() as tx:
             out = []
-            active = tx.active_preview(work_key)
+            work = tx.get_work(work_key)
+            bound = self._bound_preview(
+                self.configs.get(work["repo_id"]) if work else None,
+                work, tx.latest_evidence(work_key),
+                tx.active_preview(work_key))
             for req in tx.live_approval_requests(work_key):
-                if active is None or \
-                        active["preview_id"] != req["preview_id"]:
+                if bound["id"] != req["preview_id"] or \
+                        bound["digest"] != req["preview_digest"]:
                     reason = "preview-moved"
-                elif _preview_digest(active) != req["preview_digest"]:
-                    reason = "preview-moved"
-                elif not self._preview_ready(
-                        tx.get_work(work_key),
-                        tx.latest_evidence(work_key), active):
-                    reason = "preview-not-current"
+                elif not bound["ok"]:
+                    reason = bound["reason"]
                 else:
                     continue
                 tx.invalidate_approval_tx(req, reason)
@@ -904,13 +905,13 @@ class ApprovalService:
             return "evidence-not-current"
         if _evidence_digest(ev) != req["evidence_digest"]:
             return "evidence-moved"
-        preview = tx.active_preview(req["work_key"])
-        if preview is None or \
-                preview["preview_id"] != req["preview_id"] or \
-                _preview_digest(preview) != req["preview_digest"]:
+        bound = self._bound_preview(effective, work, ev,
+                                    tx.active_preview(req["work_key"]))
+        if bound["id"] != req["preview_id"] or \
+                bound["digest"] != req["preview_digest"]:
             return "preview-moved"
-        if not self._preview_ready(work, ev, preview):
-            return "preview-not-current"
+        if not bound["ok"]:
+            return bound["reason"]
         return None
 
     # ------------------------------------------------------------------ #
@@ -998,6 +999,30 @@ class ApprovalService:
     def _evidence_ready(self, evidence):
         return evidence is not None and evidence["status"] == "verified"
 
+    def _bound_preview(self, effective, work, evidence, rec):
+        """The preview binding the current state supports — the single
+        gate every approval path re-derives from the *bound config*.
+
+        Returns ``{"id", "digest", "ok", "reason"}``. Under a declared
+        ``endpoint.preview.provider: none`` the binding is the constant
+        :data:`schema.NO_PREVIEW_BINDING`, and a preview row appearing
+        anyway fails closed (``preview-unexpected``). Otherwise the
+        verified, current preview row binds as before; a missing row
+        never satisfies it."""
+        if not schema.preview_required(effective):
+            if rec is not None:
+                return {"id": None, "digest": schema.NO_PREVIEW_BINDING,
+                        "ok": False, "reason": "preview-unexpected"}
+            return {"id": None, "digest": schema.NO_PREVIEW_BINDING,
+                    "ok": True, "reason": None}
+        if rec is None:
+            return {"id": None, "digest": None, "ok": False,
+                    "reason": "preview-not-current"}
+        ok = self._preview_ready(work, evidence, rec)
+        return {"id": rec.get("preview_id"),
+                "digest": _preview_digest(rec), "ok": ok,
+                "reason": None if ok else "preview-not-current"}
+
     def _preview_ready(self, work, evidence, rec):
         """``approval_ready`` recomputed now — a verified, unexpired,
         unfenced preview record whose head still equals the verified
@@ -1039,13 +1064,22 @@ class ApprovalService:
             (float(req["expires_epoch"]) - self._now()) / 60.0)
         smoke_txt = _json.dumps(smoke, sort_keys=True) \
             if smoke is not None else "unobserved"
+        if preview is None and \
+                req.get("preview_digest") == schema.NO_PREVIEW_BINDING:
+            preview_line = (
+                "Preview: none - the manifest declares"
+                " endpoint.preview.provider: none; the evidence is the"
+                " required CI checks and the independent review.")
+        else:
+            preview_line = (
+                f"Preview {preview['url'] if preview else 'none'}"
+                f" verified; smoke {smoke_txt}.")
         lines = [
             f"APPROVAL REQUIRED - merge authority for {req['target']}.",
             f"Request {req['request_id']} binds action={req['action']}"
             f" head {req['head_sha']} base"
             f" {req.get('base_name') or '-'}@{req.get('base_sha')}.",
-            f"Preview {preview['url'] if preview else 'none'} verified;"
-            f" smoke {smoke_txt}.",
+            preview_line,
             f"Method: {req['merge_method']}. Expires"
             f" {_iso(req['expires_epoch'])} (~{expiry_min}m).",
             f"Reply 'approve {req['repo_id']} {issue} {generation}' or"

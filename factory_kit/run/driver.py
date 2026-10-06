@@ -406,9 +406,14 @@ class Driver:
                        "the verification gate failed closed")
             return
 
-        # (e) — the immutable preview behind the verified head.
+        # (e) — the immutable preview behind the verified head; a
+        # declared ``provider: none`` contract has nothing to deploy.
         preview_status = self.services.preview.status(work_key)
-        if not (preview_status.get("approval_ready") and
+        if not schema.preview_required(self.effective):
+            stages.append({"stage": "preview",
+                           "outcome": "not-applicable",
+                           "reason": "provider-none"})
+        elif not (preview_status.get("approval_ready") and
                 preview_status.get("head_sha") == head):
             dep = self.services.preview.deploy_preview(
                 work_key, head_sha=head)
