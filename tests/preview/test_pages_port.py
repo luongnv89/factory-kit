@@ -59,9 +59,11 @@ def make_repo(tmp):
     origin = Path(tmp) / "origin.git"
     seed = Path(tmp) / "seed"
     repo = Path(tmp) / "repo"
-    subprocess.run(["git", "init", "--bare", str(origin)],
-                   capture_output=True, check=True)
-    subprocess.run(["git", "init", str(seed)],
+    # Pin the initial branch: CI runners' git defaults to ``master``,
+    # leaving the bare origin's HEAD on a branch that never exists.
+    subprocess.run(["git", "init", "--bare", "--initial-branch=main",
+                    str(origin)], capture_output=True, check=True)
+    subprocess.run(["git", "init", "--initial-branch=main", str(seed)],
                    capture_output=True, check=True)
     _git(seed, "config", "user.email", "t@t")
     _git(seed, "config", "user.name", "t")
