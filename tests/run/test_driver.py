@@ -710,5 +710,65 @@ class TestCliNoRecover(unittest.TestCase):
                           False, cmd.__name__)
 
 
+class TestSmokeAwareApproval(DriverWorld):
+    """The presented request names its approve-before deadline, and an
+    awaiting request inside the smoke-deadline window is re-smoked and
+    re-minted — never ridden to its own expiry (and never touched once
+    approved)."""
+
+    def _to_awaiting(self):
+        work_key = self._accept(42)
+        self.driver.tick()
+        self.remote.checks[self._head(work_key)] = list(GREEN)
+        self.driver.tick()
+        live = self.services.approval.status(
+            work_key)["live_request"]
+        assert live is not None and live["state"] == "awaiting", live
+        return work_key, live
+
+    def _smokes(self):
+        return [c for c in self.provider.calls
+                if c["op"] == "smoke"]
+
+    def test_presentation_logs_approve_before(self):
+        work_key, live = self._to_awaiting()
+        deadline = self.driver._smoke_deadline(work_key)
+        expect = time.strftime(
+            "%H:%M:%S UTC",
+            time.gmtime(min(float(live["expires_epoch"]), deadline)))
+        self.assertTrue(
+            any(f"approve before {expect}" in line
+                for line in self.logs), self.logs)
+
+    def test_expiring_smoke_resmokes_and_mints_fresh_request(self):
+        work_key, live = self._to_awaiting()
+        before = len(self._smokes())
+        self.clock[0] += 30.0         # 570s left of the 600s deadline
+        self.driver.tick()
+        self.assertEqual(len(self._smokes()), before + 1)
+        old = self.store.get_approval_request(live["request_id"])
+        self.assertNotEqual(old["state"], "awaiting")
+        fresh = self.services.approval.status(
+            work_key)["live_request"]
+        self.assertIsNotNone(fresh)
+        self.assertNotEqual(fresh["request_id"], live["request_id"])
+        self.assertEqual(fresh["state"], "awaiting")
+        self.assertTrue(any("re-smoked" in l for l in self.logs),
+                        self.logs)
+
+    def test_approved_request_is_never_resmoked(self):
+        work_key, live = self._to_awaiting()
+        dec = self.services.approval.decide_operator(
+            request_id=live["request_id"], github_login="luongnv89",
+            verified_login="luongnv89", verdict="approve", host="t")
+        assert dec["outcome"] == "approved", dec
+        self.clock[0] += 30.0
+        before = len(self._smokes())
+        self.driver.tick()
+        self.assertEqual(len(self._smokes()), before)
+        self.assertEqual(self.store.get_work(work_key)["state"],
+                         "completed")
+
+
 if __name__ == "__main__":
     unittest.main()

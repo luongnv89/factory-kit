@@ -435,6 +435,34 @@ class Driver:
         if live["state"] == "awaiting":
             stages.append({"stage": "approval", "outcome": "awaiting",
                            "request_id": live["request_id"]})
+            smoke_deadline = self._smoke_deadline(work_key)
+            if smoke_deadline is not None and \
+                    smoke_deadline - self._now() < 600.0:
+                # The smoke evidence expires inside the next window —
+                # a grant minted on it would race its own death, and
+                # only an ``awaiting`` request may be re-keyed (an
+                # ``approved`` grant is the operator's and is never
+                # touched here). Re-observe the deployment: the fresh
+                # smoke rewrites the preview digest, this request dies
+                # preview-moved, and a fresh one is minted + presented.
+                re = self.services.preview.resmoke(work_key)
+                stages.append({"stage": "resmoke",
+                               "outcome": re.get("outcome"),
+                               "reason": re.get("reason")})
+                if re.get("outcome") == "verified":
+                    req = self.services.approval.request_approval(
+                        work_key)
+                    stages.append({"stage": "approval",
+                                   "outcome": req.get("outcome"),
+                                   "request_id":
+                                       req.get("request_id"),
+                                   "fresh": True})
+                    if req.get("outcome") in ("requested",
+                                              "converged"):
+                        self._log(f"{work_key}: smoke evidence "
+                                  f"expiring — re-smoked the preview "
+                                  f"and requested a fresh approval")
+                        self._present_approval(work, req)
             return
 
         # (g) — the guarded merge owner.
@@ -596,12 +624,42 @@ class Driver:
             return None
         return source.observe_issue(issue)
 
+    def _smoke_deadline(self, work_key):
+        """Epoch when the preview's smoke observation ages out under
+        ``endpoint.merge.max_smoke_age_minutes`` — ``None`` while no
+        observation exists, so the caller has no deadline to race."""
+        observed = (self.services.preview.status(work_key) or {}) \
+            .get("observed_at")
+        if not observed:
+            return None
+        merge_cfg = ((self.effective.get("endpoint") or {})
+                     .get("merge") or {})
+        max_age_s = float(merge_cfg.get(
+            "max_smoke_age_minutes",
+            schema.DEFAULT_ENDPOINT["max_smoke_age_minutes"])) * 60.0
+        return _iso_to_epoch(observed) + max_age_s
+
     def _present_approval(self, work, req):
         """Render the committed request — the full presentation plus
-        the exact approve/reject commands the operator runs."""
+        the exact approve/reject commands the operator runs. The
+        approve-before line names the earlier of the request expiry
+        and the smoke-evidence deadline so an operator never approves
+        into already-dead evidence."""
         presentation = req.get("presentation") or {}
         self._log(presentation.get("text") or
                   f"approval requested: {req['request_id']}")
+        expires = presentation.get("expires_epoch")
+        if expires is None:
+            row = self.store.get_approval_request(
+                req.get("request_id")) if req.get("request_id") \
+                else None
+            expires = (row or {}).get("expires_epoch")
+        smoke_deadline = self._smoke_deadline(work["work_key"])
+        before = min([t for t in (expires, smoke_deadline)
+                      if t is not None], default=None)
+        if before is not None:
+            self._log(f"  approve before "
+                      f"{time.strftime('%H:%M:%S UTC', time.gmtime(before))}")
         self._log(f"  approve: python3 -m factory_kit.run approve "
                   f"--repo {self.repo} --request {req['request_id']}")
         self._log(f"  reject:  python3 -m factory_kit.run reject "
