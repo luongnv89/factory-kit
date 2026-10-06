@@ -1,0 +1,87 @@
+# .factory-kit.yml — factory-kit project manifest (schema v1)
+#
+# factory-kit developing itself. This file is repo-reviewed policy: it
+# names who may opt work in, which runtime and models run it, what counts
+# as verified, and how merges are approved.
+
+factory_kit: 1
+
+identity:
+  repo_id: "R_kgDOU7xk2g"
+  owner: luongnv89
+  name: factory-kit
+
+registration:
+  owner: luongnv89
+
+# Only luongnv89 may opt issues in. Telegram allowlists stay empty
+# (deny-all): merge approvals come from the local operator CLI instead.
+authorization:
+  execution_opt_in: true
+  github_actors: [luongnv89]
+  github_roles: [admin]
+  telegram_users: []
+  telegram_chats: []
+
+runtime:
+  name: hermes-kanban
+  roles:
+    implementation:
+      model: "openai-codex/gpt-6-luna"
+      profile: fk-impl
+    review:
+      model: "openai-codex/gpt-6-luna"
+      profile: fk-review
+  tools:
+    allow: [git, gh, hermes, python3]
+    deny: []
+  capabilities:
+    allow: [workspace.scratch, workspace.worktree]
+    deny: [workspace.dir-ambient]
+
+skills:
+  auto_discover: false
+  approved:
+    issue-resolver: "0.20.0"
+    issue-pr-review: "2.8.0"
+
+# The kit is stdlib-only: the acceptance gate is the full unittest suite,
+# and the required check is the CI job of the same name.
+verification:
+  acceptance_commands:
+    - "python3 -m unittest discover -s tests"
+  required_checks:
+    provider: github
+    contexts: ["Unit tests"]
+    conclusions: [success]
+
+limits:
+  active_tasks: 1
+  implementation_attempts: 2
+  active_worker_minutes: 60
+  wall_hours: 24
+
+evidence:
+  observation_freshness_minutes: 15
+  event_retention_days: 30
+  worker_log_retention_days: 7
+  audit_retention_days: 30
+  export:
+    aggregate_only: true
+    redact: [issue_body, code, usernames, tokens, chat_text]
+  tombstones:
+    retain_until_registration_removal: true
+
+secrets:
+  webhook_signing_key: "env:FACTORY_KIT_WEBHOOK_SECRET"
+
+# A library has nothing to deploy: declared no-preview contract. Approval
+# and merge rest on the required checks plus the independent review.
+endpoint:
+  preview:
+    provider: none
+  merge:
+    method: squash
+    approval_expiry_minutes: 60
+    approval_channels: [operator-cli]
+  disabled: [production_deploy, package_publish, autonomous_merge]
