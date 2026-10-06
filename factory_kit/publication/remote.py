@@ -174,16 +174,31 @@ class GhCliRemote(RemotePort):
     """
 
     def __init__(self, repo_id, full_name, *, gh_bin="gh",
-                 git_bin="git", timeout_s=60):
+                 git_bin="git", cwd=None, runner=None, timeout_s=60):
         self._identity = {"repo_id": repo_id, "full_name": full_name}
         self.gh_bin = gh_bin
         self.git_bin = git_bin
+        #: Repo-local cwd — ``git push <sha>:refs/heads/…`` must run in
+        #: the repository whose object store actually holds ``sha`` (a
+        #: worktree's object store is shared with the main checkout, so
+        #: the repo root works for both).
+        self.cwd = cwd
         self.timeout_s = timeout_s
+        #: Injectable subprocess seam — tests assert exact argv without
+        #: a network; it receives ``(argv, cwd, timeout)`` and returns a
+        #: ``CompletedProcess``-compatible object.
+        self._runner = runner
 
     def _run(self, argv) -> dict:
         try:
-            proc = subprocess.run(argv, capture_output=True, text=True,
-                                  timeout=self.timeout_s)
+            if self._runner is not None:
+                proc = self._runner(argv, cwd=self.cwd,
+                                    timeout=self.timeout_s)
+            else:
+                proc = subprocess.run(argv, capture_output=True,
+                                      text=True,
+                                      timeout=self.timeout_s,
+                                      cwd=self.cwd)
         except subprocess.TimeoutExpired as exc:
             raise RemoteAmbiguity(f"{argv[0]} timed out: {exc}") from exc
         except OSError as exc:
@@ -221,6 +236,11 @@ class GhCliRemote(RemotePort):
         body = (f"factory-kit publication intent {identity['intent_id']}"
                 f" (work {identity['work_key']},"
                 f" generation {identity['generation']})")
+        issue = identity.get("issue")
+        if issue is not None:
+            # GitHub's ``Closes`` keyword auto-closes the issue on
+            # merge — the intake's opt-in issue stays the audit anchor.
+            body += f"\n\nCloses #{issue}"
         out = self._run([self.gh_bin, "pr", "create",
                          "--repo", self._identity["full_name"],
                          "--head", head, "--base", base,

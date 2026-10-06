@@ -498,6 +498,47 @@ class TestA3Fencing(RecoveryFixture):
         work = self.store.get_work(work_key)
         self.assertEqual(work["parked_reason"], "recovery-interrupted")
 
+    def _post_lane(self, issue, queue_state):
+        """Ended attempts + a durable post-lane queue boundary — the
+        reviewed/awaiting-approval resume shape a restarted driver
+        must honor."""
+        work_key = self._accept(issue)
+        attempt_id = self._live_attempt(work_key)
+        self.store.finish_execution_attempt(
+            attempt_id, verdict="completed", outcome="completed",
+            active_seconds=5, usage={"t": 1}, duration_s=5)
+        self.store.release_lane(expected_work=work_key)
+        with self.store.transact() as tx:
+            tx.enqueue_work(work_key, tx.next_seq(),
+                            state=queue_state, reason=queue_state)
+        return work_key
+
+    def test_reviewed_boundary_resumes_for_driver(self):
+        """The lane handed off at ``reviewed`` — restart must resume
+        the work in place; the driver owns publication onward."""
+        work_key = self._post_lane(35, "reviewed")
+        self._restart()
+        report = self.recovery.recover()
+        resumed = [r for r in report["resumed"]
+                   if r["work_key"] == work_key]
+        self.assertEqual(resumed[0]["reason"], "post-lane-boundary")
+        self.assertEqual(self.store.get_work(work_key)["state"],
+                         "active")
+        self.assertEqual(self.store.queue_entry(work_key)["state"],
+                         "reviewed")
+        events = self._recovered_events(work_key)
+        self.assertIn("post-lane-boundary", events[0]["reason"])
+
+    def test_awaiting_approval_boundary_resumes(self):
+        work_key = self._post_lane(36, "awaiting-approval")
+        self._restart()
+        report = self.recovery.recover()
+        resumed = [r for r in report["resumed"]
+                   if r["work_key"] == work_key]
+        self.assertEqual(resumed[0]["reason"], "post-lane-boundary")
+        self.assertEqual(self.store.get_work(work_key)["state"],
+                         "active")
+
 
 if __name__ == "__main__":
     unittest.main()

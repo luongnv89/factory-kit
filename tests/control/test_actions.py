@@ -219,7 +219,7 @@ class TestA2PauseBoundary(ControlFixture):
                  self.store.attempt_record_rows(work_key)]
         self.assertEqual(roles, ["implementation", "review"])
         self.assertEqual(self.store.get_work(work_key)["state"],
-                         "completed")
+                         "active")
         self.assertEqual(self.store.pause_info(work_key)
                          ["pause_state"], "resumed")
 

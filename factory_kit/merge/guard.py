@@ -34,9 +34,9 @@ carries the exact identities the intent commits on success.
 from __future__ import annotations
 
 import json as _json
-from datetime import datetime
 
 from factory_kit.config import schema
+from factory_kit.durable.store import _iso_to_epoch
 from factory_kit.execution.limits import TERMINAL_WORK_STATES
 from factory_kit.verification.contract import (
     contract_from_effective,
@@ -59,15 +59,6 @@ _MERGEABLE_OK = "MERGEABLE"
 #: GitHub ``mergeStateStatus`` values — only CLEAN is mergeable now.
 _MERGE_STATE_OK = "CLEAN"
 _MERGE_STATE_PENDING = "UNKNOWN"
-
-
-def _iso_to_epoch(ts) -> float:
-    """ISO-8601 → epoch; an absent/unparseable stamp is age ``inf`` —
-    an unobserved smoke can never pass the freshness gate (A2)."""
-    try:
-        return datetime.fromisoformat(str(ts)).timestamp()
-    except (ValueError, TypeError):
-        return float("-inf")
 
 
 def evaluate_merge_guard(*, request, work, effective, fence, pause,

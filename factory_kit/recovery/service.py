@@ -523,10 +523,24 @@ class RecoveryService:
                                   task_id=work.get("task_id"))
             return {"outcome": "resumed", "work_key": work_key,
                     "reason": "dispatch-not-started"}
-        # Attempts exist and all ended mid-pipeline — the interrupted
-        # stage's commit boundary was never reached, so no durable
-        # resume point exists: park visibly (§6.4 ambiguity parks; the
-        # operator retry path owns any replacement generation).
+        # Attempts exist and all ended — check the durable queue row
+        # for a committed post-lane boundary before declaring the run
+        # interrupted: ``reviewed`` means the lane finished its stage
+        # pair and the driver owns the rest; ``awaiting-approval``
+        # means the human gate already holds the work. Both resume in
+        # place — the durable state is already the truth (§6.4).
+        queued = self.store.queue_entry(work_key)
+        if queued is not None and queued["state"] in \
+                ("reviewed", "awaiting-approval"):
+            self._recovered_event(work_key, source, "resumed",
+                                  reason="post-lane-boundary",
+                                  task_id=work.get("task_id"))
+            return {"outcome": "resumed", "work_key": work_key,
+                    "reason": "post-lane-boundary",
+                    "queue_state": queued["state"]}
+        # No durable resume point exists: park visibly (§6.4 ambiguity
+        # parks; the operator retry path owns any replacement
+        # generation).
         return self._park(work_key, "recovery-interrupted",
                           source=source,
                           detail="attempts ended without a committed "

@@ -12,4 +12,5 @@ from .port import (  # noqa: F401
     ScriptedPreview,
     VercelCliPreview,
 )
+from .pages import GitHubPagesPreview  # noqa: F401
 from .service import PreviewService  # noqa: F401

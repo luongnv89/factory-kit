@@ -12,8 +12,8 @@ python3 -m unittest tests.recovery.test_backup_restore -v
 
 | Artifact | Path | What it carries |
 |---|---|---|
-| Intake store | `~/.hermes/profiles/<profile>/factory-kit/in.db` | work/task/attempt/fence identities, delivery dedup, control records, event trail, approval requests + append-only decisions, publication intents, notification outbox, queue/lane state |
-| Registration | `~/.hermes/profiles/<profile>/factory-kit/registration.json` | per-repo registration row, active generation, readiness verdict, recorded work keys — the authority boundary |
+| Intake store | `<state-dir>/in.db` (`~/.hermes/factory-kit/` for the `default` profile, `~/.hermes/profiles/<profile>/factory-kit/` for named profiles) | work/task/attempt/fence identities, delivery dedup, control records, event trail, approval requests + append-only decisions, publication intents, notification outbox, queue/lane state |
+| Registration | `<state-dir>/registration.json` | per-repo registration row, active generation, readiness verdict, recorded work keys — the authority boundary |
 
 - `in.db` is one SQLite file with `synchronous=FULL` and a rollback
   journal: **a cleanly closed file is the complete committed state** —

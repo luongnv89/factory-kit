@@ -159,6 +159,15 @@ def _utcnow() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="milliseconds")
 
 
+def _iso_to_epoch(ts) -> float:
+    """ISO-8601 → epoch; an absent/unparseable stamp is ``-inf`` so a
+    freshness gate ``now - stamp`` fails closed, never crashes."""
+    try:
+        return datetime.fromisoformat(str(ts)).timestamp()
+    except (ValueError, TypeError):
+        return float("-inf")
+
+
 def _participant_hash(participant_ref) -> str:
     """The audit-safe participant identity carried in the event trail
     (Task 4.4 / A5): recomputable from the reference by someone who

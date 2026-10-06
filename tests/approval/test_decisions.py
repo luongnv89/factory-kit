@@ -94,7 +94,7 @@ class ApprovalFixture(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.db_path = Path(self.tmp.name) / "in.db"
-        self.eff = effective()
+        self.eff = self._effective()
         self.repo_id = self.eff["identity"]["repo_id"]
         self.full_name = (f"{self.eff['identity']['owner']}/"
                           f"{self.eff['identity']['name']}")
@@ -107,6 +107,12 @@ class ApprovalFixture(unittest.TestCase):
         self.provider = ScriptedPreview(now=self._now)
         self._wire(self.store)
         self._cid = [0]
+
+    def _effective(self):
+        """The fixture's effective config — subclasses override to
+        declare manifest options *before* the registration binds the
+        config/policy digests."""
+        return effective()
 
     def _wire(self, store):
         """(Re)build every service on one store — used again after a
@@ -1003,6 +1009,120 @@ class TestA6AuditAndBounds(ApprovalFixture):
         accepted = [d for d in self.store.approval_decision_rows(req)
                     if d["outcome"] == "accepted"]
         self.assertEqual(len(accepted), 1)
+
+
+# ---------------------------------------------------------------------------
+# Operator-CLI channel — the verified GitHub login deciding locally
+# (endpoint.merge.approval_channels entry "operator-cli")
+# ---------------------------------------------------------------------------
+
+class TestOperatorChannel(ApprovalFixture):
+    """``decide_operator``: the same shared post-authorization tail as
+    the Telegram channel, with authority proven by the CLI credential's
+    *verified* login (``github:<login>`` in ``cli:<host>``)."""
+
+    def _effective(self):
+        """The channel declared in the manifest-equivalent effective
+        config — bound into the registered digests."""
+        eff = effective()
+        eff["endpoint"]["merge"]["approval_channels"] = [
+            "telegram", "operator-cli"]
+        return eff
+
+    def _op(self, request_id, login="luongnv89", verified="luongnv89",
+            verdict="approve", **kw):
+        return self.approval.decide_operator(
+            request_id=request_id, github_login=login,
+            verified_login=verified, verdict=verdict,
+            host="operator-box", **kw)
+
+    def test_approve_via_operator_cli(self):
+        work_key = self._ready()
+        req = self._request(work_key)["request_id"]
+        out = self._op(req)
+        self.assertEqual(out["outcome"], "approved")
+        self.assertEqual(
+            self.store.get_approval_request(req)["state"], "approved")
+        rows = self.store.approval_decision_rows(req)
+        self.assertEqual(rows[0]["actor_ref"], "github:luongnv89")
+        self.assertEqual(rows[0]["chat_ref"], "cli:operator-box")
+
+    def test_reject_via_operator_cli(self):
+        work_key = self._ready()
+        req = self._request(work_key)["request_id"]
+        out = self._op(req, verdict="reject")
+        self.assertEqual(out["outcome"], "rejected")
+        self.assertEqual(self.store.get_work(work_key)["state"],
+                         "blocked")
+
+    def test_forged_actor_mismatch_denied(self):
+        """The claimed login must equal the credential's verified
+        login — a spoofed ``--actor`` can never borrow authority."""
+        work_key = self._ready()
+        req = self._request(work_key)["request_id"]
+        out = self._op(req, login="luongnv89", verified="other-user")
+        self.assertEqual(out["outcome"], "denied")
+        self.assertEqual(out["reason"], "forged-actor")
+
+    def test_not_allowlisted_denied(self):
+        work_key = self._ready()
+        req = self._request(work_key)["request_id"]
+        out = self._op(req, login="mallory", verified="mallory")
+        self.assertEqual(out["outcome"], "denied")
+        self.assertEqual(out["reason"], "forged-actor")
+
+    def test_malformed_login_denied_no_actor(self):
+        work_key = self._ready()
+        req = self._request(work_key)["request_id"]
+        out = self._op(req, login="", verified="")
+        self.assertEqual(out["outcome"], "denied")
+        self.assertEqual(out["reason"], "no-actor")
+
+    def test_replay_denied(self):
+        work_key = self._ready()
+        req = self._request(work_key)["request_id"]
+        self.assertEqual(self._op(req)["outcome"], "approved")
+        again = self._op(req)
+        self.assertEqual(again["outcome"], "denied")
+        self.assertEqual(again["reason"], "replayed")
+
+    def test_expired_denied(self):
+        work_key = self._ready()
+        req = self._request(work_key)["request_id"]
+        self.clock[0] += 3601                 # past the 60-min expiry
+        out = self._op(req)
+        self.assertEqual(out["outcome"], "denied")
+        self.assertEqual(out["reason"], "expired")
+
+    def test_actor_revoked_after_removal(self):
+        """A granted operator approval dies when the login leaves
+        ``authorization.github_actors`` — the lapse recheck names
+        ``actor-revoked``, not generic drift."""
+        work_key = self._ready()
+        req = self._request(work_key)["request_id"]
+        self.assertEqual(self._op(req)["outcome"], "approved")
+        self.eff["authorization"]["github_actors"] = []
+        report = self.approval.sweep()
+        self.assertEqual(
+            self.store.get_approval_request(req)["state"],
+            "invalidated")
+        self.assertIn("actor-revoked",
+                      [h["reason"] for h in report["invalidated"]])
+
+
+class TestOperatorChannelDisabled(ApprovalFixture):
+    """The default channel list is ``["telegram"]`` — an operator
+    decision on a manifest that never opted in is denied."""
+
+    def test_channel_not_enabled_denied(self):
+        work_key = self._ready()
+        req = self._request(work_key)["request_id"]
+        out = self.approval.decide_operator(
+            request_id=req, github_login="luongnv89",
+            verified_login="luongnv89", verdict="approve",
+            host="operator-box")
+        self.assertEqual(out["outcome"], "denied")
+        self.assertEqual(out["reason"], "channel-not-enabled")
 
 
 if __name__ == "__main__":

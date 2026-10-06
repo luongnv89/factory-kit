@@ -58,6 +58,21 @@ class ShippedManifestTests(unittest.TestCase):
         self.assertNotEqual(schema.effective_digest(effective),
                             schema.effective_digest(mutated))
 
+    def test_shipped_manifest_digests_match_main(self):
+        """New optional keys must not shift existing digests — the
+        shipped manifest predates ``approval_channels`` and its
+        effective/policy digests are pinned to the values main
+        computed for the identical file."""
+        effective = schema.load_manifest_file(MANIFEST)
+        self.assertEqual(
+            schema.effective_digest(effective),
+            "471800e23c5595c818afde9d59d627dc6800fba44ca6444430d072303"
+            "433a372")
+        self.assertEqual(
+            schema.policy_digest(effective),
+            "a3808f62b97d652152c437a250e8ef5f71159c3de1d4ee4244e23922"
+            "395ba410")
+
 
 class IdentityAuthorizationTests(unittest.TestCase):
     """A1 — CFG01/CFG02."""
@@ -331,6 +346,137 @@ class EndpointPolicyTests(unittest.TestCase):
             raw["endpoint"]["preview"]["environment"] = "production"
         self.assertIn("endpoint.preview.environment",
                       paths(problems_of(mutate)))
+
+    def test_approval_channels_absent_unless_manifest_sets_it(self):
+        """The key is carried only when the manifest names it — every
+        reader defaults to ["telegram"], and an unset key keeps the
+        effective/policy digests of pre-channel manifests stable."""
+        effective = schema.load_manifest_file(MANIFEST)
+        self.assertNotIn("approval_channels",
+                         effective["endpoint"]["merge"])
+
+    def test_approval_channels_operator_cli(self):
+        raw = load_valid()
+        raw["endpoint"]["merge"]["approval_channels"] = [
+            "operator-cli"]
+        effective = schema.validate(raw)
+        self.assertEqual(
+            effective["endpoint"]["merge"]["approval_channels"],
+            ["operator-cli"])
+
+    def test_approval_channels_unknown_member_rejected(self):
+        def mutate(raw):
+            raw["endpoint"]["merge"]["approval_channels"] = [
+                "telegram", "sms"]
+        self.assertIn("endpoint.merge.approval_channels[1]",
+                      paths(problems_of(mutate)))
+
+    def test_approval_channels_empty_rejected(self):
+        def mutate(raw):
+            raw["endpoint"]["merge"]["approval_channels"] = []
+        problems = problems_of(mutate)
+        self.assertTrue(any(
+            p["path"].startswith("endpoint.merge.approval_channels")
+            for p in problems))
+
+
+class PreviewBuildTests(unittest.TestCase):
+    """``endpoint.preview.build`` — required for github-pages, allowed
+    for any provider, digest-absent when unset."""
+
+    @staticmethod
+    def _build(commands=None, output_dir="dist", base_env="SITE_BASE"):
+        return {"commands": commands if commands is not None else
+                ["npm ci", "npm run build"],
+                "output_dir": output_dir, "base_env": base_env}
+
+    def test_github_pages_provider_with_build(self):
+        raw = load_valid()
+        preview = raw["endpoint"]["preview"]
+        preview["provider"] = "github-pages"
+        preview["visibility"] = "public"
+        preview["build"] = self._build()
+        effective = schema.validate(raw)
+        self.assertEqual(
+            effective["endpoint"]["preview"]["build"],
+            {"commands": ["npm ci", "npm run build"],
+             "output_dir": "dist", "base_env": "SITE_BASE"})
+
+    def test_github_pages_requires_build(self):
+        def mutate(raw):
+            raw["endpoint"]["preview"]["provider"] = "github-pages"
+        self.assertIn("endpoint.preview.build",
+                      paths(problems_of(mutate)))
+
+    def test_build_allowed_for_other_providers(self):
+        raw = load_valid()
+        raw["endpoint"]["preview"]["build"] = self._build()
+        effective = schema.validate(raw)
+        self.assertEqual(
+            effective["endpoint"]["preview"]["provider"], "vercel")
+        self.assertIn("build", effective["endpoint"]["preview"])
+
+    def test_build_absent_from_effective_when_unset(self):
+        """Same digest-stability rule as approval_channels — the key
+        rides the effective config only when the manifest names it."""
+        effective = schema.load_manifest_file(MANIFEST)
+        self.assertNotIn("build", effective["endpoint"]["preview"])
+
+    def test_build_unknown_key_rejected(self):
+        def mutate(raw):
+            raw["endpoint"]["preview"]["build"] = {
+                **self._build(), "shell": True}
+        self.assertIn("endpoint.preview.build.shell",
+                      paths(problems_of(mutate)))
+
+    def test_build_commands_empty_rejected(self):
+        def mutate(raw):
+            raw["endpoint"]["preview"]["build"] = self._build(
+                commands=[])
+        problems = problems_of(mutate)
+        self.assertTrue(any(
+            p["path"].startswith("endpoint.preview.build.commands")
+            for p in problems))
+
+    def test_build_command_items_nonempty(self):
+        def mutate(raw):
+            raw["endpoint"]["preview"]["build"] = self._build(
+                commands=["npm ci", " "])
+        self.assertIn("endpoint.preview.build.commands[1]",
+                      paths(problems_of(mutate)))
+
+    def test_build_output_dir_escape_rejected(self):
+        for bad in ("../dist", "/abs/dist", "a/../b"):
+            def mutate(raw, bad=bad):
+                raw["endpoint"]["preview"]["build"] = self._build(
+                    output_dir=bad)
+            self.assertIn("endpoint.preview.build.output_dir",
+                          paths(problems_of(mutate)), bad)
+
+    def test_build_base_env_shape_rejected(self):
+        for bad in ("site_base", "1SITE", "SITE-BASE"):
+            def mutate(raw, bad=bad):
+                raw["endpoint"]["preview"]["build"] = self._build(
+                    base_env=bad)
+            self.assertIn("endpoint.preview.build.base_env",
+                          paths(problems_of(mutate)), bad)
+
+    def test_yaml_nested_map_inline_list(self):
+        """The restricted parser carries the nested ``build`` map and
+        its inline ``commands`` list end to end."""
+        text = MANIFEST.read_text().replace(
+            "provider: vercel", "provider: github-pages").replace(
+            "    smoke:",
+            "    build:\n"
+            "      commands: [\"npm ci\", \"npm run build\"]\n"
+            "      output_dir: dist\n"
+            "      base_env: SITE_BASE\n"
+            "    smoke:", 1)
+        effective = schema.load_manifest(text)
+        build = effective["endpoint"]["preview"]["build"]
+        self.assertEqual(build["commands"],
+                         ["npm ci", "npm run build"])
+        self.assertEqual(build["base_env"], "SITE_BASE")
 
 
 class RetentionSecretTests(unittest.TestCase):

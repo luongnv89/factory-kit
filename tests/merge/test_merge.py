@@ -282,6 +282,13 @@ class TestA1Guard(MergeFixture):
         self.assertEqual(detail["expected_head"], HEAD_A)
         self.assertEqual(detail["merged_by"], "factory-bot")
         self.assertEqual(detail["merge_actor_kind"], "factory")
+        # ``merged`` is the authoritative transition to ``completed``
+        # — committed atomically with the intent and the queue's
+        # ``done`` row.
+        self.assertEqual(self.store.get_work(work_key)["state"],
+                         "completed")
+        self.assertEqual(self.store.queue_entry(work_key)["state"],
+                         "done")
 
     def test_denied_when_no_approved_request(self):
         work_key = self._accept()

@@ -27,7 +27,7 @@ blockers, never silent degradation.
 | Preview provider | Vercel preview, unlisted, ≤24 h TTL, cleanup ≤60 min | `docs/decisions/tested-recipe-selection.md` Q10 |
 | Merge method | Squash via human-approved `gh pr merge --squash`, expected-head recheck; auto-merge disabled | PRD F12; approval tests |
 | Telegram transport | Gateway-authorized bot; numeric user/chat allowlists (manifest `authorization.telegram_users/chats`) | `factory_kit/notification`, control tests |
-| Persistence | kit SQLite `in.db` + `registration.json` under `~/.hermes/profiles/<profile>/factory-kit/`; Hermes `kanban.db` is Hermes-owned | `tests/recovery/` |
+| Persistence | kit SQLite `in.db` + `registration.json` under `~/.hermes/factory-kit/` (default profile) or `~/.hermes/profiles/<profile>/factory-kit/` (named profiles); Hermes `kanban.db` is Hermes-owned | `tests/recovery/` |
 | Upgrade / repair / rollback | `upgrade` (read-only plan) → `migrate` (fenced staged apply) → `readiness` re-pass; `repair` restores the validated checkpoint or parks on a named conflict; `rollback` restores the previous validated digests under a fresh generation | `docs/recipes/upgrade-repair.md`; `tests/test_setup_upgrade.py`; `tests/recipes/test_upgrade_recipe.py` |
 | Schema migrations | `factory_kit: 1` only — the registry has no v1→v2 transform because v2 does not exist; out-of-schema candidates are named conflicts | `factory_kit/config/migrations.py` |
 

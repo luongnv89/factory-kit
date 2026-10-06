@@ -818,17 +818,30 @@ class TestPortContract(PreviewFixture):
                 stderr = ""
                 stdout = ""
             p = P()
-            if argv[1:2] == ["inspect"]:
-                p.stdout = ("id       dpl-abc123\n"
-                            "url      https://preview-x.vercel.app\n"
-                            "state    READY\n"
-                            f"commit   {HEAD_A}\n")
-            else:
-                p.stdout = "https://preview-x.vercel.app\n"
+            if argv[0] == "git" and "archive" in argv:
+                # Write a real (empty) tar to --output.
+                out = argv[argv.index("--output") + 1]
+                import tarfile
+                with tarfile.open(out, "w"):
+                    pass
+            elif argv[0] == "git":                          # rev-parse
+                p.stdout = "cafe" * 10 + "\n"
+            elif argv[1:2] == ["deploy"]:
+                p.stdout = json.dumps(
+                    {"id": "dpl-abc123",
+                     "url": "preview-x.vercel.app"})
+            elif argv[1:2] == ["api"]:
+                p.stdout = json.dumps(
+                    {"id": "dpl-abc123",
+                     "url": "preview-x.vercel.app",
+                     "readyState": "READY",
+                     "meta": {"factory-head_sha": HEAD_A,
+                              "factory-preview_id": "p1"}})
             return p
 
-        port = VercelCliPreview(project="money-mind", runner=runner,
-                                now=self._now)
+        port = VercelCliPreview(repo_root="/tmp/fake-repo",
+                                project="money-mind",
+                                runner=runner, now=self._now)
         import os
         old = os.environ.get("VERCEL_TOKEN")
         os.environ["VERCEL_TOKEN"] = "sekrit-token-123"
@@ -842,11 +855,16 @@ class TestPortContract(PreviewFixture):
             else:
                 os.environ["VERCEL_TOKEN"] = old
         # argv never carries the token; env carries it by name.
-        blob = " ".join(c["argv"][0] for c in calls)
+        blob = " ".join(str(a) for c in calls for a in c["argv"])
         for c in calls:
             for arg in c["argv"]:
                 self.assertNotIn("sekrit", str(arg))
-        self.assertIn("VERCEL_TOKEN", calls[0]["env"])
+        vercel_calls = [c for c in calls if c["argv"][0] == "vercel"]
+        self.assertTrue(vercel_calls)
+        for c in vercel_calls:
+            self.assertIn("VERCEL_TOKEN", c["env"])
+            self.assertEqual(c["env"]["VERCEL_TOKEN"],
+                             "sekrit-token-123")
         self.assertNotIn("sekrit", blob)
 
     def test_vercel_find_propagates_provider_error(self):
