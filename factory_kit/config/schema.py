@@ -773,8 +773,12 @@ def _eff_endpoint(node):
             "max_smoke_age_minutes": merge.get(
                 "max_smoke_age_minutes",
                 DEFAULT_ENDPOINT["max_smoke_age_minutes"]),
-            "approval_channels": list(
-                merge.get("approval_channels", ["telegram"])),
+            # Set only when the manifest names it — every reader
+            # defaults to ["telegram"], and an unconditional key would
+            # shift the effective/policy digests of every manifest
+            # written before the channel existed.
+            **({"approval_channels": list(merge["approval_channels"])}
+               if merge.get("approval_channels") is not None else {}),
         },
         "disabled": sorted(
             set(node.get("disabled", REQUIRED_DISABLED)) |

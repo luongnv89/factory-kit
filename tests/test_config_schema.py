@@ -58,6 +58,21 @@ class ShippedManifestTests(unittest.TestCase):
         self.assertNotEqual(schema.effective_digest(effective),
                             schema.effective_digest(mutated))
 
+    def test_shipped_manifest_digests_match_main(self):
+        """New optional keys must not shift existing digests — the
+        shipped manifest predates ``approval_channels`` and its
+        effective/policy digests are pinned to the values main
+        computed for the identical file."""
+        effective = schema.load_manifest_file(MANIFEST)
+        self.assertEqual(
+            schema.effective_digest(effective),
+            "471800e23c5595c818afde9d59d627dc6800fba44ca6444430d072303"
+            "433a372")
+        self.assertEqual(
+            schema.policy_digest(effective),
+            "a3808f62b97d652152c437a250e8ef5f71159c3de1d4ee4244e23922"
+            "395ba410")
+
 
 class IdentityAuthorizationTests(unittest.TestCase):
     """A1 — CFG01/CFG02."""
@@ -332,11 +347,13 @@ class EndpointPolicyTests(unittest.TestCase):
         self.assertIn("endpoint.preview.environment",
                       paths(problems_of(mutate)))
 
-    def test_approval_channels_defaults_to_telegram(self):
+    def test_approval_channels_absent_unless_manifest_sets_it(self):
+        """The key is carried only when the manifest names it — every
+        reader defaults to ["telegram"], and an unset key keeps the
+        effective/policy digests of pre-channel manifests stable."""
         effective = schema.load_manifest_file(MANIFEST)
-        self.assertEqual(
-            effective["endpoint"]["merge"]["approval_channels"],
-            ["telegram"])
+        self.assertNotIn("approval_channels",
+                         effective["endpoint"]["merge"])
 
     def test_approval_channels_operator_cli(self):
         raw = load_valid()
