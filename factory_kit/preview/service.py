@@ -50,9 +50,10 @@ import json as _json
 import re
 import time
 import uuid
+from datetime import datetime, timezone
 
 from factory_kit.config import schema
-from factory_kit.durable.store import _utcnow
+from factory_kit.durable.store import _iso_to_epoch, _utcnow
 from factory_kit.execution.limits import TERMINAL_WORK_STATES
 from factory_kit.preview.port import PreviewAmbiguity, PreviewError
 
@@ -116,6 +117,15 @@ class PreviewService:
     # ------------------------------------------------------------------ #
     # helpers
     # ------------------------------------------------------------------ #
+
+    def _iso_now(self):
+        """The service clock in the record's ISO shape. ``observed_at``
+        feeds the merge guard's smoke-freshness math — which runs on
+        ``self._now()`` — so the stamp must be written on the same
+        clock, never wall time (A2)."""
+        return datetime.fromtimestamp(
+            self._now(), tz=timezone.utc).isoformat(
+            timespec="milliseconds")
 
     def _alert(self, kind, identity, severity, detail=None):
         """Persist the alert row (deduplicated per
@@ -236,7 +246,7 @@ class PreviewService:
             or self.port.provider_name(),
             head_sha=head_sha, base_name=base_name, base_sha=base_sha,
             state="denied", reason=reason,
-            cleanup_owner="factory", observed_at=_utcnow(),
+            cleanup_owner="factory", observed_at=self._iso_now(),
             detail=_json.dumps({"actor_ref": actor_ref},
                                sort_keys=True))
         if violation:
@@ -326,7 +336,7 @@ class PreviewService:
         settled it."""
         work = work or self.store.get_work(rec["work_key"])
         now = self._now()
-        observed = _utcnow()
+        observed = self._iso_now()
         if block is None:
             block = reason in _BLOCKING_FAILURES
         with self.store.transact() as tx:
@@ -460,7 +470,7 @@ class PreviewService:
                         superseded = active["preview_id"]
                         tx.update_preview(
                             active["preview_id"], state="invalidated",
-                            reason="superseded", observed_at=_utcnow(),
+                            reason="superseded", observed_at=self._iso_now(),
                             cleanup_deadline_epoch=
                             self._cleanup_deadline(work, now))
                         fresh = tx.get_preview(active["preview_id"])
@@ -468,7 +478,7 @@ class PreviewService:
                             "preview_failed", work_key=work_key,
                             reason="superseded",
                             properties=self._event_props(
-                                fresh, observed_at=_utcnow()))
+                                fresh, observed_at=self._iso_now()))
                         # F12 A5 — approvals bound to the superseded
                         # record's evidence die inside the same commit
                         # that retires it.
@@ -551,13 +561,13 @@ class PreviewService:
                     deployment_id=deployed.get("deployment_id"),
                     url=deployed.get("url"),
                     artifact_identity=deployed.get("artifact_identity"),
-                    observed_at=_utcnow())
+                    observed_at=self._iso_now())
                 fresh = tx.get_preview(preview_id)
                 tx.record_typed_event(
                     "preview_failed", work_key=work_key,
                     reason="fenced",
                     properties=self._event_props(
-                        fresh, observed_at=_utcnow()))
+                        fresh, observed_at=self._iso_now()))
                 post = ("invalidate", fresh)
             else:
                 tx.update_preview(
@@ -636,7 +646,7 @@ class PreviewService:
         except PreviewError as exc:
             return self._fail(rec["preview_id"], "provider-outage",
                               detail=str(exc)[:300])
-        observed_at = _utcnow()
+        observed_at = self._iso_now()
         if not smoke.get("ok"):
             return self._fail(rec["preview_id"], "smoke-failed",
                               smoke=smoke)
@@ -749,6 +759,41 @@ class PreviewService:
                                  "state": state})
         return {"outcome": "terminated", "work_key": work_key,
                 "previews": outcomes}
+
+    def resmoke(self, work_key):
+        """F12 staleness recovery: re-run the configured smoke against
+        the work's *active verified* deployment and commit the fresh
+        provider-side observation.
+
+        A passing re-observation rewrites ``smoke_observed`` +
+        ``observed_at`` — the preview digest rekeys, so every approval
+        bound to the stale evidence invalidates through
+        ``invalidate_for_preview`` and a fresh request must be minted.
+        F12's rule is never "the old grant rides on new evidence":
+        reverification produces a fresh evidence set and requires a
+        fresh human approval."""
+        rec = self.store.active_preview(work_key)
+        if rec is None:
+            return {"outcome": "denied", "reason": "no-active-preview",
+                    "work_key": work_key}
+        if rec["state"] != "verified":
+            return {"outcome": "denied",
+                    "reason": f"state-{rec['state']}",
+                    "work_key": work_key}
+        work = self.store.get_work(work_key)
+        contract = self._preview_contract(self._effective(work))
+        if contract is None:
+            return {"outcome": "denied",
+                    "reason": "preview-contract-missing",
+                    "work_key": work_key}
+        out = self._observe(rec, work, contract)
+        if out.get("outcome") == "verified" and \
+                self._approval is not None:
+            # The fresh smoke rewrote the record — approvals bound to
+            # the prior preview evidence die now (preview-moved), never
+            # on a later sweep.
+            self._approval.invalidate_for_preview(work_key)
+        return out
 
     def observe_callback(self, deployment_id, *, payload=None):
         """A provider deployment callback (webhook) — binds by durable
@@ -925,6 +970,8 @@ class PreviewService:
             and evidence is not None
             and evidence["status"] == "verified"
             and evidence.get("head_sha") == rec["head_sha"])
+        smoke_age_s = (None if rec["state"] != "verified"
+                       else now - _iso_to_epoch(rec.get("observed_at")))
         return {
             "status": rec["state"],
             "reason": rec.get("reason"),
@@ -936,6 +983,7 @@ class PreviewService:
             "provider": rec.get("provider"),
             "visibility": rec.get("visibility"),
             "observed_at": rec.get("observed_at"),
+            "smoke_age_s": smoke_age_s,
             "expires_epoch": rec.get("expires_epoch"),
             "cleanup_deadline_epoch": rec.get("cleanup_deadline_epoch"),
             "cleanup_owner": rec.get("cleanup_owner"),
