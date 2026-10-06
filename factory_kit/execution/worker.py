@@ -540,12 +540,12 @@ class HermesKanbanWorker(WorkerPort):
                 summary = latest.get("summary") or ""
         if not metadata:
             try:
-                rows = self._hermes_json("runs", str(task_id), "--json")
+                fetched = self._hermes_json("runs", str(task_id), "--json")
             except WorkerError:
-                rows = []
-            rows = rows if isinstance(rows, list) else \
-                (rows.get("runs") or [])
-            for row in reversed(rows):
+                fetched = []
+            fetched = fetched if isinstance(fetched, list) else \
+                (fetched.get("runs") or [])
+            for row in reversed(fetched):
                 if not isinstance(row, dict):
                     continue
                 meta = row.get("metadata")
@@ -559,20 +559,36 @@ class HermesKanbanWorker(WorkerPort):
                 if not summary:
                     summary = row.get("summary") or summary
                 break
+            if fetched:
+                # ``show`` never embeds run rows — the ``runs`` read is
+                # the authoritative source for elapsed accounting too.
+                runs = fetched
         return summary, metadata, runs
 
     def _elapsed_seconds(self, runs):
+        """Sum run durations. Hermes 0.21.5 run rows carry epoch
+        ``started_at``/``ended_at`` rather than an elapsed field, so
+        derive the delta when no explicit elapsed key exists."""
         total = 0.0
         seen = False
         for run in runs:
             if not isinstance(run, dict):
                 continue
+            elapsed = None
             for key in ("elapsed_seconds", "elapsed_s"):
                 val = run.get(key)
                 if isinstance(val, (int, float)):
-                    total += float(val)
-                    seen = True
+                    elapsed = float(val)
                     break
+            if elapsed is None:
+                started, ended = run.get("started_at"), run.get("ended_at")
+                if isinstance(started, (int, float)) and \
+                        isinstance(ended, (int, float)) and \
+                        ended >= started:
+                    elapsed = float(ended) - float(started)
+            if elapsed is not None:
+                total += elapsed
+                seen = True
         return total if seen else None
 
     def _block_reason(self, out):

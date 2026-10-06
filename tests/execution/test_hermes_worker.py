@@ -357,6 +357,39 @@ class TestCollectMapping(unittest.TestCase):
         self.assertEqual(result.active_seconds, 5.0)
         self.assertIn("fk-task-000001-a01", self.polls)
 
+    def test_live_0215_shape_no_embedded_runs(self):
+        """Regression from the fk-website smoke task (t_ad270327): a
+        real ``show --json`` carries no ``runs`` key — metadata and
+        timing come from ``runs --json`` rows with epoch
+        ``started_at``/``ended_at`` instead of an elapsed field."""
+        worker, handle = self._dispatch()
+        live_show = {
+            "task": {"id": "t_0001", "status": "done",
+                     "title": "fk repo#7 implementation "
+                              "fk-task-000001-a01",
+                     "result": None, "started_at": 1791275911,
+                     "completed_at": 1791276036},
+            "latest_summary": "smoke ok",
+            "events": [{"kind": "completed", "payload": {}}]}
+        live_runs = [{
+            "id": 1, "profile": "fk-impl", "status": "done",
+            "outcome": "completed",
+            "started_at": 1791275911, "ended_at": 1791276036,
+            "summary": "smoke ok", "error": None,
+            "metadata": {"head_sha": "a" * 40, "node": "v26.7.0",
+                         "npm": "11.19.0",
+                         "skills_loaded": ["issue-resolver"]},
+            "worker_pid": 39392, "step_key": None}]
+        self.runner.shows = [live_show]
+        self.runner.runs = live_runs
+        result = worker.collect(handle)
+        self.assertEqual(result.verdict, "completed")
+        self.assertEqual(result.detail, "smoke ok")
+        self.assertEqual(result.active_seconds, 125.0)
+        info = worker.result_for("fk-task-000001-a01")
+        self.assertEqual(info["metadata"]["head_sha"], "a" * 40)
+        self.assertEqual(info["metadata"]["npm"], "11.19.0")
+
     def test_done_review_verdict_from_metadata(self):
         worker, handle = self._dispatch()
         # Dispatch as review: reuse the impl worktree.
