@@ -711,10 +711,14 @@ class TestCliNoRecover(unittest.TestCase):
 
 
 class TestSmokeAwareApproval(DriverWorld):
-    """The presented request names its approve-before deadline, and an
-    awaiting request inside the smoke-deadline window is re-smoked and
-    re-minted — never ridden to its own expiry (and never touched once
-    approved)."""
+    """The presented request names its approve-before deadline. An
+    awaiting request is re-smoked and re-minted ONLY once its smoke
+    evidence has already aged past max_smoke_age — the request can no
+    longer merge by then, so re-keying loses nothing, and the fresh
+    observation pushes the deadline a full window out (at most once
+    per window). Inside the window the request id is stable, so an
+    operator's ``approve --request <id>`` never hits a rotated id.
+    An ``approved`` grant is never touched."""
 
     def _to_awaiting(self):
         work_key = self._accept(42)
@@ -740,10 +744,24 @@ class TestSmokeAwareApproval(DriverWorld):
             any(f"approve before {expect}" in line
                 for line in self.logs), self.logs)
 
-    def test_expiring_smoke_resmokes_and_mints_fresh_request(self):
+    def test_awaiting_request_is_stable_inside_the_window(self):
+        """The default 10-minute window: several ticks below the smoke
+        deadline keep the same request id — zero resmokes."""
         work_key, live = self._to_awaiting()
         before = len(self._smokes())
-        self.clock[0] += 30.0         # 570s left of the 600s deadline
+        for _ in range(3):
+            self.clock[0] += 60.0    # 180s into the 600s window
+            self.driver.tick()
+            cur = self.services.approval.status(
+                work_key)["live_request"]
+            self.assertEqual(cur["request_id"], live["request_id"])
+        self.assertEqual(len(self._smokes()), before)
+        self.assertFalse(any("re-smoked" in l for l in self.logs))
+
+    def test_expired_smoke_resmokes_once_and_mints_fresh_request(self):
+        work_key, live = self._to_awaiting()
+        before = len(self._smokes())
+        self.clock[0] += 601.0       # past observed_at + 600s
         self.driver.tick()
         self.assertEqual(len(self._smokes()), before + 1)
         old = self.store.get_approval_request(live["request_id"])
@@ -755,6 +773,15 @@ class TestSmokeAwareApproval(DriverWorld):
         self.assertEqual(fresh["state"], "awaiting")
         self.assertTrue(any("re-smoked" in l for l in self.logs),
                         self.logs)
+        # The fresh observation reset the deadline — the next tick
+        # does not resmoke again (at most once per smoke window).
+        self.clock[0] += 30.0
+        self.driver.tick()
+        self.assertEqual(len(self._smokes()), before + 1)
+        self.assertEqual(
+            self.services.approval.status(
+                work_key)["live_request"]["request_id"],
+            fresh["request_id"])
 
     def test_approved_request_is_never_resmoked(self):
         work_key, live = self._to_awaiting()

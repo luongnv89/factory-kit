@@ -445,14 +445,17 @@ class Driver:
                            "request_id": live["request_id"]})
             smoke_deadline = self._smoke_deadline(work_key)
             if smoke_deadline is not None and \
-                    smoke_deadline - self._now() < 600.0:
-                # The smoke evidence expires inside the next window —
-                # a grant minted on it would race its own death, and
-                # only an ``awaiting`` request may be re-keyed (an
-                # ``approved`` grant is the operator's and is never
-                # touched here). Re-observe the deployment: the fresh
-                # smoke rewrites the preview digest, this request dies
-                # preview-moved, and a fresh one is minted + presented.
+                    self._now() >= smoke_deadline:
+                # The smoke evidence has already aged past
+                # max_smoke_age — this request can no longer merge, so
+                # re-keying it loses nothing, and a verified re-smoke
+                # pushes the deadline a full window out (at most once
+                # per smoke window). Only an ``awaiting`` request may
+                # be re-keyed: an ``approved`` grant is the operator's
+                # and is never touched here. Re-observe the deployment:
+                # the fresh smoke rewrites the preview digest, this
+                # request dies preview-moved, and a fresh one is minted
+                # + presented.
                 re = self.services.preview.resmoke(work_key)
                 stages.append({"stage": "resmoke",
                                "outcome": re.get("outcome"),
