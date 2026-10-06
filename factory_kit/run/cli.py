@@ -12,6 +12,8 @@ factory_kit.run``).
                                        [--actor LOGIN]
     python3 -m factory_kit.run reject --repo /path --request ID
                                       [--actor LOGIN] [--reason TEXT]
+    python3 -m factory_kit.run retry --repo /path --issue N
+                                     [--actor LOGIN]
 
 Exit codes (the setup vocabulary):
 
@@ -299,6 +301,36 @@ def cmd_reject(args):
     return _decide(args, "reject")
 
 
+def cmd_retry(args):
+    """Operator-authorized generation retry — the same verified-login
+    binding as approve/reject, then the lane's attributable retry."""
+    driver = build(args)
+    try:
+        verified = (driver.remote.actor_identity() or {}).get("login")
+    except RemoteError:
+        verified = None
+    actor = args.actor or verified
+    if not actor or \
+            (verified and actor.lower() != str(verified).lower()):
+        print(json.dumps({"outcome": "denied",
+                          "reason": "forged-actor"},
+                         indent=2, sort_keys=True))
+        return 1
+    repo_id = (driver.effective.get("identity") or {}).get("repo_id")
+    try:
+        out = driver.services.lane.request_retry(
+            repo_id, args.issue, authorized_by=actor)
+    except Exception as exc:
+        print(json.dumps({"outcome": "denied",
+                          "reason": type(exc).__name__,
+                          "detail": str(exc)[:200]},
+                         indent=2, sort_keys=True))
+        return 1
+    print(json.dumps(out, indent=2, sort_keys=True, default=str))
+    return 0 if out.get("outcome") in ("retry-authorized",
+                                      "already-queued") else 1
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(
         prog="factory-run",
@@ -348,6 +380,15 @@ def main(argv=None):
     p.add_argument("--actor")
     p.add_argument("--reason", help="rejection detail")
     p.set_defaults(func=cmd_reject)
+
+    p = sub.add_parser("retry", help="operator-authorized generation "
+                                     "retry for an issue")
+    p.add_argument("--repo", required=True)
+    p.add_argument("--board", help="kanban board slug")
+    p.add_argument("--issue", required=True, type=int)
+    p.add_argument("--actor", help="GitHub login (default: the "
+                                   "credential's verified login)")
+    p.set_defaults(func=cmd_retry)
 
     args = parser.parse_args(argv)
     try:
