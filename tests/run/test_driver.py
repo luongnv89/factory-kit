@@ -248,10 +248,10 @@ class TestLifecycle(DriverWorld):
         self.assertEqual(pr["head"], "fk/issue-42-g1")
         self.assertEqual(pr["base"], "main")
         self.assertEqual(pr["title"], "Add the thing (#42)")
-        # Verification waits on pending checks — never parks.
-        ev = self.store.latest_evidence(work_key)
-        self.assertEqual(ev["status"], "blocked")
-        self.assertIn("check-incomplete", ev["reason"])
+        # Checks registered but pending — the gate waits *without*
+        # writing an evidence row; a premature required-check-missing
+        # failure would park the work on a lie.
+        self.assertIsNone(self.store.latest_evidence(work_key))
         self.assertEqual(self.store.get_work(work_key)["state"],
                          "active")
 
@@ -366,6 +366,58 @@ class TestBuildRefusals(unittest.TestCase):
             run_cli.build(args, recover=False)
         self.assertEqual(cm.exception.reason,
                          "registration-not-enabled")
+
+
+class TestCheckGrace(DriverWorld):
+    """The publish→verify race: check-runs register asynchronously —
+    the gate waits without an evidence row until every required
+    context completed, one completed red, or the grace window since
+    the pr-publish intent's commit elapsed."""
+
+    def test_no_runs_waits_without_evidence(self):
+        work_key = self._accept(42)
+        self.remote.check_runs = lambda sha: []
+        self.driver.tick()
+        self.assertIsNone(self.store.latest_evidence(work_key))
+        self.assertEqual(self.store.get_work(work_key)["state"],
+                         "active")
+
+    def test_partial_runs_wait(self):
+        work_key = self._accept(42)
+        self.driver.tick()
+        head = self._head(work_key)
+        self.remote.check_runs = lambda sha: [
+            GREEN[0], {**PENDING[1], "name": "Security Scan"}]
+        self.driver.tick()
+        self.assertIsNone(self.store.latest_evidence(work_key))
+        self.assertEqual(self.store.get_work(work_key)["state"],
+                         "active")
+
+    def test_red_completed_runs_verify_and_park(self):
+        work_key = self._accept(42)
+        self.driver.tick()
+        head = self._head(work_key)
+        red = {**GREEN[1], "conclusion": "failure"}
+        self.remote.check_runs = lambda sha: [dict(GREEN[0]),
+                                              dict(red)]
+        self.driver.tick()
+        ev = self.store.latest_evidence(work_key)
+        self.assertEqual(ev["status"], "failed")
+        self.assertIn("check-conclusion", ev["reason"])
+        self.assertEqual(self.store.get_work(work_key)["state"],
+                         "parked")
+
+    def test_grace_elapsed_records_the_failure(self):
+        work_key = self._accept(42)
+        self.driver.tick()           # published; checks pending → wait
+        self.remote.check_runs = lambda sha: []   # never registered
+        self.clock[0] += 901         # past check_grace_s (900)
+        self.driver.tick()
+        ev = self.store.latest_evidence(work_key)
+        self.assertEqual(ev["status"], "failed")
+        self.assertIn("required-check-missing", ev["reason"])
+        self.assertEqual(self.store.get_work(work_key)["state"],
+                         "parked")
 
 
 class TestResmoke(DriverWorld):

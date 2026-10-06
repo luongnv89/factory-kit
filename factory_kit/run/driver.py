@@ -34,6 +34,7 @@ import time
 from types import SimpleNamespace
 
 from factory_kit.approval import ApprovalService
+from factory_kit.durable.store import _iso_to_epoch
 from factory_kit.execution import ExecutionLane
 from factory_kit.intake import service as intake_service
 from factory_kit.merge import MergeService
@@ -41,8 +42,10 @@ from factory_kit.notifications.outbox import NotificationService
 from factory_kit.preview import PreviewService
 from factory_kit.publication import (
     OPERATION_BRANCH_PUBLISH, OPERATION_PR_PUBLISH, PublicationBroker)
+from factory_kit.publication.remote import RemoteError
 from factory_kit.recovery import RecoveryService
 from factory_kit.verification import VerificationService
+from factory_kit.verification.contract import contract_from_effective
 
 #: Queue states the lane hands to the driver — ``reviewed`` (the
 #: stage-pair boundary) and ``awaiting-approval`` (the human gate).
@@ -120,7 +123,8 @@ class Driver:
 
     def __init__(self, repo, *, store, registrations, effective,
                  services, worker, remote, base_branch="main",
-                 git_bin="git", now=None, log=None):
+                 git_bin="git", check_grace_s=900.0, now=None,
+                 log=None):
         self.repo = os.path.abspath(repo)
         self.store = store
         self.registrations = registrations
@@ -130,6 +134,7 @@ class Driver:
         self.remote = remote
         self.base_branch = base_branch
         self.git_bin = git_bin
+        self.check_grace_s = check_grace_s
         self._now = now or time.time
         self._log = log or (lambda msg: None)
 
@@ -306,6 +311,17 @@ class Driver:
                            "pr": work["linked_pr"]})
 
         # (d) — verify the linked PR's exact head + checks.
+        #
+        # Race guard: GitHub registers check-runs asynchronously after
+        # the push — a ``required-check-missing`` seconds after publish
+        # is CI that has not started yet, not a failure. Verify only
+        # once every required context has a completed run, any required
+        # context completed with a disallowed conclusion, or the
+        # ``check_grace_s`` window since the pr-publish intent elapsed;
+        # otherwise wait without writing an evidence row (a premature
+        # ``failed`` row would park the work on a lie).
+        if not self._checks_ready(work_key, head, stages):
+            return
         ev = self.services.verifier.verify(
             work_key, head, remote=self.remote,
             effective=self.effective)
@@ -411,6 +427,56 @@ class Driver:
         elif out.get("outcome") == "parked":
             self._log(f"{work_key}: merge outcome parked — "
                       f"{out.get('reason')}")
+
+
+    def _checks_ready(self, work_key, head, stages):
+        """Whether verify() may run now. Required contexts are the
+        contract's; the grace clock starts at the pr-publish intent's
+        commit timestamp, never at a poll — restart-safe."""
+        contract = contract_from_effective(self.effective)
+        contexts = list(contract.contexts) if contract else []
+        if not contexts:
+            return True               # verify() reports its own gate
+        try:
+            runs = self.remote.check_runs(head)
+        except RemoteError:
+            stages.append({"stage": "verify", "status": "waiting",
+                           "reason": "remote-unavailable"})
+            self._log(f"{work_key}: waiting for checks "
+                      f"(remote unavailable)")
+            return False
+        by_name = {}
+        for run in runs or []:
+            if run.get("name"):
+                by_name[run["name"]] = run
+        registered = sum(1 for c in contexts if c in by_name)
+        completed = sum(1 for c in contexts
+                        if by_name.get(c, {}).get("status")
+                        == "completed")
+        failed = any(
+            by_name[c].get("status") == "completed" and
+            by_name[c].get("conclusion") not in contract.conclusions
+            for c in contexts if c in by_name)
+        if completed == len(contexts) or failed:
+            return True
+        committed = None
+        for intent in self.store.intent_rows(work_key):
+            if intent.get("operation") == OPERATION_PR_PUBLISH:
+                ts = _iso_to_epoch(intent.get("created_at"))
+                if committed is None or ts < committed:
+                    committed = ts
+        if committed is not None and \
+                self._now() - committed > self.check_grace_s:
+            return True               # grace elapsed — verify records it
+        stages.append({"stage": "verify", "status": "waiting",
+                       "reason": "checks-pending",
+                       "registered": registered,
+                       "completed": completed})
+        self._log(f"{work_key}: waiting for checks "
+                  f"({registered}/{len(contexts)} registered, "
+                  f"{completed} completed)")
+        return False
+
 
     def _publish(self, work, head, branch, stages):
         """branch-publish then pr-publish through the broker — the
