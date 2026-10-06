@@ -122,6 +122,88 @@ class PreviewPort:
 _IDENTITY_META_KEYS = ("preview_id", "work_key", "generation")
 
 
+def _export_head(run, git_bin, repo_root, head_sha):
+    """Materialize exactly ``head_sha``'s tree into a fresh temp dir —
+    the deploy cwd — via ``git archive``; ``run`` is the owning port's
+    ``_run`` callable. The archive is written to a file (binary tar
+    never crosses the text-mode runner boundary), then extracted with
+    :mod:`tarfile`."""
+    if not repo_root:
+        raise PreviewError(
+            "no repo_root configured — cannot export the bound "
+            "revision")
+    export_dir = tempfile.mkdtemp(prefix="fk-export-")
+    tar_path = os.path.join(export_dir + ".tar")
+    try:
+        run([git_bin, "-C", repo_root, "archive",
+             "--format=tar", "--output", tar_path,
+             str(head_sha)])
+        with tarfile.open(tar_path) as tar:
+            tar.extractall(export_dir)
+    except Exception:
+        shutil.rmtree(export_dir, ignore_errors=True)
+        try:
+            os.unlink(tar_path)
+        except OSError:
+            pass
+        raise
+    return export_dir, tar_path
+
+
+def _tree_sha(run, git_bin, repo_root, head_sha):
+    """``rev-parse <head>^{tree}`` — the artifact identity read-back
+    binds on, shared by every provider port."""
+    return run([git_bin, "-C", repo_root, "rev-parse",
+                f"{head_sha}^{{tree}}"]).strip()
+
+
+def _contract_smoke(port, deployment_id, contract) -> dict:
+    """The configured smoke probe — shared verbatim by every provider
+    port. ``port`` supplies ``inspect``/``_run``/``_now``/``curl_bin``.
+    ``command`` (with the recorded URL interpolated) must produce
+    ``expect`` on stdout, and a configured ``marker`` must appear in
+    the served body. Args go through ``shlex.split`` — the
+    operator-authored command is never re-parsed by a shell."""
+    observed = port.inspect(deployment_id)
+    if observed is None:
+        raise PreviewError(
+            f"unknown deployment {deployment_id!r} — smoke cannot "
+            "run against an unrecorded identity")
+    url = observed["url"]
+    # Literal ``{url}`` substitution — ``str.format`` would choke on
+    # the contract's ``%{http_code}`` curl format spec, which must
+    # pass through untouched.
+    command = (contract or {}).get("command", "")
+    argv = shlex.split(command.replace("{url}", url))
+    if not argv:
+        return {"ok": False, "http": None, "marker": None,
+                "observed_at": port._now(),
+                "detail": "empty smoke command"}
+    try:
+        output = port._run(argv).strip()
+    except PreviewAmbiguity:
+        raise
+    except PreviewError as exc:
+        return {"ok": False, "http": None, "marker": None,
+                "observed_at": port._now(), "detail": str(exc)[:200]}
+    expect = str((contract or {}).get("expect") or "").strip()
+    expected_ok = (not expect) or output == expect
+    marker = (contract or {}).get("marker")
+    marker_hit = None
+    if marker:
+        try:
+            body = port._run([port.curl_bin, "-fsS", url])
+        except PreviewError:
+            body = ""
+        marker_hit = marker in body
+    ok = expected_ok and marker_hit is not False and \
+        str(observed.get("state") or "READY").upper() == "READY"
+    http = output if output.isdigit() else None
+    return {"ok": bool(ok), "http": http, "marker": marker_hit,
+            "observed_at": port._now(),
+            "detail": f"expect={expect!r} got={output!r}"}
+
+
 class VercelCliPreview(PreviewPort):
     """Thin adapter over the ``vercel`` CLI (v55) + the configured
     ``curl`` smoke probe — the only paved preview path (Q10's selected
@@ -215,34 +297,12 @@ class VercelCliPreview(PreviewPort):
     # -- immutable export --------------------------------------------------
 
     def _export_head(self, head_sha):
-        """Materialize exactly ``head_sha``'s tree into a fresh temp
-        dir — the deploy cwd — via ``git archive``. The archive is
-        written to a file (binary tar never crosses the text-mode
-        runner boundary), then extracted with :mod:`tarfile`."""
-        if not self.repo_root:
-            raise PreviewError(
-                "no repo_root configured — cannot export the bound "
-                "revision")
-        export_dir = tempfile.mkdtemp(prefix="fk-export-")
-        tar_path = os.path.join(export_dir + ".tar")
-        try:
-            self._run([self.git_bin, "-C", self.repo_root, "archive",
-                       "--format=tar", "--output", tar_path,
-                       str(head_sha)])
-            with tarfile.open(tar_path) as tar:
-                tar.extractall(export_dir)
-        except Exception:
-            shutil.rmtree(export_dir, ignore_errors=True)
-            try:
-                os.unlink(tar_path)
-            except OSError:
-                pass
-            raise
-        return export_dir, tar_path
+        return _export_head(self._run, self.git_bin, self.repo_root,
+                            head_sha)
 
     def _tree_sha(self, head_sha):
-        return self._run([self.git_bin, "-C", self.repo_root,
-                          "rev-parse", f"{head_sha}^{{tree}}"]).strip()
+        return _tree_sha(self._run, self.git_bin, self.repo_root,
+                         head_sha)
 
     # -- provider verbs --------------------------------------------------
 
@@ -384,49 +444,7 @@ class VercelCliPreview(PreviewPort):
         return found
 
     def smoke(self, deployment_id, contract) -> dict:
-        """The configured contract verbatim: ``command`` (with the
-        recorded URL interpolated) must produce ``expect`` on stdout,
-        and a configured ``marker`` must appear in the served body.
-        Args go through ``shlex.split`` — the operator-authored command
-        is never re-parsed by a shell."""
-        observed = self.inspect(deployment_id)
-        if observed is None:
-            raise PreviewError(
-                f"unknown deployment {deployment_id!r} — smoke cannot "
-                "run against an unrecorded identity")
-        url = observed["url"]
-        # Literal ``{url}`` substitution — ``str.format`` would choke on
-        # the contract's ``%{http_code}`` curl format spec, which must
-        # pass through untouched.
-        command = (contract or {}).get("command", "")
-        argv = shlex.split(command.replace("{url}", url))
-        if not argv:
-            return {"ok": False, "http": None, "marker": None,
-                    "observed_at": self._now(),
-                    "detail": "empty smoke command"}
-        try:
-            output = self._run(argv).strip()
-        except PreviewAmbiguity:
-            raise
-        except PreviewError as exc:
-            return {"ok": False, "http": None, "marker": None,
-                    "observed_at": self._now(), "detail": str(exc)[:200]}
-        expect = str((contract or {}).get("expect") or "").strip()
-        expected_ok = (not expect) or output == expect
-        marker = (contract or {}).get("marker")
-        marker_hit = None
-        if marker:
-            try:
-                body = self._run([self.curl_bin, "-fsS", url])
-            except PreviewError:
-                body = ""
-            marker_hit = marker in body
-        ok = expected_ok and marker_hit is not False and \
-            str(observed.get("state") or "READY").upper() == "READY"
-        http = output if output.isdigit() else None
-        return {"ok": bool(ok), "http": http, "marker": marker_hit,
-                "observed_at": self._now(),
-                "detail": f"expect={expect!r} got={output!r}"}
+        return _contract_smoke(self, deployment_id, contract)
 
     def remove(self, deployment_id, identity) -> dict:
         observed = self.inspect(deployment_id)
