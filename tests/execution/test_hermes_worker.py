@@ -268,6 +268,39 @@ class TestArgvShape(unittest.TestCase):
         # The review body carries the diff under review.
         self.assertEqual(_git(self.ws, "rev-parse", "HEAD"), head)
 
+    def test_review_body_carries_stat_and_capped_diff(self):
+        captured = {}
+        real = self.runner
+
+        def spy(argv, env=None, timeout=None, cwd=None):
+            argv = [str(a) for a in argv]
+            if argv[0] == "hermes" and "create" in argv:
+                captured["body"] = Path(
+                    argv[argv.index("--body-file") + 1]).read_text()
+            return real(argv, env=env, timeout=timeout, cwd=cwd)
+        worker = self._worker()
+        worker._runner = spy
+        worker.start(ctx(self.ws))
+        # An implementation change plus a lockfile churn, then review.
+        Path(self.ws, "code.py").write_text("print('hi')\n")
+        Path(self.ws, "package-lock.json").write_text(
+            "\n".join(f'"dep-{i}": "1.0"' for i in range(50)))
+        _git(self.ws, "-c", "user.email=t@t", "-c", "user.name=t",
+             "add", "-A")
+        _git(self.ws, "-c", "user.email=t@t", "-c", "user.name=t",
+             "commit", "-m", "work")
+        worker.start(ctx(self.ws, role="review",
+                         attempt="fk-task-000001-a03"))
+        body = captured["body"]
+        self.assertIn("## Change under review", body)
+        self.assertIn("code.py", body)                 # the stat names it
+        self.assertIn("```diff", body)
+        self.assertIn("print('hi')", body)             # real change shown
+        self.assertNotIn('"dep-10"', body)             # lockfile excluded
+        base = worker._base_sha["gh:repo#7:g1"]
+        head = _git(self.ws, "rev-parse", "HEAD")
+        self.assertIn(f"git diff {base}...{head}", body)
+
     def test_no_profile_refuses(self):
         worker = HermesKanbanWorker(
             str(self.repo), FULL_NAME, {}, runner=self.runner,
@@ -402,17 +435,58 @@ class TestCollectMapping(unittest.TestCase):
         self.assertEqual(result.verdict, "failed")
         self.assertEqual(result.detail, "runtime-timeout")
 
-    def test_terminate_confirmed(self):
+    def test_terminate_terminal_first_needs_no_fencing(self):
         worker, handle = self._dispatch()
         self.runner.shows = [show("blocked")]
         self.assertEqual(worker.terminate(handle), "confirmed")
         verbs = [a[a.index("kanban") + 1] for a, _ in self.runner.calls
                  if a[0] == "hermes"]
-        self.assertEqual(verbs[-3:], ["reclaim", "block", "show"])
+        self.assertEqual(verbs[-1:], ["show"])   # no reclaim/block
+
+    def test_terminate_fences_then_confirms(self):
+        worker, handle = self._dispatch()
+        self.runner.shows = [show("running"), show("blocked")]
+        self.assertEqual(worker.terminate(handle), "confirmed")
+        verbs = [a[a.index("kanban") + 1] for a, _ in self.runner.calls
+                 if a[0] == "hermes"]
+        self.assertEqual(verbs[-4:], ["show", "reclaim", "block",
+                                     "show"])
+
+    def test_terminate_tolerates_reclaim_failure(self):
+        worker, handle = self._dispatch()
+        self.runner.shows = [show("running"), show("blocked")]
+        real = self.runner
+
+        def flaky(argv, env=None, timeout=None, cwd=None):
+            argv = [str(a) for a in argv]
+            if argv[0] == "hermes" and "reclaim" in argv:
+                return Proc(stderr="no active claim", returncode=1)
+            return real(argv, env=env, timeout=timeout, cwd=cwd)
+        worker._runner = flaky
+        self.assertEqual(worker.terminate(handle), "confirmed")
+        verbs = [a[a.index("kanban") + 1] for a, _ in real.calls
+                 if a[0] == "hermes"]
+        self.assertEqual(verbs[-3:], ["show", "block", "show"])
 
     def test_terminate_uncertain_when_still_running(self):
         worker, handle = self._dispatch()
         self.runner.shows = [show("running")]
+        self.assertEqual(worker.terminate(handle), "uncertain")
+
+    def test_terminate_uncertain_when_final_show_fails(self):
+        worker, handle = self._dispatch()
+        real = self.runner
+        shows = [0]
+
+        def half_dead(argv, env=None, timeout=None, cwd=None):
+            argv = [str(a) for a in argv]
+            if argv[0] == "hermes" and "show" in argv:
+                shows[0] += 1
+                if shows[0] > 1:
+                    return Proc(stderr="gone", returncode=1)
+                return Proc(json.dumps(show("running")))
+            return real(argv, env=env, timeout=timeout, cwd=cwd)
+        worker._runner = half_dead
         self.assertEqual(worker.terminate(handle), "uncertain")
 
     def test_terminate_uncertain_on_error(self):

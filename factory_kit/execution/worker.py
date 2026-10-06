@@ -371,15 +371,29 @@ class HermesKanbanWorker(WorkerPort):
             head = self._git("-C", ctx.workspace, "rev-parse", "HEAD")
         except WorkerError:
             pass
-        diff = ""
-        if base_sha and head:
+        rng = f"{base_sha}...{head}" if base_sha and head else ""
+        stat = diff = ""
+        if rng:
             try:
-                diff = self._git("-C", ctx.workspace, "diff",
-                                 f"{base_sha}...{head}")
+                stat = self._git("-C", ctx.workspace, "diff",
+                                 "--stat", rng)
+            except WorkerError:
+                stat = ""
+            try:
+                diff = self._git("-C", ctx.workspace, "diff", rng,
+                                 "--", ".",
+                                 ":(exclude)package-lock.json")
             except WorkerError:
                 diff = ""
+            if diff:
+                lines = diff.splitlines()
+                if len(lines) > 1500:
+                    diff = ("\n".join(lines[:1500])
+                            + f"\n[diff truncated at 1500 lines — "
+                              f"run: git diff {rng}]")
         return (self._header(ctx, issue, branch, base_sha)
                 + "\n## Change under review\n"
+                + (f"```\n{stat}\n```\n" if stat else "")
                 + (f"```diff\n{diff}\n```\n" if diff else "")
                 + self._issue_section(ctx, issue)
                 + "\n## Rules (factory-kit policy — these override any "
@@ -389,7 +403,10 @@ class HermesKanbanWorker(WorkerPort):
                 f"requests, comment on the issue or merge.\n"
                 f"- Check every acceptance criterion against the diff "
                 f"and run the acceptance commands: {cmds}\n"
-                f"- Use the {skill} skill's review criteria only and "
+                + (f"- The diff above excludes lockfiles and may be "
+                   f"truncated; the complete diff is `git diff {rng}` "
+                   f"in the workspace.\n" if rng else "")
+                + f"- Use the {skill} skill's review criteria only and "
                 f"skip its PR fetching, CI polling, fix cycles and "
                 f"merge steps (no PR exists yet).\n"
                 f"- Finish by calling kanban_complete with summary = "
@@ -432,6 +449,17 @@ class HermesKanbanWorker(WorkerPort):
             raise WorkerError(f"no worker profile for role {ctx.role!r}")
         branch = self._prepare_workspace(ctx)
         base_sha = self._base_sha.get(ctx.work_key)
+        if base_sha is None and ctx.role == "review":
+            # Restart: this process never minted the branch, so the
+            # creation-time base is gone — the merge-base of the
+            # review worktree's HEAD against base_ref is the same
+            # commit while the branch only adds commits.
+            try:
+                base_sha = self._git(
+                    "-C", ctx.workspace, "merge-base", "HEAD",
+                    self.base_ref) or None
+            except WorkerError:
+                base_sha = None
         issue = self._issue(ctx)
         if ctx.role == "review":
             body = self._review_body(ctx, issue, branch, base_sha)
@@ -741,26 +769,40 @@ class HermesKanbanWorker(WorkerPort):
                 "result": result}
 
     def terminate(self, handle: SessionHandle) -> str:
-        """Fence the runtime-side task: ``reclaim`` releases any claim
-        and ``block`` removes dispatch eligibility; ``confirmed`` only
-        when a final ``show`` reports a non-running status."""
+        """Fence the runtime-side task. An already-terminal task needs
+        no fencing — ``confirmed`` without touching reclaim/block.
+        Otherwise ``reclaim`` releases any claim (a failure, e.g. no
+        active claim, is tolerated) and ``block`` removes dispatch
+        eligibility. The answer is decided only by the final ``show``:
+        a non-running status is ``confirmed``; a still-running status
+        or a failed read-back is ``uncertain``."""
         task_id = handle.runtime_ref
         if not task_id:
             return "uncertain"
         try:
-            self._hermes("reclaim", str(task_id),
-                         "--reason",
-                         f"factory-kit fence {handle.attempt_id}")
-            self._hermes("block", str(task_id),
-                         "--reason",
-                         f"factory-kit fenced attempt "
-                         f"{handle.attempt_id}")
+            out = self._show(task_id)
+            task, _, _ = self._task_fields(out)
+            status = str(task.get("status") or "").lower()
+            if status in _TERMINAL_STATES:
+                return "confirmed"
+        except WorkerError:
+            pass                  # unreadable — fence anyway, show decides
+        for verb, reason in (
+                ("reclaim", f"factory-kit fence {handle.attempt_id}"),
+                ("block", f"factory-kit fenced attempt "
+                          f"{handle.attempt_id}")):
+            try:
+                self._hermes(verb, str(task_id), "--reason", reason)
+            except WorkerError:
+                pass              # e.g. no active claim to reclaim
+        try:
             out = self._show(task_id)
         except WorkerError:
             return "uncertain"
         task, _, _ = self._task_fields(out)
         status = str(task.get("status") or "").lower()
-        return "confirmed" if status != "running" else "uncertain"
+        return "confirmed" if status not in _RUNNING_STATES \
+            else "uncertain"
 
     def heartbeat(self, handle: SessionHandle) -> None:
         """Deliberate no-op: Hermes's gateway owns worker liveness — a
