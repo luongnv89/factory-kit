@@ -60,9 +60,10 @@ SCHEMA_VERSION = 1
 #: profile worker is the only paved path; external CLI lanes are no-go).
 SUPPORTED_RUNTIMES = ("hermes-kanban",)
 
-#: The one preview provider selected by Q10 — production deploys are out of
-#: scope for the MVP endpoint.
-SUPPORTED_PREVIEW_PROVIDERS = ("vercel",)
+#: Preview providers — production deploys stay out of scope: Vercel
+#: preview deployments (Q10) and GitHub Pages sub-path previews under
+#: ``previews/<id>/`` on the repo's gh-pages branch.
+SUPPORTED_PREVIEW_PROVIDERS = ("vercel", "github-pages")
 
 #: The one merge method selected by Q10.
 SUPPORTED_MERGE_METHODS = ("squash",)
@@ -209,7 +210,9 @@ _SUB_KEYS = {
     "evidence.export": {"aggregate_only", "redact"},
     "evidence.tombstones": {"retain_until_registration_removal"},
     "endpoint.preview": {"provider", "environment", "visibility",
-                         "ttl_hours", "cleanup_minutes", "smoke"},
+                         "ttl_hours", "cleanup_minutes", "smoke",
+                         "build"},
+    "endpoint.preview.build": {"commands", "output_dir", "base_env"},
     "endpoint.preview.smoke": {"command", "expect", "marker"},
     "endpoint.merge": {
         "method", "approval_expiry_minutes", "max_smoke_age_minutes",
@@ -226,6 +229,10 @@ APPROVAL_CHANNELS = ("telegram", "operator-cli")
 
 _REVISION_RE = re.compile(
     r"^(v?[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.\-]+)?|[0-9a-f]{40})$")
+
+#: ``endpoint.preview.build.base_env`` — a shell-style env name the
+#: controller exports to the declared build commands (e.g. SITE_BASE).
+_BASE_ENV_RE = re.compile(r"^[A-Z][A-Z0-9_]*$")
 
 
 class ConfigError(Exception):
@@ -564,6 +571,45 @@ def _v_endpoint(problems, node):
                  f"{', '.join(PREVIEW_VISIBILITIES)}")
         _check_bounded(problems, preview, "endpoint.preview",
                        DEFAULT_PREVIEW, _PREVIEW_BOUNDS)
+        build = preview.get("build")
+        if build is not None:
+            build = _require_map(problems, build,
+                                 "endpoint.preview.build")
+            if build is not None:
+                _check_unknown(problems, build, "endpoint.preview.build",
+                               _SUB_KEYS["endpoint.preview.build"])
+                commands = _require_list(
+                    problems, build.get("commands"),
+                    "endpoint.preview.build.commands")
+                if commands:
+                    for i, command in enumerate(commands):
+                        if not isinstance(command, str) or \
+                                not command.strip():
+                            _err(problems,
+                                 f"endpoint.preview.build.commands[{i}]",
+                                 "must be a non-empty command string")
+                output_dir = build.get("output_dir")
+                if not isinstance(output_dir, str) or \
+                        not output_dir.strip():
+                    _err(problems, "endpoint.preview.build.output_dir",
+                         "must be a non-empty relative path")
+                elif output_dir.startswith("/") or \
+                        ".." in output_dir.split("/"):
+                    _err(problems, "endpoint.preview.build.output_dir",
+                         "must stay inside the build export — no "
+                         "leading '/' or '..' segments")
+                base_env = build.get("base_env")
+                if not isinstance(base_env, str) or \
+                        not _BASE_ENV_RE.match(base_env):
+                    _err(problems, "endpoint.preview.build.base_env",
+                         "must be an env name matching "
+                         "[A-Z][A-Z0-9_]* (e.g. SITE_BASE)")
+        if provider == "github-pages" and preview.get("build") is None:
+            _err(problems, "endpoint.preview.build",
+                 "required when provider is github-pages — the "
+                 "controller builds each preview on the operator host "
+                 "and needs the declared commands/output_dir/base_env "
+                 "contract")
         # F11/A2: the smoke contract is *required* — a deployment that
         # no configured probe verifies can never produce the meaningful
         # evidence an approval request needs.
@@ -764,6 +810,14 @@ def _eff_endpoint(node):
                 "expect": smoke["expect"],
                 "marker": smoke.get("marker"),
             },
+            # Set only when the manifest names it (same digest-stability
+            # rule as merge.approval_channels — an unconditional key
+            # would rekey every pre-build manifest's digests).
+            **({"build": {
+                "commands": list(preview["build"]["commands"]),
+                "output_dir": preview["build"]["output_dir"],
+                "base_env": preview["build"]["base_env"],
+            }} if preview.get("build") is not None else {}),
         },
         "merge": {
             "method": merge["method"],
