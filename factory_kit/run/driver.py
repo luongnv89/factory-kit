@@ -163,6 +163,14 @@ class Driver:
         self.check_grace_s = check_grace_s
         self._now = now or time.time
         self._log = log or (lambda msg: None)
+        # Lane progress rides the driver's logger when the worker port
+        # exposes the ``log`` seam (HermesKanbanWorker does; fixture
+        # ports may not).
+        if getattr(self.worker, "log", self._log) is None:
+            try:
+                self.worker.log = self._log
+            except AttributeError:
+                pass
 
     # ------------------------------------------------------------------ #
     # one pass

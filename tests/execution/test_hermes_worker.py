@@ -357,6 +357,57 @@ class TestCollectMapping(unittest.TestCase):
         self.assertEqual(result.active_seconds, 5.0)
         self.assertIn("fk-task-000001-a01", self.polls)
 
+    def test_progress_log_dispatch_transition_finish(self):
+        """watch is silent for 5–15 minutes of lane work — the worker
+        reports dispatch, each *new* kanban status and the terminal
+        verdict through its optional ``log`` sink."""
+        logs = []
+        worker = HermesKanbanWorker(
+            str(self.repo), FULL_NAME, PROFILES,
+            runner=self.runner,
+            sleep=lambda s: self.clock.__setitem__(
+                0, self.clock[0] + s),
+            clock=lambda: self.clock[0],
+            poll_interval_s=15.0, dispatch_grace_s=60.0,
+            log=logs.append)
+        handle = worker.start(ctx(self.ws))
+        # Repeated statuses across polls must not repeat the line —
+        # only the transition logs.
+        self.runner.shows = [
+            show("running"), show("running"), show("running"),
+            show("done", summary="added the thing",
+                 metadata={"head_sha": "abc"})]
+        result = worker.collect(handle)
+        self.assertEqual(result.verdict, "completed")
+        self.assertEqual(
+            logs[0],
+            "dispatched implementation attempt fk-task-000001-a01 "
+            "→ kanban t_0001 (profile fk-impl)")
+        transitions = [l for l in logs if "→ done" in l]
+        self.assertEqual(
+            transitions,
+            ["implementation attempt fk-task-000001-a01: kanban "
+             "t_0001 → done"])
+        self.assertEqual(
+            logs[-1],
+            "implementation attempt fk-task-000001-a01 finished: "
+            "completed (added the thing)")
+
+    def test_progress_log_transition_once_per_change(self):
+        logs = []
+        worker = HermesKanbanWorker(
+            str(self.repo), FULL_NAME, PROFILES,
+            runner=self.runner, sleep=lambda s: None,
+            clock=lambda: self.clock[0], log=logs.append)
+        handle = worker.start(ctx(self.ws))
+        self.runner.shows = [
+            show("ready"), show("running"), show("running"),
+            show("done", summary="x")]
+        worker.collect(handle)
+        self.assertEqual([l for l in logs if "→ running" in l],
+                         ["implementation attempt fk-task-000001-a01: "
+                          "kanban t_0001 → running"])
+
     def test_live_0215_shape_no_embedded_runs(self):
         """Regression from the fk-website smoke task (t_ad270327): a
         real ``show --json`` carries no ``runs`` key — metadata and
