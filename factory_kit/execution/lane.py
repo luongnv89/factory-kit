@@ -158,10 +158,16 @@ class ExecutionLane:
     # One scheduling pass
     # ------------------------------------------------------------------
 
-    def tick(self):
+    def tick(self, max_dispatch=None):
         """One sequential pass: dispatch eligible work while the single
         lane is free; leave the rest durably queued with the visible
-        ``lane-occupied`` reason (A1). Returns the pass report."""
+        ``lane-occupied`` reason (A1). Returns the pass report.
+
+        ``max_dispatch`` caps the dispatches this pass may start —
+        the driver uses ``max_dispatch=1`` so post-lane stages can run
+        before another implementation begins. When the cap stops the
+        pass while eligible work remains the outcome is ``limited``
+        (the leftover rows stay eligible, never consumed)."""
         report = {"dispatched": [], "queued": [], "blocked": [],
                   "completed": [], "parked": [], "paused": []}
         while True:
@@ -180,6 +186,10 @@ class ExecutionLane:
                 return report
             if not eligible:
                 report["outcome"] = "idle"
+                return report
+            if max_dispatch is not None and \
+                    len(report["dispatched"]) >= max_dispatch:
+                report["outcome"] = "limited"
                 return report
             work = eligible[0]
             result = self._dispatch(work)
@@ -527,12 +537,27 @@ class ExecutionLane:
                 continue
             if verdict in ("completed", "approved",
                            "changes-requested"):
-                reason = ("reviewed" if verdict != "changes-requested"
-                          else "attempts-exhausted")
-                state = ("completed" if verdict != "changes-requested"
-                         else "parked")
-                return self._finish(work_key, state, reason,
-                                    final=state)
+                if verdict != "changes-requested":
+                    # Review approval is a stage boundary, not a
+                    # terminal state: the publication broker, preview
+                    # and approval services authorize only *active*
+                    # work, so the lane hands off at queue state
+                    # ``reviewed`` and the driver owns every stage
+                    # after it. The work row stays ``active`` until
+                    # the merge lands (or a later stage parks it).
+                    self.store.set_work_state(
+                        work_key, "active", reason="reviewed")
+                    self._mark_queued(work_key, "reviewed",
+                                      reason="reviewed")
+                    self.store.record_event(
+                        "lane_finished", work_key=work_key,
+                        reason="reviewed", detail="state=active")
+                    return {"outcome": "reviewed",
+                            "reason": "reviewed",
+                            "final": "completed"}
+                return self._finish(work_key, "parked",
+                                    "attempts-exhausted",
+                                    final="parked")
             return self._finish(work_key, "parked",
                                 f"review-{verdict}", final="parked")
 

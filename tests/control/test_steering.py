@@ -266,7 +266,7 @@ class TestA2FenceThenReplace(SteerFixture):
                          ["implementation", "implementation",
                           "review"])
         self.assertEqual(
-            self.store.get_work(work_key)["state"], "completed")
+            self.store.get_work(work_key)["state"], "active")
 
         # Replacement context: the new fingerprint's acceptance ref
         # and the recorded remaining budgets ride the dispatch.
@@ -347,7 +347,7 @@ class TestA2FenceThenReplace(SteerFixture):
         self.assertEqual(steers["second"]["termination"], "confirmed")
 
         self.assertEqual(
-            self.store.get_work(work_key)["state"], "completed")
+            self.store.get_work(work_key)["state"], "active")
         recs = self.store.attempt_record_rows(work_key)
         self.assertEqual([r["role"] for r in recs],
                          ["implementation"] * 3 + ["review"])
@@ -378,7 +378,7 @@ class TestA2FenceThenReplace(SteerFixture):
             steering.criteria_fingerprint(CRITERIA_V2)[:12],
             ctx.acceptance_ref)
         self.assertEqual(
-            self.store.get_work(work_key)["state"], "completed")
+            self.store.get_work(work_key)["state"], "active")
 
     def test_paused_boundary_steers_the_held_stage(self):
         """A pause-held boundary is the checkpoint: the revision

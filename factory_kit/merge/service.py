@@ -531,6 +531,17 @@ class MergeService:
                 merged=1, merge_sha=pr.get("merge_sha"),
                 merged_by=merged_by, merge_actor_kind=actor_kind,
                 read_back_at=_utcnow(), detail=detail)
+            if reason == "merged":
+                # The lane's ``reviewed`` boundary left the work
+                # ``active``; the authoritative merge is the one place
+                # ``completed`` is reached — committed atomically with
+                # the intent so the work and its merge outcome can
+                # never diverge. A cancellation race keeps the fence's
+                # terminal state.
+                tx.set_work_state(work_key, "completed",
+                                  reason="merged")
+                tx.enqueue_work(work_key, tx.next_seq(),
+                                state="done", reason="merged")
             tx.record_typed_event(
                 "merge_observed", work_key=work_key, reason=reason,
                 properties={

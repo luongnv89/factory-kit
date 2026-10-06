@@ -154,11 +154,34 @@ class TestA1DispatchAndQueue(LaneFixture):
         # And once released the queued work drains — FIFO order.
         self.store.release_lane(expected_work=first)
         lane.tick()
+        # The lane hands off at the ``reviewed`` boundary — the work
+        # stays active until the driver merges it.
         self.assertEqual(self.store.get_work(second)["state"],
-                         "completed")
+                         "active")
+        self.assertEqual(self.store.queue_entry(second)["state"],
+                         "reviewed")
         self.assertEqual(
             [a["task_id"] for a in self._attempts(second)][0],
             "fk-task-000002")
+
+    def test_tick_max_dispatch_limits_one_dispatch(self):
+        """The driver's ``max_dispatch=1`` bound: one work drains per
+        pass; the rest stay eligible — ``limited``, never consumed."""
+        first = self._accept(1)
+        second = self._accept(2)
+        lane = self._lane()
+        report = lane.tick(max_dispatch=1)
+        self.assertEqual(report["outcome"], "limited")
+        self.assertEqual(report["dispatched"], [first])
+        # Second row untouched: still pending + eligible next pass.
+        self.assertEqual(self._attempts(second), [])
+        report = lane.tick(max_dispatch=1)
+        self.assertEqual(report["dispatched"], [second])
+        self.assertEqual(self.store.queue_entry(second)["state"],
+                         "reviewed")
+        report = lane.tick(max_dispatch=1)
+        self.assertEqual(report["outcome"], "idle")
+        self.assertEqual(report["dispatched"], [])
 
     def test_acquire_lane_is_atomic_and_release_is_guarded(self):
         self.store.acquire_lane("w1", "t1")
@@ -199,8 +222,12 @@ class TestA2SequentialSessions(LaneFixture):
         self.assertNotEqual(recs[0]["session_id"], recs[1]["session_id"])
         # review strictly after implementation closed
         self.assertIsNotNone(recs[0]["ended"])
+        # Approved review is a stage boundary — ``active`` at queue
+        # state ``reviewed``, not ``completed`` (the merge owns that).
         self.assertEqual(self.store.get_work(work_key)["state"],
-                         "completed")
+                         "active")
+        self.assertEqual(self.store.queue_entry(work_key)["state"],
+                         "reviewed")
 
     def test_one_fix_attempt_then_park(self):
         work_key = self._accept(4)
@@ -222,13 +249,16 @@ class TestA2SequentialSessions(LaneFixture):
         worker = ScriptedWorker(script={"review": reviews})
         self._lane(worker=worker).tick()
         self.assertEqual(self.store.get_work(work_key)["state"],
-                         "completed")
+                         "active")
+        self.assertEqual(self.store.queue_entry(work_key)["state"],
+                         "reviewed")
         self.assertEqual(len(self._attempts(work_key, "implementation")),
                          2)
 
     def test_no_merge_verb_and_no_unsupported_role(self):
-        worker = HermesKanbanWorker()
-        # The port exposes only claim/heartbeat/complete/reclaim.
+        worker = HermesKanbanWorker("/tmp", "o/r", {})
+        # The port exposes no merge verb — the merge owner is a
+        # separate service the worker never reaches.
         self.assertFalse(hasattr(worker, "merge"))
         ctx_attempt = {"work_key": "w", "task_id": "t", "issue": 1,
                        "generation": 1, "attempt_id": "a",
@@ -240,11 +270,6 @@ class TestA2SequentialSessions(LaneFixture):
         from factory_kit.execution.worker import DispatchContext
         with self.assertRaises(WorkerError):
             worker.start(DispatchContext(**ctx_attempt))
-        argv = worker.kanban_argv(
-            DispatchContext(**{**ctx_attempt, "role": "implementation"}),
-            "claim")
-        self.assertEqual(argv[:2], ["kanban", "claim"])
-        self.assertNotIn("merge", argv)
 
 
 # ---------------------------------------------------------------------------
@@ -491,7 +516,9 @@ class TestA5OperatorRetry(LaneFixture):
         # the new generation is dispatchable
         lane.tick()
         self.assertEqual(self.store.get_work(new_key)["state"],
-                         "completed")
+                         "active")
+        self.assertEqual(self.store.queue_entry(new_key)["state"],
+                         "reviewed")
         reg = self.registrations.get(self.repo_id)
         self.assertEqual(reg["active_generation"], 2)
         gens = [g["generation"] for g in reg["generations"]]
@@ -523,7 +550,10 @@ class TestA5OperatorRetry(LaneFixture):
         self.assertEqual(out["outcome"], "retry-authorized")
         lane.tick()
         self.assertEqual(
-            self.store.get_work(out["work_key"])["state"], "completed")
+            self.store.get_work(out["work_key"])["state"], "active")
+        self.assertEqual(
+            self.store.queue_entry(out["work_key"])["state"],
+            "reviewed")
         # prior parked row + its records stay visible
         self.assertEqual(self.store.get_work(work_key)["state"],
                          "parked")
