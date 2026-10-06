@@ -9,7 +9,7 @@ blockers, never silent degradation.
 
 | Component | Supported pin | Evidence |
 |---|---|---|
-| Kit version | `factory-kit 0.1.0` | `factory_kit.VERSION`; `version_set` in readiness reports |
+| Kit version | `factory-kit 0.2.0b1` | `factory_kit.VERSION`; `version_set` in readiness reports |
 | Manifest schema | `factory_kit: 1` | `tests/config/`; non-appliable-plan leg in recipe tests |
 | Host | Local operator host M1 | `docs/decisions/tested-recipe-selection.md` |
 | OS / arch | macOS 27.0.0 arm64; Linux also accepted by readiness | readiness `unsupported-host` blocker; recipe walkthrough on macOS |

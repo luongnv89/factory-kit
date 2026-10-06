@@ -137,10 +137,27 @@ def _dependency_effect_id(effective) -> str:
 
 
 def _version_tuple(value):
-    """Parse ``0.1.0``-shaped pins; ``None`` when unparseable."""
-    match = re.fullmatch(r"v?(\d+)\.(\d+)\.(\d+)([-+][0-9A-Za-z.\-]+)?",
-                         str(value or "").strip())
-    return tuple(int(x) for x in match.groups()[:3]) if match else None
+    """Parse a version pin into a SemVer-orderable tuple.
+
+    Prereleases sort before the corresponding final release, so a beta
+    kit accepts older registrations but does not treat a same-numbered
+    final release as compatible.
+    """
+    match = re.fullmatch(
+        r"v?(\d+)\.(\d+)\.(\d+)"
+        r"(?:-?([0-9A-Za-z][0-9A-Za-z.-]*))?"
+        r"(?:\+[0-9A-Za-z.-]+)?",
+        str(value or "").strip())
+    if not match:
+        return None
+    major, minor, patch = (int(x) for x in match.groups()[:3])
+    prerelease = match.group(4)
+    if prerelease is None:
+        return major, minor, patch, 1, ()
+    identifiers = tuple(
+        (0, int(part)) if part.isdigit() else (1, part)
+        for part in prerelease.split("."))
+    return major, minor, patch, 0, identifiers
 
 
 def _check(name, ok, detail):
