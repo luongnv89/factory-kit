@@ -613,7 +613,9 @@ class PublicationBroker:
         identity = {"intent_id": intent_id, "work_key": work_key,
                     "authority_key": authority_key,
                     "generation": generation,
-                    "actor_ref": req["actor_ref"]}
+                    "actor_ref": req["actor_ref"],
+                    "issue": (self.store.get_work(work_key) or {})
+                             .get("issue")}
         if req["operation"] == OPERATION_BRANCH_PUBLISH:
             return self.remote.publish_branch(
                 req["target"], req["expected_revision"], identity)
