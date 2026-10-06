@@ -31,9 +31,11 @@ import json
 import os
 import subprocess
 import time
+from datetime import datetime, timezone
 from types import SimpleNamespace
 
 from factory_kit.approval import ApprovalService
+from factory_kit.config import schema
 from factory_kit.durable.store import _iso_to_epoch
 from factory_kit.execution import ExecutionLane
 from factory_kit.intake import service as intake_service
@@ -67,6 +69,30 @@ def _null_transport(dest, text):
     channel here; durable outbox rows still commit (§7.1) but nothing
     is pushed anywhere."""
     return None
+
+
+def _err_tail(exc):
+    """A diagnosable one-line cause for operator logs — the message's
+    first 200 characters with every secret canary from the manifest
+    schema's table rewritten to ``[redacted]`` (logs never carry
+    secrets; redact before truncating so a boundary can never split a
+    canary and leak its prefix)."""
+    text = str(exc)
+    for pattern in schema.SECRET_CANARY_RES:
+        text = pattern.sub("[redacted]", text)
+    return text[:200]
+
+
+def _watermark_since_iso(wm):
+    """Best-effort ISO timestamp for ``remote <state> since <iso>`` —
+    the stale-episode anchor when one exists, else the last attempt,
+    else the row's own update time."""
+    epoch = wm.get("stale_since_epoch") or \
+        wm.get("last_attempt_epoch")
+    if epoch is not None:
+        return datetime.fromtimestamp(
+            float(epoch), timezone.utc).isoformat(timespec="seconds")
+    return str(wm.get("updated_at") or "unknown")
 
 
 def compose(*, store, registrations, effective, worker, remote,
@@ -156,7 +182,24 @@ class Driver:
             report["recovery"] = self.services.recovery.tick()
         except Exception as exc:
             report["errors"].append(
-                {"stage": "recovery", "error": type(exc).__name__})
+                {"stage": "recovery", "error": type(exc).__name__,
+                 "detail": _err_tail(exc)})
+            self._log(f"recovery tick failed: "
+                      f"{type(exc).__name__}: {_err_tail(exc)}")
+
+        # The reconciliation watermark gates every post-lane stage and
+        # the lane dispatch: while the remote is not provably fresh a
+        # stage can still succeed on a reachable API — but the next
+        # reconcile marks the evidence it minted stale and invalidates
+        # any request bound to it (the verify → request → invalidate
+        # flap seen live). Pause until a pass observes the remote.
+        watermark = self.store.reconcile_watermark() or {}
+        remote_state = watermark.get("remote_state")
+        if remote_state != "fresh":
+            self._log(f"remote {remote_state or 'unknown'} since "
+                      f"{_watermark_since_iso(watermark)} — evidence "
+                      f"stages paused until reconciliation succeeds")
+            return report
 
         in_flight = self._post_lane_rows()
         for row in in_flight:
@@ -168,7 +211,8 @@ class Driver:
                     max_dispatch=1)
             except Exception as exc:
                 report["errors"].append(
-                    {"stage": "lane", "error": type(exc).__name__})
+                    {"stage": "lane", "error": type(exc).__name__,
+                     "detail": _err_tail(exc)})
                 report["lane"] = None
             for work_key in (report["lane"] or {}).get("dispatched",
                                                       []):
@@ -203,10 +247,15 @@ class Driver:
         except Exception as exc:
             # A stage that cannot commit/report surfaces in the tick
             # report — the durable rows decide the next pass.
+            tail = _err_tail(exc)
             stages.append({"stage": "error",
-                           "error": type(exc).__name__})
+                           "error": type(exc).__name__,
+                           "detail": tail})
             report["errors"].append(
-                {"work_key": work_key, "error": type(exc).__name__})
+                {"work_key": work_key, "error": type(exc).__name__,
+                 "detail": tail})
+            self._log(f"{work_key}: stage error "
+                      f"{type(exc).__name__}: {tail}")
 
     def _stages(self, work, stages):
         work_key = work["work_key"]
@@ -439,11 +488,11 @@ class Driver:
             return True               # verify() reports its own gate
         try:
             runs = self.remote.check_runs(head)
-        except RemoteError:
+        except RemoteError as exc:
             stages.append({"stage": "verify", "status": "waiting",
                            "reason": "remote-unavailable"})
             self._log(f"{work_key}: waiting for checks "
-                      f"(remote unavailable)")
+                      f"(remote unavailable: {_err_tail(exc)})")
             return False
         by_name = {}
         for run in runs or []:
@@ -488,8 +537,10 @@ class Driver:
         full_name = f"{ident.get('owner')}/{ident.get('name')}"
         try:
             actor = (self.remote.actor_identity() or {}).get("login")
-        except Exception:
+        except Exception as exc:
             actor = None
+            self._log(f"{work_key}: actor identity unreadable "
+                      f"({type(exc).__name__}: {_err_tail(exc)})")
         if not actor:
             stages.append({"stage": "publish", "outcome": "waiting",
                            "reason": "actor-unresolved"})

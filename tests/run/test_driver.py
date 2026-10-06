@@ -36,7 +36,9 @@ from factory_kit.execution.worker import (  # noqa: E402
     SessionHandle, WorkerResult, WorkerPort)
 from factory_kit.intake import service as intake_service  # noqa: E402
 from factory_kit.preview import ScriptedPreview  # noqa: E402
-from factory_kit.publication.remote import ScriptedRemote  # noqa: E402
+from factory_kit.preview.port import PreviewError  # noqa: E402
+from factory_kit.publication.remote import (  # noqa: E402
+    RemoteError, ScriptedRemote)
 from factory_kit.recovery.poller import ScriptedIssueSource  # noqa: E402
 from factory_kit.run import cli as run_cli  # noqa: E402
 from factory_kit.run.driver import Driver, compose  # noqa: E402
@@ -573,6 +575,105 @@ class TestResmoke(DriverWorld):
         self.assertEqual(work["state"] if False else
                          self.store.get_work(work_key)["state"],
                          "completed")
+
+
+class TestRemoteWatermarkGate(DriverWorld):
+    """While the reconcile watermark is not ``fresh`` the driver runs
+    no post-lane stage and dispatches nothing — the verify → request →
+    invalidate flap observed live during a ~25-minute outage."""
+
+    def _to_reviewed(self):
+        work_key = self._accept(42)
+        self.driver.tick()           # dispatch + publish; checks wait
+        self.assertTrue(
+            self.store.get_work(work_key)["linked_pr"])
+        return work_key
+
+    def _go_stale(self):
+        """Mark the watermark the way a >5-minute outage leaves it and
+        keep every remote read failing so reconcile cannot refresh."""
+        stale_since = self.clock[0] - 400.0
+        with self.store.transact() as tx:
+            tx.update_reconcile_watermark(
+                remote_state="stale",
+                last_attempt_epoch=stale_since,
+                stale_since_epoch=stale_since)
+        self.source.faults["poll"] = "down"
+        self.source.faults["observe"] = "down"
+        import collections
+        self.remote.faults = collections.defaultdict(lambda: "raise")
+
+    def test_stale_watermark_pauses_then_fresh_resumes(self):
+        work_key = self._to_reviewed()
+        self.remote.checks[self._head(work_key)] = list(GREEN)
+        self._go_stale()
+
+        report = self.driver.tick()
+        # Paused: no verification row, no approval request, no lane
+        # dispatch, no stages — one log line per tick instead.
+        self.assertIsNone(self.store.latest_evidence(work_key))
+        self.assertEqual(
+            self.store.approval_request_rows(work_key), [])
+        self.assertEqual(report["stages"], {})
+        self.assertIsNone(report["lane"])
+        self.assertTrue(
+            any("evidence stages paused" in line and
+                "remote stale" in line for line in self.logs),
+            self.logs)
+        self.assertEqual(len(self.worker.started), 2)   # impl+review
+
+        # The remote answers again: the next due reconcile marks the
+        # watermark fresh and the pipeline resumes where it stopped.
+        self.source.faults.clear()
+        self.remote.faults = {}
+        self.clock[0] += 61          # past next_due (interval ≤60s)
+        self.driver.tick()
+        ev = self.store.latest_evidence(work_key)
+        self.assertEqual(ev["status"], "verified")
+        live = self.services.approval.status(
+            work_key)["live_request"]
+        self.assertIsNotNone(live)
+        self.assertEqual(live["state"], "awaiting")
+
+
+class TestErrorTails(DriverWorld):
+    """Remote failures surface a redacted 200-char cause — bare
+    ``remote unavailable`` was undiagnosable during the live outage."""
+
+    _CANARY = "ghp_" + "x" * 24        # schema.SECRET_CANARY_RES hit
+
+    def test_checks_gate_logs_redacted_tail(self):
+        work_key = self._accept(42)
+        self.driver.tick()
+
+        def boom(sha):
+            raise RemoteError(
+                f"check-runs: HTTP 401 — credential {self._CANARY} "
+                f"rejected by api.github.com")
+        self.remote.check_runs = boom
+        self.driver.tick()
+        line = next(l for l in self.logs
+                    if "remote unavailable" in l)
+        self.assertIn("HTTP 401", line)
+        self.assertIn("[redacted]", line)
+        self.assertNotIn(self._CANARY, line)
+
+    def test_stage_error_reports_redacted_tail(self):
+        work_key = self._accept(42)
+        self.driver.tick()
+        self.remote.checks[self._head(work_key)] = list(GREEN)
+
+        def boom(*a, **kw):
+            raise PreviewError(
+                f"deploy refused: auth {self._CANARY} invalid")
+        self.services.preview.deploy_preview = boom
+        report = self.driver.tick()
+        self.assertTrue(report["errors"])
+        detail = report["errors"][0]["detail"]
+        self.assertIn("[redacted]", detail)
+        self.assertNotIn(self._CANARY, detail)
+        self.assertLessEqual(len(detail), 200)
+        self.assertTrue(any("[redacted]" in l for l in self.logs))
 
 
 if __name__ == "__main__":
