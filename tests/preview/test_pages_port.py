@@ -257,6 +257,19 @@ class PagesWorld(unittest.TestCase):
 
 class TestDeploy(PagesWorld):
 
+    def test_default_runner_captures_output(self):
+        """Regression from the live smoke: a bare ``subprocess.run``
+        inherits stdout — ``proc.stdout`` comes back ``None`` and every
+        ``_run`` answer silently parses ``{}``. The default seam must
+        capture."""
+        from factory_kit.preview.port import _default_runner
+        port = GitHubPagesPreview(repo_root=str(self.repo),
+                                  full_name=FULL_NAME,
+                                  worktree_dir="/tmp/x")
+        self.assertIs(port._runner, _default_runner)
+        proc = _default_runner(["python3", "-c", "print('x')"])
+        self.assertEqual(proc.stdout.strip(), "x")
+
     def test_deploy_happy_path(self):
         result = self._deploy()
         self.assertTrue(result["deployment_id"].startswith("prev-1@"))

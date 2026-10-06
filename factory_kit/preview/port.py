@@ -122,6 +122,16 @@ class PreviewPort:
 _IDENTITY_META_KEYS = ("preview_id", "work_key", "generation")
 
 
+def _default_runner(argv, env=None, timeout=None, cwd=None):
+    """The real subprocess seam — every preview port's injected runner
+    receives the identical ``(argv, env, timeout, cwd)`` contract.
+    ``capture_output`` is mandatory: a bare ``subprocess.run`` inherits
+    the parent's stdout, so ``proc.stdout`` would come back ``None``
+    and every JSON read-back would silently parse ``{}``."""
+    return subprocess.run(argv, capture_output=True, text=True,
+                          timeout=timeout, env=env, cwd=cwd)
+
+
 def _export_head(run, git_bin, repo_root, head_sha):
     """Materialize exactly ``head_sha``'s tree into a fresh temp dir —
     the deploy cwd — via ``git archive``; ``run`` is the owning port's
@@ -237,7 +247,7 @@ class VercelCliPreview(PreviewPort):
         self.git_bin = git_bin
         self.token_env = token_env
         self.timeout_s = timeout_s
-        self._runner = runner or subprocess.run
+        self._runner = runner or _default_runner
         self._now = now or time.time
         #: Read-back surface — ``"api"`` (``vercel api
         #: /v13/deployments/<id>``) or ``"cli"`` (``vercel inspect

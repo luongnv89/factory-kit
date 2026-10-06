@@ -42,6 +42,7 @@ from .port import (  # noqa: F401
     PreviewPort,
     _IDENTITY_META_KEYS,
     _contract_smoke,
+    _default_runner,
     _export_head,
     _tree_sha,
 )
@@ -88,7 +89,7 @@ class GitHubPagesPreview(PreviewPort):
         self.pages_wait_s = pages_wait_s
         self.serve_wait_s = serve_wait_s
         self.poll_interval_s = poll_interval_s
-        self._runner = runner or subprocess.run
+        self._runner = runner or _default_runner
         self._sleep = sleep or time.sleep
         self._now = now or time.time
         self._site_url = None
