@@ -676,5 +676,39 @@ class TestErrorTails(DriverWorld):
         self.assertTrue(any("[redacted]" in l for l in self.logs))
 
 
+class TestCliNoRecover(unittest.TestCase):
+    """approve/reject/status/retry run as second processes beside a
+    live ``watch`` — they build with ``recover=False`` so the running
+    driver stays recovery's only owner (seen live: an approve printed
+    ``recovery_completed``)."""
+
+    def _args(self):
+        return type("A", (), {
+            "repo": "/x", "state_dir": "/x/state", "profile": "d",
+            "board": None, "request": "apr-1", "actor": "u",
+            "reason": "r", "issue": 3})()
+
+    def _driver(self):
+        driver = mock.MagicMock()
+        driver.status.return_value = {"repo": "/x", "work": []}
+        driver.remote.actor_identity.return_value = {"login": "u"}
+        driver.services.approval.decide_operator.return_value = {
+            "outcome": "approved"}
+        driver.services.lane.request_retry.return_value = {
+            "outcome": "retry-authorized"}
+        driver.effective = {"identity": {"repo_id": "R_x"}}
+        return driver
+
+    def test_decide_status_retry_never_recover(self):
+        for cmd in (run_cli.cmd_status, run_cli.cmd_approve,
+                    run_cli.cmd_reject, run_cli.cmd_retry):
+            driver = self._driver()
+            with mock.patch.object(run_cli, "build",
+                                   return_value=driver) as build:
+                cmd(self._args())
+            self.assertIs(build.call_args.kwargs.get("recover"),
+                          False, cmd.__name__)
+
+
 if __name__ == "__main__":
     unittest.main()
