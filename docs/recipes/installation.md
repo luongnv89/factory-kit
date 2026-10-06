@@ -49,8 +49,9 @@ python3 -m factory_kit.setup plan --repo /path/to/project \
 ```bash
 python3 -m factory_kit.setup apply --repo /path/to/project \
     --plan plan.json --accepted-by <operator> \
-    --state ~/.hermes/profiles/<profile>/factory-kit/setup-state.json \
-    --registrations ~/.hermes/profiles/<profile>/factory-kit/registrations.json
+    --state ~/.hermes/factory-kit/setup-state.json \
+    --registrations ~/.hermes/factory-kit/registrations.json
+  # (named profiles: ~/.hermes/profiles/<profile>/factory-kit/…)
 ```
 
 - `--accepted-by` *is* the acceptance act: the acceptance record binds

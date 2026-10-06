@@ -9,7 +9,7 @@ undocumented commands are required to operate it.
 - **Authority is the durable pair**, never chat history or a second
   scheduler: the kit-owned SQLite intake store (`in.db`,
   `synchronous=FULL`, rollback journal) plus `registration.json`, under
-  `~/.hermes/profiles/<profile>/factory-kit/`.
+  `~/.hermes/factory-kit/` for the `default` profile, `~/.hermes/profiles/<profile>/factory-kit/` for named profiles.
 - **Recovery is the startup pass** (`RecoveryService.recover`,
   `factory_kit/recovery/service.py`): task-binding repair → pending
   publication-intent reconciliation → merge-intent reconciliation →

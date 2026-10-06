@@ -44,7 +44,7 @@ task IDs and can never dispatch by itself.
 
 | §6.4 record | Supported home | Evidence | Status |
 |---|---|---|---|
-| Registration | Kit-owned: per-profile JSON under the plugin dir (`~/.hermes/profiles/<p>/factory-kit/` or repo `.factory-kit.yml` digest) | plugin discovery paths (`plugins/AGENTS.md`) | supported (kit-owned) |
+| Registration | Kit-owned: per-profile JSON under the plugin dir (`~/.hermes/factory-kit/` for `default`, `~/.hermes/profiles/<p>/factory-kit/` for named profiles, or repo `.factory-kit.yml` digest) | plugin discovery paths (`plugins/AGENTS.md`) | supported (kit-owned) |
 | Accepted work (repo+issue+generation key, delivery refs, task ID) | Kanban task row (`create`) carrying the logical key in title/description; **delivery-ID dedup set is kit-owned** (no kanban unique constraint on external IDs) | `hermes kanban create/show --json` | conditional — dedup binding is kit storage, proven in Task 1.2/1.3 |
 | Attempt (task, monotonic fence generation, role, workspace, model, heartbeats, limits) | Kanban task + run/attempt rows; atomic `claim`; dispatcher reclaim of stale claims; `heartbeat`; workspace modes `scratch`/`worktree`/`dir:` | `kanban.md` §"Core concepts"; `hermes kanban claim/heartbeat/runs` | supported |
 | Evidence (PR, head/base, review identity, checks, observation time) | `pr_acceptance` durable events + `attach`/`comment`; `kanban_show --json` exposes persisted contract | `kanban.md` §"PR completion contracts" | supported |

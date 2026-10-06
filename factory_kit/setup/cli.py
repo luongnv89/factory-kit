@@ -28,7 +28,9 @@ Exit codes (shared gi-* vocabulary):
     4  cannot complete — the command could not run to an answer
 
 State paths default under the operator profile
-(``~/.hermes/profiles/<profile>/factory-kit/``); ``--state`` and
+(:func:`factory_kit.config.paths.profile_state_dir` — ``default``
+resolves to ``~/.hermes/factory-kit/``, named profiles to
+``~/.hermes/profiles/<profile>/factory-kit/``); ``--state`` and
 ``--registrations`` override them for tests and alternate profiles.
 ``remove`` additionally accepts ``--intake-db`` for the durable intake
 store — required when ``--history export|delete`` must touch task
@@ -44,6 +46,7 @@ import sys
 from pathlib import Path
 
 from factory_kit import VERSION
+from factory_kit.config.paths import profile_state_dir
 from factory_kit.config.registration import RegistrationStore
 from factory_kit.config.schema import ConfigError, load_manifest_file
 from factory_kit.durable.store import IntakeStore
@@ -64,17 +67,13 @@ def _emit(payload):
 def _state_path(args):
     if args.state:
         return args.state
-    root = Path.home() / ".hermes" / "profiles" / args.profile / \
-        "factory-kit"
-    return str(root / "setup-state.json")
+    return str(profile_state_dir(args.profile) / "setup-state.json")
 
 
 def _registrations_path(args):
     if args.registrations:
         return args.registrations
-    root = Path.home() / ".hermes" / "profiles" / args.profile / \
-        "factory-kit"
-    return str(root / "registrations.json")
+    return str(profile_state_dir(args.profile) / "registrations.json")
 
 
 def _load_plan(path):
@@ -198,9 +197,7 @@ def _intake_store(args):
     """Open the durable intake store when a path resolves, else None."""
     path = getattr(args, "intake_db", None)
     if not path:
-        root = Path.home() / ".hermes" / "profiles" / args.profile / \
-            "factory-kit"
-        candidate = root / "intake.db"
+        candidate = profile_state_dir(args.profile) / "intake.db"
         path = str(candidate) if candidate.is_file() else None
     if path is None:
         return None
