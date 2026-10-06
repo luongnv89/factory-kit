@@ -25,7 +25,7 @@ record ``docs/decisions/package-config-contract.md``):
   (F07).
 """
 
-VERSION = "0.1.0"
+VERSION = "0.2.0b1"
 
 #: Manifest schema versions this package can validate. Bump only with a
 #: recorded migration; the version is part of the registration record.

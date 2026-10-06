@@ -178,6 +178,17 @@ class UpgradeFixture(unittest.TestCase):
 
 class TestUpgradePlanReview(UpgradeFixture):
 
+    def test_beta_kit_accepts_existing_010_registration_pin(self):
+        self._install(pins=["factory-kit/0.1.0", "manifest/1"])
+        plan = self._upgrade_plan()
+        self.assertTrue(plan["appliable"], plan["conflicts"])
+
+    def test_beta_kit_rejects_same_numbered_final_release_pin(self):
+        problems = upgrade_mod._supported_pin_set(
+            ["factory-kit/0.2.0", "manifest/1"])
+        self.assertTrue(any("newer than this kit" in problem
+                            for problem in problems))
+
     def test_plan_is_readonly_and_reviewable(self):
         self._install()
         before_files = fx.snapshot(self.repo)
@@ -332,7 +343,7 @@ class TestAcceptedUpgrade(UpgradeFixture):
         self.assertEqual(reg["readiness"]["dispatch"], "denied")
         self.assertIsNone(reg.get("upgrade"))
         self.assertEqual(reg["supported_versions"],
-                         ["factory-kit/0.1.0", "manifest/1"])
+                         ["factory-kit/0.2.0b1", "manifest/1"])
         # The migration sealed complete; provenance pinned (A2).
         store = self._store()
         mig = store.migration(result["migration_id"])

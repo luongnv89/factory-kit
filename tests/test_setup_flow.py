@@ -30,6 +30,7 @@ READINESS_FIXTURES = ROOT / "tests" / "fixtures" / "readiness"
 sys.path.insert(0, str(ROOT))
 from factory_kit.config import schema  # noqa: E402
 from factory_kit.config.registration import RegistrationStore  # noqa: E402
+from factory_kit import VERSION  # noqa: E402
 from factory_kit.setup import apply as apply_mod  # noqa: E402
 from factory_kit.setup import plan as plan_mod  # noqa: E402
 from factory_kit.setup import readiness  # noqa: E402
@@ -84,6 +85,10 @@ class FullFlowTests(unittest.TestCase):
         record = self.reg.get("R_TEST0001")
         self.assertEqual(record["readiness"]["verdict"], "ready")
         self.assertTrue(record["readiness"]["setup_enabled"])
+        self.assertEqual(record["supported_versions"][0],
+                         "factory-kit/0.1.0")
+        self.assertEqual(VERSION, "0.2.0b1")
+        self.assertEqual(report["version_set"]["kit"], VERSION)
 
         events = self.store.events("setup_checked")
         self.assertEqual(len(events), 1)

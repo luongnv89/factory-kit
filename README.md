@@ -2,6 +2,13 @@
 
 A Hermes-native, Telegram-first engineering workflow kit for GitHub projects, reusing IDD and existing skills.
 
+## Beta status
+
+factory-kit is available as a source-checkout beta, version `0.2.0b1`.
+See the [beta testing guide](docs/beta-testing.md) for the tested setup,
+one-pass driver walkthrough and limitations, and the [changelog](CHANGELOG.md)
+for what changed.
+
 ## Project status
 
 The Sprint-1 spike (issues #2–#5) is complete: the tested recipe, Hermes
