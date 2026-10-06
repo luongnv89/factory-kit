@@ -20,7 +20,7 @@ sys.path.insert(0, str(ROOT))
 from factory_kit.config import precedence, yamlmini  # noqa: E402
 
 FIXTURES = ROOT / "tests" / "fixtures" / "config"
-MANIFEST = ROOT / ".factory-kit.yml"
+MANIFEST = ROOT / "docs" / "examples" / "reference.factory-kit.yml"
 
 
 class CoexistenceTests(unittest.TestCase):

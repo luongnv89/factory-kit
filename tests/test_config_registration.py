@@ -22,7 +22,7 @@ sys.path.insert(0, str(ROOT))
 
 from factory_kit.config import registration, schema  # noqa: E402
 
-MANIFEST = ROOT / ".factory-kit.yml"
+MANIFEST = ROOT / "docs" / "examples" / "reference.factory-kit.yml"
 READINESS = {"verdict": "ready", "blockers": [],
              "checked_at": "2026-10-05T00:00:00Z"}
 VERSIONS = ["factory-kit/0.1.0", "manifest/1", "hermes/0.21.5"]

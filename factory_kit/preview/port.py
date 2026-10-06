@@ -49,6 +49,7 @@ __all__ = [
     "PreviewPort",
     "VercelCliPreview",
     "ScriptedPreview",
+    "NullPreview",
 ]
 
 
@@ -115,6 +116,39 @@ class PreviewPort:
         only when the provider confirmed. An unowned id refuses —
         human-created resources are preserved (A5)."""
         raise NotImplementedError
+
+
+class NullPreview(PreviewPort):
+    """The port behind a declared ``endpoint.preview.provider: none``.
+
+    It owns no deployments: rediscovery finds none, and any attempt to
+    deploy, read back, smoke or remove one raises :class:`PreviewError`
+    — a code path that forgot the no-preview contract fails as an
+    explicit refusal, never as a silent pass or an ``AttributeError``.
+    """
+
+    def provider_name(self) -> str:
+        return "none"
+
+    def _refuse(self, action):
+        raise PreviewError(
+            f"preview {action} refused — the manifest declares "
+            "endpoint.preview.provider: none")
+
+    def deploy(self, spec, identity) -> dict:
+        self._refuse("deploy")
+
+    def inspect(self, deployment_id) -> dict:
+        self._refuse("inspect")
+
+    def find_deployments(self, identity) -> list:
+        return []
+
+    def smoke(self, deployment_id, contract) -> dict:
+        self._refuse("smoke")
+
+    def remove(self, deployment_id, identity) -> dict:
+        self._refuse("remove")
 
 
 #: Identity fields the port echoes into provider-side deployment

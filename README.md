@@ -129,7 +129,7 @@ future PRD, explicit owner adoption and independent evidence; see
 - [F14 future policy and design gates](docs/future/f14-gates.md) — GATE-E01–E04 admission/design checklists; every capability `deferred`, fail-closed
 - [F14 deferred-scope record](docs/decisions/future-scope.md) — standing prerequisites, capability register, re-entry conditions; pending owner confirmation
 - [Decision records](docs/decisions/)
-- [Canonical manifest example](.factory-kit.yml)
+- [Canonical manifest example](docs/examples/reference.factory-kit.yml)
 - [Reference diagram](assets/warp-ai-factory-reference.jpg)
 
 The PRD records the latest scope decisions. The idea and validation retain earlier proposals and recommendations for context.

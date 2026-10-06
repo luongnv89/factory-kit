@@ -6,7 +6,9 @@ CFG-C01/C02; issue #6 / Task 2.1) for the recipe selected in Sprint 1
 (``docs/decisions/tested-recipe-selection.md``):
 
 - runtime: the Hermes Kanban profile worker — the only paved worker path
-- preview provider: Vercel preview deployments (never production)
+- preview provider: Vercel preview deployments (never production), GitHub
+  Pages sub-path previews, or a declared ``none`` for a project with
+  nothing to deploy (a library) — see :func:`preview_required`
 - merge: ``gh pr merge --squash`` by the human-approved merge owner
 - package: Python 3 stdlib-only native plugin ``factory-kit``
 
@@ -36,6 +38,9 @@ __all__ = [
     "SCHEMA_VERSION",
     "SUPPORTED_RUNTIMES",
     "SUPPORTED_PREVIEW_PROVIDERS",
+    "PREVIEW_PROVIDER_NONE",
+    "NO_PREVIEW_BINDING",
+    "preview_required",
     "SUPPORTED_MERGE_METHODS",
     "APPROVAL_CHANNELS",
     "REQUIRED_ROLES",
@@ -64,6 +69,20 @@ SUPPORTED_RUNTIMES = ("hermes-kanban",)
 #: preview deployments (Q10) and GitHub Pages sub-path previews under
 #: ``previews/<id>/`` on the repo's gh-pages branch.
 SUPPORTED_PREVIEW_PROVIDERS = ("vercel", "github-pages")
+
+#: A declared "no preview" contract — a project with nothing to deploy
+#: (a library) says so in reviewed policy, ``endpoint.preview:
+#: {provider: none}`` and nothing else. It is never inferred from a
+#: missing preview row: every gate re-derives it from the bound config
+#: via :func:`preview_required`, and approval/merge then rest on the
+#: required checks plus independent review alone.
+PREVIEW_PROVIDER_NONE = "none"
+
+#: The preview binding an approval request carries under a declared
+#: ``none`` contract — constant, so the request binds "no preview"
+#: itself and a preview row appearing later never matches it.
+NO_PREVIEW_BINDING = hashlib.sha256(
+    b'{"preview":"not-applicable"}').hexdigest()
 
 #: The one merge method selected by Q10.
 SUPPORTED_MERGE_METHODS = ("squash",)
@@ -550,6 +569,18 @@ def _v_endpoint(problems, node):
         return
     _check_unknown(problems, node, "endpoint", _GROUP_KEYS["endpoint"])
     preview = _require_map(problems, node.get("preview"), "endpoint.preview")
+    if preview is not None and \
+            preview.get("provider") == PREVIEW_PROVIDER_NONE:
+        # A declared no-preview contract carries nothing else — a stray
+        # build/smoke/TTL key would suggest a preview that never runs.
+        _check_unknown(problems, preview, "endpoint.preview",
+                       _SUB_KEYS["endpoint.preview"])
+        extra = sorted(k for k in preview if k != "provider")
+        if extra:
+            _err(problems, "endpoint.preview",
+                 f"provider 'none' declares no preview — remove "
+                 f"{', '.join(extra)}")
+        preview = None
     if preview is not None:
         _check_unknown(problems, preview, "endpoint.preview",
                        _SUB_KEYS["endpoint.preview"])
@@ -791,34 +822,39 @@ def _eff_evidence(node):
     return eff
 
 
-def _eff_endpoint(node):
-    merge = node["merge"]
-    preview = node["preview"]
+def _eff_preview(preview):
+    if preview["provider"] == PREVIEW_PROVIDER_NONE:
+        return {"provider": PREVIEW_PROVIDER_NONE}
     smoke = preview["smoke"]
     return {
-        "preview": {
-            "provider": preview["provider"],
-            "environment": preview.get("environment", "preview"),
-            "visibility": preview.get(
-                "visibility", DEFAULT_PREVIEW["visibility"]),
-            "ttl_hours": preview.get(
-                "ttl_hours", DEFAULT_PREVIEW["ttl_hours"]),
-            "cleanup_minutes": preview.get(
-                "cleanup_minutes", DEFAULT_PREVIEW["cleanup_minutes"]),
-            "smoke": {
-                "command": smoke["command"],
-                "expect": smoke["expect"],
-                "marker": smoke.get("marker"),
-            },
-            # Set only when the manifest names it (same digest-stability
-            # rule as merge.approval_channels — an unconditional key
-            # would rekey every pre-build manifest's digests).
-            **({"build": {
-                "commands": list(preview["build"]["commands"]),
-                "output_dir": preview["build"]["output_dir"],
-                "base_env": preview["build"]["base_env"],
-            }} if preview.get("build") is not None else {}),
+        "provider": preview["provider"],
+        "environment": preview.get("environment", "preview"),
+        "visibility": preview.get(
+            "visibility", DEFAULT_PREVIEW["visibility"]),
+        "ttl_hours": preview.get(
+            "ttl_hours", DEFAULT_PREVIEW["ttl_hours"]),
+        "cleanup_minutes": preview.get(
+            "cleanup_minutes", DEFAULT_PREVIEW["cleanup_minutes"]),
+        "smoke": {
+            "command": smoke["command"],
+            "expect": smoke["expect"],
+            "marker": smoke.get("marker"),
         },
+        # Set only when the manifest names it (same digest-stability
+        # rule as merge.approval_channels — an unconditional key
+        # would rekey every pre-build manifest's digests).
+        **({"build": {
+            "commands": list(preview["build"]["commands"]),
+            "output_dir": preview["build"]["output_dir"],
+            "base_env": preview["build"]["base_env"],
+        }} if preview.get("build") is not None else {}),
+    }
+
+
+def _eff_endpoint(node):
+    merge = node["merge"]
+    return {
+        "preview": _eff_preview(node["preview"]),
         "merge": {
             "method": merge["method"],
             "approval_expiry_minutes": merge.get(
@@ -862,6 +898,16 @@ def authority_key(identity) -> str:
 def _canonical(node) -> str:
     return json.dumps(node, sort_keys=True, separators=(",", ":"),
                       ensure_ascii=True)
+
+
+def preview_required(effective) -> bool:
+    """Whether the bound config requires a verified preview before
+    approval and merge — ``False`` only when the reviewed manifest
+    declares ``endpoint.preview.provider: none``. Fails closed: a
+    missing config or contract requires a preview."""
+    preview = ((effective or {}).get("endpoint") or {}).get("preview") \
+        or {}
+    return preview.get("provider") != PREVIEW_PROVIDER_NONE
 
 
 def effective_digest(effective) -> str:

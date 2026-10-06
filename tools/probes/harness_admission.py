@@ -1285,9 +1285,9 @@ def run(*, paths=None, repro_root=ROOT):
             "python": platform.python_version(),
             "platform": platform.platform(),
             "machine": platform.machine(),
-            "manifest": str(ROOT / ".factory-kit.yml"),
+            "manifest": str(ROOT / "docs" / "examples" / "reference.factory-kit.yml"),
             "manifest_effective_digest": schema.effective_digest(
-                schema.load_manifest_file(ROOT / ".factory-kit.yml")),
+                schema.load_manifest_file(ROOT / "docs" / "examples" / "reference.factory-kit.yml")),
             "reproduce": "python3 tools/probes/harness_admission.py "
             "--write docs/adapters/admission-assessment-$(date +%F).json",
         },

@@ -72,7 +72,8 @@ __all__ = ["MergeService"]
 _REVOKE_ON_DENY = {
     "expired",
     "smoke-stale", "smoke-failed", "smoke-unobserved",
-    "preview-moved", "preview-not-verified",
+    "preview-moved", "preview-not-verified", "preview-unexpected",
+    "preview-contract-mismatch",
 }
 
 

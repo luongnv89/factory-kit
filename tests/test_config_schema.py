@@ -20,7 +20,7 @@ sys.path.insert(0, str(ROOT))
 
 from factory_kit.config import schema, yamlmini  # noqa: E402
 
-MANIFEST = ROOT / ".factory-kit.yml"
+MANIFEST = ROOT / "docs" / "examples" / "reference.factory-kit.yml"
 
 
 def load_valid():
@@ -42,7 +42,7 @@ def paths(problems):
 
 
 class ShippedManifestTests(unittest.TestCase):
-    """The repo-root .factory-kit.yml is the canonical schema fixture."""
+    """docs/examples/reference.factory-kit.yml is the canonical schema fixture."""
 
     def test_shipped_manifest_validates(self):
         effective = schema.load_manifest_file(MANIFEST)

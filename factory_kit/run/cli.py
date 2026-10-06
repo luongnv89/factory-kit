@@ -46,11 +46,13 @@ from pathlib import Path
 
 from factory_kit.config.paths import profile_state_dir
 from factory_kit.config.registration import RegistrationStore
-from factory_kit.config.schema import ConfigError, load_manifest_file
+from factory_kit.config.schema import (PREVIEW_PROVIDER_NONE, ConfigError,
+                                       load_manifest_file)
 from factory_kit.durable.store import IntakeStore
 from factory_kit.execution.worker import HermesKanbanWorker
 from factory_kit.preview.pages import GitHubPagesPreview
-from factory_kit.preview.port import PreviewError, VercelCliPreview
+from factory_kit.preview.port import (NullPreview, PreviewError,
+                                     VercelCliPreview)
 from factory_kit.publication.remote import GhCliRemote, RemoteError
 from factory_kit.recovery.poller import GhIssuePoller
 from factory_kit.setup import readiness as readiness_mod
@@ -186,7 +188,11 @@ def build(args, *, log=None, recover=True):
     preview_cfg = ((effective.get("endpoint") or {})
                    .get("preview") or {})
     provider = preview_cfg.get("provider")
-    if provider == "github-pages":
+    if provider == PREVIEW_PROVIDER_NONE:
+        # Declared no-preview contract: nothing to deploy; approval and
+        # merge rest on required checks + independent review.
+        preview_port = NullPreview()
+    elif provider == "github-pages":
         build_cfg = preview_cfg.get("build") or {}
         preview_port = GitHubPagesPreview(
             repo_root=repo, full_name=full_name,

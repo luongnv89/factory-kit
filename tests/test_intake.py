@@ -46,7 +46,7 @@ from factory_kit.config import registration, schema  # noqa: E402
 from factory_kit.durable import store as durable  # noqa: E402
 from factory_kit.intake import reconcile, service, webhook  # noqa: E402
 
-MANIFEST = ROOT / ".factory-kit.yml"
+MANIFEST = ROOT / "docs" / "examples" / "reference.factory-kit.yml"
 SECRET = "test-hmac-not-a-real-key"          # fixture value, never real
 READY = {"verdict": "ready", "dispatch": "allowed", "blockers": [],
          "checked_at": "2026-10-05T00:00:00Z"}
